@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pluck</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <h1>Pluck</h1>
+      <button class="settings-btn" id="settings-btn" title="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M12 1v6m0 6v10M4.22 4.22l4.24 4.24m7.08 7.08l4.24 4.24M1 12h6m6 0h10M4.22 19.78l4.24-4.24m7.08-7.08l4.24-4.24"></path>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Loading State -->
+    <div class="state loading-state" id="loading-state">
+      <div class="spinner"></div>
+      <p>Generating cards...</p>
+    </div>
+
+    <!-- Error State -->
+    <div class="state error-state hidden" id="error-state">
+      <div class="error-icon">!</div>
+      <p class="error-message" id="error-message">An error occurred</p>
+      <button class="btn btn-secondary" id="retry-btn">Try Again</button>
+    </div>
+
+    <!-- No Selection State -->
+    <div class="state no-selection-state hidden" id="no-selection-state">
+      <div class="info-icon">i</div>
+      <p>Please highlight some text on the page first, then open Pluck.</p>
+    </div>
+
+    <!-- API Key Missing State -->
+    <div class="state api-key-state hidden" id="api-key-state">
+      <div class="info-icon">!</div>
+      <p>Please configure your Claude API key to use Pluck.</p>
+      <button class="btn btn-primary" id="open-settings-btn">Open Settings</button>
+    </div>
+
+    <!-- Cards State -->
+    <div class="cards-state hidden" id="cards-state">
+      <div class="cards-list" id="cards-list">
+        <!-- Cards will be rendered here -->
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-mochi hidden" id="mochi-btn" disabled>
+          <span class="btn-text">Send to Mochi</span>
+          <span class="btn-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 2L11 13"></path>
+              <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+            </svg>
+          </span>
+        </button>
+        <button class="btn btn-secondary" id="copy-btn" disabled>
+          <span class="btn-text">Copy</span>
+          <span class="btn-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </span>
+        </button>
+      </div>
+
+      <div class="source-info" id="source-info">
+        <!-- Source URL will be shown here -->
+      </div>
+    </div>
+  </div>
+
+  <script src="../utils/mochi-format.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

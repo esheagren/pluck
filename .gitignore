@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Claude Code
+.claude/
+
+# Logs
+*.log
+
+# Build artifacts (if any added later)
+dist/
+node_modules/

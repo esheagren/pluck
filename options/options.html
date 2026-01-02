@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pluck Settings</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 32px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .toggle-visibility {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #666;
+      padding: 4px;
+    }
+
+    .toggle-visibility:hover {
+      color: #333;
+    }
+
+    .help-text {
+      font-size: 12px;
+      color: #666;
+      margin-top: 8px;
+    }
+
+    .help-text a {
+      color: #6366f1;
+      text-decoration: none;
+    }
+
+    .help-text a:hover {
+      text-decoration: underline;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: #6366f1;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5558e3;
+    }
+
+    .btn-primary:disabled {
+      background: #c7c8f9;
+      cursor: not-allowed;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 16px;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .status.visible {
+      opacity: 1;
+    }
+
+    .status.success {
+      color: #10b981;
+    }
+
+    .status.error {
+      color: #ef4444;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+    }
+
+    .section-divider {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid #eee;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 16px;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    select:disabled {
+      background: #f5f5f5;
+      cursor: not-allowed;
+    }
+
+    .fetch-btn {
+      margin-top: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+    }
+
+    .shortcut-info {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid #eee;
+    }
+
+    .shortcut-info h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 12px;
+    }
+
+    .shortcut {
+      display: inline-block;
+      background: #f0f0f0;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Pluck Settings</h1>
+    <p class="subtitle">Configure your Claude API key to generate flashcards</p>
+
+    <form id="settings-form">
+      <div class="form-group">
+        <label for="api-key">Claude API Key</label>
+        <div class="input-wrapper">
+          <input
+            type="password"
+            id="api-key"
+            name="api-key"
+            placeholder="sk-ant-..."
+            autocomplete="off"
+          >
+          <button type="button" class="toggle-visibility" id="toggle-visibility">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </button>
+        </div>
+        <p class="help-text">
+          Get your API key from the
+          <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Anthropic Console</a>
+        </p>
+      </div>
+
+      <div class="section-divider">
+        <h2 class="section-title">Mochi Integration (Optional)</h2>
+
+        <div class="form-group">
+          <label for="mochi-api-key">Mochi API Key</label>
+          <div class="input-wrapper">
+            <input
+              type="password"
+              id="mochi-api-key"
+              name="mochi-api-key"
+              placeholder="Enter your Mochi API key"
+              autocomplete="off"
+            >
+          </div>
+          <p class="help-text">
+            Get your API key from Mochi Settings → API (requires Pro)
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label for="mochi-deck">Default Deck</label>
+          <select id="mochi-deck" disabled>
+            <option value="">Enter API key first</option>
+          </select>
+          <button type="button" class="btn btn-secondary fetch-btn" id="fetch-decks-btn">
+            Fetch Decks
+          </button>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn btn-primary" id="save-btn">Save Settings</button>
+        <span class="status" id="status"></span>
+      </div>
+    </form>
+
+    <div class="shortcut-info">
+      <h2>Keyboard Shortcut</h2>
+      <p>
+        <span class="shortcut" id="shortcut-display">Cmd+Shift+M</span>
+        to open Pluck
+      </p>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
