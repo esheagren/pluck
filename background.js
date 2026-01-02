@@ -13,7 +13,7 @@ const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 const MOCHI_API_URL = 'https://app.mochi.cards/api';
 
-const SYSTEM_PROMPT = `You are a spaced repetition card generator. Given highlighted text and its surrounding context from a webpage, generate 2-3 high-quality flashcard options.
+const DEFAULT_SYSTEM_PROMPT = `You are a spaced repetition card generator. Given highlighted text and its surrounding context from a webpage, generate 2-3 high-quality flashcard options.
 
 **Card Requirements:**
 - Atomic: One concept per card
@@ -45,6 +45,14 @@ const SYSTEM_PROMPT = `You are a spaced repetition card generator. Given highlig
 - For cloze cards, the question contains the blank, the answer is what fills it`;
 
 /**
+ * Get system prompt from storage (or use default)
+ */
+async function getSystemPrompt() {
+  const result = await chrome.storage.sync.get(['systemPrompt']);
+  return result.systemPrompt || DEFAULT_SYSTEM_PROMPT;
+}
+
+/**
  * Get API key from storage
  */
 async function getApiKey() {
@@ -69,6 +77,8 @@ async function getSelectionFromTab(tabId) {
  * Call Claude API to generate cards
  */
 async function generateCards(selectionData, apiKey) {
+  const systemPrompt = await getSystemPrompt();
+
   const userMessage = `**Selection:** ${selectionData.selection}
 
 **Context:** ${selectionData.context}
@@ -89,7 +99,7 @@ Generate 2-3 spaced repetition cards for the highlighted selection.`;
     body: JSON.stringify({
       model: CLAUDE_MODEL,
       max_tokens: 1024,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: [
         {
           role: 'user',

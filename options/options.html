@@ -81,7 +81,8 @@
     }
 
     input[type="password"],
-    input[type="text"] {
+    input[type="text"],
+    textarea {
       width: 100%;
       padding: 10px 14px;
       font-size: 14px;
@@ -89,12 +90,35 @@
       border-radius: 6px;
       transition: border-color 0.15s ease;
       background: #fafafa;
+      font-family: inherit;
     }
 
-    input:focus {
+    textarea {
+      resize: vertical;
+      min-height: 120px;
+      line-height: 1.5;
+    }
+
+    input:focus,
+    textarea:focus {
       outline: none;
       border-color: #2d3436;
       background: white;
+    }
+
+    .reset-prompt-btn {
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 12px;
+      cursor: pointer;
+      padding: 0;
+      margin-left: 8px;
+      text-decoration: underline;
+    }
+
+    .reset-prompt-btn:hover {
+      color: #2d3436;
     }
 
     .input-wrapper {
@@ -289,6 +313,19 @@
     </div>
 
     <form id="settings-form">
+      <div class="form-group">
+        <label for="system-prompt">Card Generation Prompt</label>
+        <textarea id="system-prompt" rows="12" placeholder="Enter your custom prompt for generating flashcards..."></textarea>
+        <p class="help-text">
+          This prompt tells Claude how to generate flashcards.
+          <button type="button" class="reset-prompt-btn" id="reset-prompt-btn">Reset to default</button>
+        </p>
+      </div>
+
+      <div class="section-divider">
+        <h2 class="section-title">API Keys</h2>
+      </div>
+
       <div class="form-group">
         <label for="api-key">Claude API Key</label>
         <div class="input-wrapper">

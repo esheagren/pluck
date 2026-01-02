@@ -3,6 +3,42 @@
 (function() {
   'use strict';
 
+  // Default system prompt
+  const DEFAULT_PROMPT = `You are a spaced repetition card generator. Given highlighted text and its surrounding context from a webpage, generate 2-3 high-quality flashcard options.
+
+**Card Requirements:**
+- Atomic: One concept per card
+- Clear: Unambiguous question with definite answer
+- Testable: Reader should be able to verify their answer
+- Context-independent: Card should make sense without the source
+
+**Output 2-3 cards in this exact JSON format (no markdown, just raw JSON):**
+{
+  "cards": [
+    {
+      "style": "qa",
+      "question": "...",
+      "answer": "..."
+    }
+  ]
+}
+
+**Card Styles:**
+- qa: Direct question and answer (e.g., "What is X?" / "X is...")
+- cloze: Fill-in-the-blank style (e.g., "The process of ___ allows..." / "photosynthesis")
+- conceptual: "Why" or "How" questions testing deeper understanding
+
+**Guidelines:**
+- Focus on the key concept in the highlighted text
+- Make questions specific and unambiguous
+- Keep answers concise but complete
+- Vary the card styles when appropriate
+- For cloze cards, the question contains the blank, the answer is what fills it`;
+
+  // Prompt elements
+  const systemPromptInput = document.getElementById('system-prompt');
+  const resetPromptBtn = document.getElementById('reset-prompt-btn');
+
   // Claude settings elements
   const apiKeyInput = document.getElementById('api-key');
   const toggleBtn = document.getElementById('toggle-visibility');
@@ -24,7 +60,10 @@
   // Load existing settings on page load
   async function loadSettings() {
     try {
-      const result = await chrome.storage.sync.get(['apiKey', 'mochiApiKey', 'mochiDeckId', 'mochiDecks']);
+      const result = await chrome.storage.sync.get(['apiKey', 'mochiApiKey', 'mochiDeckId', 'mochiDecks', 'systemPrompt']);
+
+      // Load system prompt (use default if not set)
+      systemPromptInput.value = result.systemPrompt || DEFAULT_PROMPT;
 
       if (result.apiKey) {
         apiKeyInput.value = result.apiKey;
@@ -42,6 +81,12 @@
       console.error('Failed to load settings:', error);
     }
   }
+
+  // Reset prompt to default
+  resetPromptBtn.addEventListener('click', () => {
+    systemPromptInput.value = DEFAULT_PROMPT;
+    showStatus('Prompt reset to default', 'success');
+  });
 
   // Populate deck dropdown
   function populateDecks(decks, selectedId) {
@@ -136,6 +181,7 @@
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    const systemPrompt = systemPromptInput.value.trim();
     const apiKey = apiKeyInput.value.trim();
     const mochiApiKey = mochiApiKeyInput.value.trim();
     const mochiDeckId = mochiDeckSelect.value;
@@ -156,6 +202,7 @@
 
     try {
       await chrome.storage.sync.set({
+        systemPrompt: systemPrompt || null,
         apiKey,
         mochiApiKey: mochiApiKey || null,
         mochiDeckId: mochiDeckId || null
