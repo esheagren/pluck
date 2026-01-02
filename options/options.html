@@ -27,6 +27,13 @@
       padding: 32px;
     }
 
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 32px;
+    }
+
     h1 {
       font-size: 24px;
       font-weight: 600;
@@ -37,7 +44,23 @@
     .subtitle {
       color: #666;
       font-size: 14px;
-      margin-bottom: 32px;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      padding: 8px;
+      cursor: pointer;
+      color: #999;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s ease;
+    }
+
+    .close-btn:hover {
+      color: #333;
     }
 
     .form-group {
@@ -224,8 +247,18 @@
 </head>
 <body>
   <div class="container">
-    <h1>Pluckk Settings</h1>
-    <p class="subtitle">Configure your Claude API key to generate flashcards</p>
+    <div class="page-header">
+      <div>
+        <h1>Pluckk Settings</h1>
+        <p class="subtitle">Configure your Claude API key to generate flashcards</p>
+      </div>
+      <button class="close-btn" id="close-page-btn" title="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
 
     <form id="settings-form">
       <div class="form-group">

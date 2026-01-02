@@ -10,6 +10,7 @@
   const saveBtn = document.getElementById('save-btn');
   const statusEl = document.getElementById('status');
   const shortcutDisplay = document.getElementById('shortcut-display');
+  const closePageBtn = document.getElementById('close-page-btn');
 
   // Mochi settings elements
   const mochiApiKeyInput = document.getElementById('mochi-api-key');
@@ -167,6 +168,11 @@
       saveBtn.disabled = false;
       saveBtn.textContent = 'Save Settings';
     }
+  });
+
+  // Close page button
+  closePageBtn.addEventListener('click', () => {
+    window.close();
   });
 
   // Initialize

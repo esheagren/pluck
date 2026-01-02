@@ -20,6 +20,7 @@
   const regenerateBtn = document.getElementById('regenerate-btn');
   const settingsBtn = document.getElementById('settings-btn');
   const openSettingsBtn = document.getElementById('open-settings-btn');
+  const closeBtn = document.getElementById('close-btn');
   const selectedCountEl = document.getElementById('selected-count');
   const totalCountEl = document.getElementById('total-count');
 
@@ -362,6 +363,13 @@
     chrome.runtime.openOptionsPage();
   }
 
+  /**
+   * Close the side panel
+   */
+  function closePanel() {
+    window.close();
+  }
+
   // Event Listeners
   copyBtn.addEventListener('click', copyToClipboard);
   mochiBtn.addEventListener('click', sendToMochi);
@@ -370,6 +378,7 @@
   regenerateBtn.addEventListener('click', generateCards);
   settingsBtn.addEventListener('click', openSettings);
   openSettingsBtn.addEventListener('click', openSettings);
+  closeBtn.addEventListener('click', closePanel);
 
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
@@ -393,6 +402,11 @@
     // R to regenerate
     if (e.key === 'r' && !e.target.isContentEditable) {
       generateCards();
+    }
+
+    // Escape to close
+    if (e.key === 'Escape') {
+      closePanel();
     }
   });
 
