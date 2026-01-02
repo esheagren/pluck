@@ -116,10 +116,7 @@
       cardEl.dataset.index = index;
 
       cardEl.innerHTML = `
-        <div class="card-header">
-          <div class="card-checkbox"></div>
-          <span class="card-style ${card.style}">${formatStyleLabel(card.style)}</span>
-        </div>
+        <div class="card-checkbox"></div>
         <div class="card-content">
           <div class="card-question" contenteditable="true" data-field="question">${escapeHtml(question)}</div>
           <div class="card-divider"></div>
@@ -200,18 +197,6 @@
     });
 
     updateSelectionCount();
-  }
-
-  /**
-   * Format card style label
-   */
-  function formatStyleLabel(style) {
-    const labels = {
-      qa: 'Q&A',
-      cloze: 'Cloze',
-      conceptual: 'Conceptual'
-    };
-    return labels[style] || style;
   }
 
   /**
