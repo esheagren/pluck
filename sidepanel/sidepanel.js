@@ -20,7 +20,6 @@
   const regenerateBtn = document.getElementById('regenerate-btn');
   const settingsBtn = document.getElementById('settings-btn');
   const openSettingsBtn = document.getElementById('open-settings-btn');
-  const selectAllBtn = document.getElementById('select-all-btn');
   const selectedCountEl = document.getElementById('selected-count');
   const totalCountEl = document.getElementById('total-count');
 
@@ -80,13 +79,6 @@
     copyBtn.disabled = !hasSelection;
     if (mochiConfigured) {
       mochiBtn.disabled = !hasSelection;
-    }
-
-    // Update select all button text
-    if (count === cards.length) {
-      selectAllBtn.textContent = 'Deselect All';
-    } else {
-      selectAllBtn.textContent = 'Select All';
     }
 
     // Update button text with count
@@ -175,26 +167,6 @@
     if (cardEl) {
       cardEl.classList.toggle('selected', selectedIndices.has(index));
     }
-
-    updateSelectionCount();
-  }
-
-  /**
-   * Select or deselect all cards
-   */
-  function toggleSelectAll() {
-    if (selectedIndices.size === cards.length) {
-      // Deselect all
-      selectedIndices.clear();
-    } else {
-      // Select all
-      cards.forEach((_, index) => selectedIndices.add(index));
-    }
-
-    // Update UI
-    document.querySelectorAll('.card-item').forEach((el, i) => {
-      el.classList.toggle('selected', selectedIndices.has(i));
-    });
 
     updateSelectionCount();
   }
@@ -350,9 +322,6 @@
       selectedIndices = new Set();
       editedCards = {};
 
-      // Auto-select all cards by default
-      cards.forEach((_, index) => selectedIndices.add(index));
-
       renderCards();
       showState(cardsState);
     } catch (error) {
@@ -401,7 +370,6 @@
   regenerateBtn.addEventListener('click', generateCards);
   settingsBtn.addEventListener('click', openSettings);
   openSettingsBtn.addEventListener('click', openSettings);
-  selectAllBtn.addEventListener('click', toggleSelectAll);
 
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
@@ -411,11 +379,6 @@
       if (index < cards.length) {
         toggleCard(index);
       }
-    }
-
-    // A to select/deselect all
-    if (e.key === 'a' && !e.target.isContentEditable) {
-      toggleSelectAll();
     }
 
     // Enter to send to Mochi (if configured) or copy

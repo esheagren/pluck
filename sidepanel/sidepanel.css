@@ -357,21 +357,6 @@ body {
   color: #374151;
 }
 
-.select-all-btn {
-  background: none;
-  border: none;
-  color: #6366f1;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-.select-all-btn:hover {
-  background: #e0e7ff;
-}
-
 /* Actions */
 .actions {
   display: flex;
