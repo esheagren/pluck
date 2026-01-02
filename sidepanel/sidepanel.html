@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pluck</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <h1>Pluck</h1>
+      <button class="settings-btn" id="settings-btn" title="Settings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Loading State -->
+    <div class="state loading-state" id="loading-state">
+      <div class="spinner"></div>
+      <p>Generating cards...</p>
+    </div>
+
+    <!-- Error State -->
+    <div class="state error-state hidden" id="error-state">
+      <div class="error-icon">!</div>
+      <p class="error-message" id="error-message">An error occurred</p>
+      <button class="btn btn-secondary" id="retry-btn">Try Again</button>
+    </div>
+
+    <!-- No Selection State -->
+    <div class="state no-selection-state hidden" id="no-selection-state">
+      <div class="info-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+      </div>
+      <h2>No text selected</h2>
+      <p>Highlight some text on the page, then click the Pluck button to generate flashcards.</p>
+      <button class="btn btn-primary" id="refresh-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        Check Again
+      </button>
+    </div>
+
+    <!-- API Key Missing State -->
+    <div class="state api-key-state hidden" id="api-key-state">
+      <div class="info-icon warning">!</div>
+      <h2>API Key Required</h2>
+      <p>Please configure your Claude API key to use Pluck.</p>
+      <button class="btn btn-primary" id="open-settings-btn">Open Settings</button>
+    </div>
+
+    <!-- Cards State -->
+    <div class="cards-state hidden" id="cards-state">
+      <div class="cards-header">
+        <h2>Generated Cards</h2>
+        <button class="btn btn-ghost" id="regenerate-btn" title="Regenerate cards">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="cards-list" id="cards-list">
+        <!-- Cards will be rendered here -->
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-mochi hidden" id="mochi-btn" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 2L11 13"></path>
+            <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+          </svg>
+          <span class="btn-text">Send to Mochi</span>
+        </button>
+        <button class="btn btn-secondary" id="copy-btn" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span class="btn-text">Copy</span>
+        </button>
+      </div>
+
+      <div class="source-info" id="source-info">
+        <!-- Source URL will be shown here -->
+      </div>
+    </div>
+  </div>
+
+  <script src="../utils/mochi-format.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

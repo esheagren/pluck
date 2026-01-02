@@ -1,6 +1,14 @@
 // Pluck - Background Service Worker
 // Handles Claude API calls, Mochi integration, and message routing
 
+// Open side panel when extension icon is clicked
+chrome.action.onClicked.addListener((tab) => {
+  chrome.sidePanel.open({ windowId: tab.windowId });
+});
+
+// Enable side panel to be opened
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 const MOCHI_API_URL = 'https://app.mochi.cards/api';

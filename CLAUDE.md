@@ -27,12 +27,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │                    CHROME EXTENSION                            │
 │                                                                │
 │  ┌──────────────┐      ┌──────────────┐      ┌──────────────┐ │
-│  │   Content    │      │  Background  │      │    Popup     │ │
+│  │   Content    │      │  Background  │      │  Side Panel  │ │
 │  │   Script     │─────▶│   Worker     │─────▶│   (UI)       │ │
 │  │              │      │              │      │              │ │
 │  │ - Selection  │      │ - Claude API │      │ - Show cards │ │
-│  │ - Context    │      │ - Storage    │      │ - Edit       │ │
-│  │ - URL/Title  │      │              │      │ - Copy out   │ │
+│  │ - Context    │      │ - Mochi API  │      │ - Edit       │ │
+│  │ - URL/Title  │      │ - Storage    │      │ - Send/Copy  │ │
 │  └──────────────┘      └──────────────┘      └──────────────┘ │
 └────────────────────────────────────────────────────────────────┘
 ```
@@ -43,7 +43,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **Background Worker (`background.js`)**: Service worker that receives context, calls Claude API with card generation prompt, stores API key in `chrome.storage.sync`, returns generated cards to popup.
 
-- **Popup (`popup/`)**: Displays 2-3 card options, allows selection and inline editing of Q&A, formats as Mochi markdown, copies to clipboard.
+- **Side Panel (`sidepanel/`)**: Full-height panel on right side of browser. Displays 2-3 card options, allows selection and inline editing of Q&A, sends to Mochi or copies to clipboard.
 
 - **Utils (`utils/mochi-format.js`)**: Mochi markdown formatter utility.
 
@@ -93,7 +93,7 @@ Output JSON with 2-3 cards, each having `style` (qa/cloze/conceptual), `question
 
 ## Keyboard Shortcuts
 
-- `Cmd+Shift+M` (Mac) / `Ctrl+Shift+M` (Windows): Open Pluck
+- `Cmd+Shift+M` (Mac) / `Ctrl+Shift+M` (Windows): Open Pluck side panel
 - `1`, `2`, `3`: Select card by number
 - `Enter`: Send to Mochi (or copy if Mochi not configured)
-- `Escape`: Close popup
+- `R`: Regenerate cards

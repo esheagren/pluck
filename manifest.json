@@ -6,7 +6,8 @@
   "permissions": [
     "activeTab",
     "storage",
-    "clipboardWrite"
+    "clipboardWrite",
+    "sidePanel"
   ],
   "host_permissions": [
     "https://api.anthropic.com/*",
@@ -22,13 +23,15 @@
     }
   ],
   "action": {
-    "default_popup": "popup/popup.html",
     "default_icon": {
       "16": "icons/icon-16.png",
       "48": "icons/icon-48.png",
       "128": "icons/icon-128.png"
     },
     "default_title": "Pluck"
+  },
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
   },
   "options_ui": {
     "page": "options/options.html",
@@ -40,7 +43,7 @@
         "default": "Ctrl+Shift+M",
         "mac": "Command+Shift+M"
       },
-      "description": "Open Pluck popup"
+      "description": "Open Pluck"
     }
   },
   "icons": {
