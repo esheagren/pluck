@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Pluck** is a Chrome extension that captures highlighted text from any webpage, generates spaced repetition flashcard options using Claude API, and sends them directly to Mochi (or copies to clipboard).
+**Pluckk** is a Chrome extension that captures highlighted text from any webpage, generates spaced repetition flashcard options using Claude API, and sends them directly to Mochi (or copies to clipboard).
 
 **Core flow:** Highlight → Trigger extension (click or Cmd+Shift+M) → Select from 2-3 generated cards → Edit if needed → Send to Mochi
 
@@ -93,7 +93,7 @@ Output JSON with 2-3 cards, each having `style` (qa/cloze/conceptual), `question
 
 ## Keyboard Shortcuts
 
-- `Cmd+Shift+M` (Mac) / `Ctrl+Shift+M` (Windows): Open Pluck side panel
+- `Cmd+Shift+M` (Mac) / `Ctrl+Shift+M` (Windows): Open Pluckk side panel
 - `1`, `2`, `3`: Select card by number
 - `Enter`: Send to Mochi (or copy if Mochi not configured)
 - `R`: Regenerate cards

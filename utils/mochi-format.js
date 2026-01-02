@@ -1,4 +1,4 @@
-// Pluck - Mochi Markdown Formatter
+// Pluckk - Mochi Markdown Formatter
 // Formats flashcards for Mochi's expected markdown format
 
 /**

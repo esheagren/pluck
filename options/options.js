@@ -1,4 +1,4 @@
-// Pluck - Options Page Script
+// Pluckk - Options Page Script
 
 (function() {
   'use strict';

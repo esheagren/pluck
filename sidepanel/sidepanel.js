@@ -1,4 +1,4 @@
-// Pluck - Side Panel Script
+// Pluckk - Side Panel Script
 // Main UI logic for card generation and Mochi integration
 
 (function() {

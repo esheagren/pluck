@@ -1,4 +1,4 @@
-// Pluck - Background Service Worker
+// Pluckk - Background Service Worker
 // Handles Claude API calls, Mochi integration, and message routing
 
 // Open side panel when extension icon is clicked

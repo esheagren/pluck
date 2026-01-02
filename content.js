@@ -1,4 +1,4 @@
-// Pluck - Content Script
+// Pluckk - Content Script
 // Captures selected text and surrounding context from any webpage
 
 (function() {

@@ -1,4 +1,4 @@
-// Pluck - Popup Script
+// Pluckk - Popup Script
 // Main UI logic for card generation and clipboard output
 
 (function() {

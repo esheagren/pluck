@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Pluck",
+  "name": "Pluckk",
   "version": "1.0.0",
-  "description": "Pluck knowledge from any page and turn it into spaced repetition flashcards",
+  "description": "Pluckk knowledge from any page and turn it into spaced repetition flashcards",
   "permissions": [
     "activeTab",
     "storage",
@@ -28,7 +28,7 @@
       "48": "icons/icon-48.png",
       "128": "icons/icon-128.png"
     },
-    "default_title": "Pluck"
+    "default_title": "Pluckk"
   },
   "side_panel": {
     "default_path": "sidepanel/sidepanel.html"
@@ -43,7 +43,7 @@
         "default": "Ctrl+Shift+M",
         "mac": "Command+Shift+M"
       },
-      "description": "Open Pluck"
+      "description": "Open Pluckk"
     }
   },
   "icons": {
