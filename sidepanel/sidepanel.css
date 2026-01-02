@@ -279,11 +279,11 @@ body {
   margin-bottom: 12px;
 }
 
-.card-radio {
+.card-checkbox {
   width: 20px;
   height: 20px;
   border: 2px solid #d1d5db;
-  border-radius: 50%;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -291,16 +291,17 @@ body {
   transition: all 0.2s;
 }
 
-.card-item.selected .card-radio {
+.card-item.selected .card-checkbox {
   border-color: #6366f1;
+  background: #6366f1;
 }
 
-.card-item.selected .card-radio::after {
+.card-item.selected .card-checkbox::after {
   content: '';
-  width: 10px;
-  height: 10px;
-  background: #6366f1;
-  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  background-size: contain;
 }
 
 .card-style {
@@ -362,6 +363,38 @@ body {
   margin: 12px 0 12px 30px;
 }
 
+/* Selection count */
+.selection-count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.selection-count strong {
+  color: #374151;
+}
+
+.select-all-btn {
+  background: none;
+  border: none;
+  color: #6366f1;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.select-all-btn:hover {
+  background: #e0e7ff;
+}
+
 /* Actions */
 .actions {
   display: flex;
@@ -372,6 +405,14 @@ body {
 .actions .btn {
   flex: 1;
   padding: 14px 20px;
+}
+
+.btn .count-badge {
+  background: rgba(255, 255, 255, 0.3);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  margin-left: 4px;
 }
 
 /* Source Info */

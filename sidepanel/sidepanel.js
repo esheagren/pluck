@@ -20,10 +20,13 @@
   const regenerateBtn = document.getElementById('regenerate-btn');
   const settingsBtn = document.getElementById('settings-btn');
   const openSettingsBtn = document.getElementById('open-settings-btn');
+  const selectAllBtn = document.getElementById('select-all-btn');
+  const selectedCountEl = document.getElementById('selected-count');
+  const totalCountEl = document.getElementById('total-count');
 
   // State
   let cards = [];
-  let selectedIndex = -1;
+  let selectedIndices = new Set(); // Multi-select support
   let sourceUrl = '';
   let editedCards = {};
   let mochiConfigured = false;
@@ -65,13 +68,45 @@
   }
 
   /**
+   * Update selection count display
+   */
+  function updateSelectionCount() {
+    const count = selectedIndices.size;
+    selectedCountEl.textContent = count;
+    totalCountEl.textContent = cards.length;
+
+    // Update button states
+    const hasSelection = count > 0;
+    copyBtn.disabled = !hasSelection;
+    if (mochiConfigured) {
+      mochiBtn.disabled = !hasSelection;
+    }
+
+    // Update select all button text
+    if (count === cards.length) {
+      selectAllBtn.textContent = 'Deselect All';
+    } else {
+      selectAllBtn.textContent = 'Select All';
+    }
+
+    // Update button text with count
+    if (hasSelection && count > 1) {
+      mochiBtn.querySelector('.btn-text').textContent = `Send ${count} to Mochi`;
+      copyBtn.querySelector('.btn-text').textContent = `Copy ${count}`;
+    } else {
+      mochiBtn.querySelector('.btn-text').textContent = 'Send to Mochi';
+      copyBtn.querySelector('.btn-text').textContent = 'Copy';
+    }
+  }
+
+  /**
    * Render cards in the UI
    */
   function renderCards() {
     cardsList.innerHTML = '';
 
     cards.forEach((card, index) => {
-      const isSelected = index === selectedIndex;
+      const isSelected = selectedIndices.has(index);
       const edited = editedCards[index] || {};
       const question = edited.question !== undefined ? edited.question : card.question;
       const answer = edited.answer !== undefined ? edited.answer : card.answer;
@@ -82,7 +117,7 @@
 
       cardEl.innerHTML = `
         <div class="card-header">
-          <div class="card-radio"></div>
+          <div class="card-checkbox"></div>
           <span class="card-style ${card.style}">${formatStyleLabel(card.style)}</span>
         </div>
         <div class="card-content">
@@ -92,12 +127,12 @@
         </div>
       `;
 
-      // Handle card selection
+      // Handle card selection (toggle)
       cardEl.addEventListener('click', (e) => {
         if (e.target.hasAttribute('contenteditable') && e.target.isContentEditable) {
           return;
         }
-        selectCard(index);
+        toggleCard(index);
       });
 
       // Handle edits
@@ -114,9 +149,6 @@
         editedCards[index].answer = answerEl.textContent;
       });
 
-      questionEl.addEventListener('focus', () => selectCard(index));
-      answerEl.addEventListener('focus', () => selectCard(index));
-
       cardsList.appendChild(cardEl);
     });
 
@@ -127,21 +159,47 @@
         : sourceUrl;
       sourceInfo.innerHTML = `Source: <a href="${escapeHtml(sourceUrl)}" target="_blank">${escapeHtml(displayUrl)}</a>`;
     }
+
+    updateSelectionCount();
   }
 
   /**
-   * Select a card
+   * Toggle card selection
    */
-  function selectCard(index) {
-    selectedIndex = index;
-    copyBtn.disabled = false;
-    if (mochiConfigured) {
-      mochiBtn.disabled = false;
+  function toggleCard(index) {
+    if (selectedIndices.has(index)) {
+      selectedIndices.delete(index);
+    } else {
+      selectedIndices.add(index);
     }
 
+    // Update UI
+    const cardEl = cardsList.children[index];
+    if (cardEl) {
+      cardEl.classList.toggle('selected', selectedIndices.has(index));
+    }
+
+    updateSelectionCount();
+  }
+
+  /**
+   * Select or deselect all cards
+   */
+  function toggleSelectAll() {
+    if (selectedIndices.size === cards.length) {
+      // Deselect all
+      selectedIndices.clear();
+    } else {
+      // Select all
+      cards.forEach((_, index) => selectedIndices.add(index));
+    }
+
+    // Update UI
     document.querySelectorAll('.card-item').forEach((el, i) => {
-      el.classList.toggle('selected', i === index);
+      el.classList.toggle('selected', selectedIndices.has(i));
     });
+
+    updateSelectionCount();
   }
 
   /**
@@ -166,35 +224,31 @@
   }
 
   /**
-   * Get the current card data (with edits applied)
+   * Get all selected cards with edits applied
    */
-  function getCurrentCard() {
-    if (selectedIndex < 0 || selectedIndex >= cards.length) {
-      return null;
-    }
-
-    const card = cards[selectedIndex];
-    const edited = editedCards[selectedIndex] || {};
-
-    return {
-      question: edited.question !== undefined ? edited.question : card.question,
-      answer: edited.answer !== undefined ? edited.answer : card.answer,
-      style: card.style
-    };
+  function getSelectedCards() {
+    return Array.from(selectedIndices).sort().map(index => {
+      const card = cards[index];
+      const edited = editedCards[index] || {};
+      return {
+        question: edited.question !== undefined ? edited.question : card.question,
+        answer: edited.answer !== undefined ? edited.answer : card.answer,
+        style: card.style
+      };
+    });
   }
 
   /**
-   * Copy selected card to clipboard
+   * Copy selected cards to clipboard
    */
   async function copyToClipboard() {
-    const card = getCurrentCard();
-    if (!card) return;
+    const selectedCards = getSelectedCards();
+    if (selectedCards.length === 0) return;
 
-    const markdown = window.MochiFormat.formatForMochi(
-      card.question,
-      card.answer,
-      sourceUrl
-    );
+    // Format all selected cards
+    const markdown = selectedCards.map(card =>
+      window.MochiFormat.formatForMochi(card.question, card.answer, sourceUrl)
+    ).join('\n\n---\n\n');
 
     try {
       await navigator.clipboard.writeText(markdown);
@@ -206,7 +260,7 @@
       setTimeout(() => {
         copyBtn.classList.remove('btn-success');
         copyBtn.classList.add('btn-secondary');
-        copyBtn.querySelector('.btn-text').textContent = 'Copy';
+        updateSelectionCount(); // Restore button text
       }, 2000);
     } catch (error) {
       console.error('Failed to copy:', error);
@@ -215,52 +269,75 @@
   }
 
   /**
-   * Send selected card to Mochi
+   * Send selected cards to Mochi (one at a time due to rate limiting)
    */
   async function sendToMochi() {
-    const card = getCurrentCard();
-    if (!card) return;
+    const selectedCards = getSelectedCards();
+    if (selectedCards.length === 0) return;
 
     mochiBtn.disabled = true;
-    mochiBtn.querySelector('.btn-text').textContent = 'Sending...';
+    const totalCards = selectedCards.length;
+    let sentCount = 0;
+    let errors = [];
 
-    try {
-      const response = await chrome.runtime.sendMessage({
-        action: 'sendToMochi',
-        question: card.question,
-        answer: card.answer,
-        sourceUrl: sourceUrl
-      });
+    mochiBtn.querySelector('.btn-text').textContent = `Sending 0/${totalCards}...`;
 
-      if (response.error) {
-        let errorMsg = 'Failed to send to Mochi';
-        if (response.error === 'mochi_api_key_missing') {
-          errorMsg = 'Mochi API key not configured';
-        } else if (response.error === 'mochi_deck_not_selected') {
-          errorMsg = 'No Mochi deck selected';
-        } else if (response.message) {
-          errorMsg = response.message;
+    for (const card of selectedCards) {
+      try {
+        const response = await chrome.runtime.sendMessage({
+          action: 'sendToMochi',
+          question: card.question,
+          answer: card.answer,
+          sourceUrl: sourceUrl
+        });
+
+        if (response.error) {
+          errors.push(response.error);
+        } else {
+          sentCount++;
         }
-        showError(errorMsg);
-        return;
+
+        mochiBtn.querySelector('.btn-text').textContent = `Sending ${sentCount}/${totalCards}...`;
+
+        // Small delay between requests to respect rate limiting
+        if (selectedCards.indexOf(card) < selectedCards.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      } catch (error) {
+        errors.push(error.message);
       }
-
-      mochiBtn.classList.add('btn-success');
-      mochiBtn.classList.remove('btn-mochi');
-      mochiBtn.querySelector('.btn-text').textContent = 'Sent!';
-
-      setTimeout(() => {
-        mochiBtn.classList.remove('btn-success');
-        mochiBtn.classList.add('btn-mochi');
-        mochiBtn.querySelector('.btn-text').textContent = 'Send to Mochi';
-        mochiBtn.disabled = false;
-      }, 2000);
-    } catch (error) {
-      console.error('Failed to send to Mochi:', error);
-      showError('Failed to send to Mochi');
-      mochiBtn.disabled = false;
-      mochiBtn.querySelector('.btn-text').textContent = 'Send to Mochi';
     }
+
+    if (errors.length > 0 && sentCount === 0) {
+      // All failed
+      let errorMsg = 'Failed to send to Mochi';
+      if (errors[0] === 'mochi_api_key_missing') {
+        errorMsg = 'Mochi API key not configured';
+      } else if (errors[0] === 'mochi_deck_not_selected') {
+        errorMsg = 'No Mochi deck selected';
+      }
+      showError(errorMsg);
+      mochiBtn.disabled = false;
+      updateSelectionCount();
+      return;
+    }
+
+    // Show success
+    mochiBtn.classList.add('btn-success');
+    mochiBtn.classList.remove('btn-mochi');
+
+    if (errors.length > 0) {
+      mochiBtn.querySelector('.btn-text').textContent = `Sent ${sentCount}/${totalCards}`;
+    } else {
+      mochiBtn.querySelector('.btn-text').textContent = `Sent ${sentCount}!`;
+    }
+
+    setTimeout(() => {
+      mochiBtn.classList.remove('btn-success');
+      mochiBtn.classList.add('btn-mochi');
+      mochiBtn.disabled = false;
+      updateSelectionCount();
+    }, 2000);
   }
 
   /**
@@ -285,15 +362,14 @@
 
       cards = response.cards;
       sourceUrl = response.source?.url || '';
-      selectedIndex = -1;
+      selectedIndices = new Set();
       editedCards = {};
+
+      // Auto-select all cards by default
+      cards.forEach((_, index) => selectedIndices.add(index));
 
       renderCards();
       showState(cardsState);
-
-      if (cards.length > 0) {
-        selectCard(0);
-      }
     } catch (error) {
       console.error('Generation failed:', error);
       showError('Failed to generate cards. Please try again.');
@@ -340,19 +416,25 @@
   regenerateBtn.addEventListener('click', generateCards);
   settingsBtn.addEventListener('click', openSettings);
   openSettingsBtn.addEventListener('click', openSettings);
+  selectAllBtn.addEventListener('click', toggleSelectAll);
 
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
-    // Number keys 1-3 to select cards
+    // Number keys 1-3 to toggle cards
     if (e.key >= '1' && e.key <= '3' && !e.target.isContentEditable) {
       const index = parseInt(e.key) - 1;
       if (index < cards.length) {
-        selectCard(index);
+        toggleCard(index);
       }
     }
 
+    // A to select/deselect all
+    if (e.key === 'a' && !e.target.isContentEditable) {
+      toggleSelectAll();
+    }
+
     // Enter to send to Mochi (if configured) or copy
-    if (e.key === 'Enter' && !e.target.isContentEditable && selectedIndex >= 0) {
+    if (e.key === 'Enter' && !e.target.isContentEditable && selectedIndices.size > 0) {
       if (mochiConfigured) {
         sendToMochi();
       } else {
