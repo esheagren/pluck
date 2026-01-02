@@ -12,18 +12,22 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      background: #f5f5f5;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #fafafa;
       min-height: 100vh;
-      padding: 40px 20px;
+      padding: 48px 24px;
+      color: #2d3436;
+      font-size: 14px;
+      line-height: 1.6;
+      letter-spacing: -0.01em;
     }
 
     .container {
-      max-width: 500px;
+      max-width: 440px;
       margin: 0 auto;
       background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      border: 1px solid #e8e8e8;
       padding: 32px;
     }
 
@@ -35,15 +39,16 @@
     }
 
     h1 {
-      font-size: 24px;
-      font-weight: 600;
-      color: #1a1a1a;
-      margin-bottom: 8px;
+      font-size: 18px;
+      font-weight: 500;
+      color: #2d3436;
+      margin-bottom: 6px;
+      letter-spacing: -0.02em;
     }
 
     .subtitle {
-      color: #666;
-      font-size: 14px;
+      color: #888;
+      font-size: 13px;
     }
 
     .close-btn {
@@ -51,7 +56,7 @@
       border: none;
       padding: 8px;
       cursor: pointer;
-      color: #999;
+      color: #a0a0a0;
       border-radius: 6px;
       display: flex;
       align-items: center;
@@ -60,35 +65,36 @@
     }
 
     .close-btn:hover {
-      color: #333;
+      color: #2d3436;
     }
 
     .form-group {
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
     label {
       display: block;
-      font-size: 14px;
-      font-weight: 500;
-      color: #333;
+      font-size: 13px;
+      font-weight: 450;
+      color: #2d3436;
       margin-bottom: 8px;
     }
 
     input[type="password"],
     input[type="text"] {
       width: 100%;
-      padding: 12px 16px;
+      padding: 10px 14px;
       font-size: 14px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      transition: border-color 0.15s ease;
+      background: #fafafa;
     }
 
     input:focus {
       outline: none;
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      border-color: #2d3436;
+      background: white;
     }
 
     .input-wrapper {
@@ -97,60 +103,71 @@
 
     .toggle-visibility {
       position: absolute;
-      right: 12px;
+      right: 10px;
       top: 50%;
       transform: translateY(-50%);
       background: none;
       border: none;
       cursor: pointer;
-      color: #666;
+      color: #a0a0a0;
       padding: 4px;
+      transition: color 0.15s ease;
     }
 
     .toggle-visibility:hover {
-      color: #333;
+      color: #2d3436;
     }
 
     .help-text {
       font-size: 12px;
-      color: #666;
+      color: #a0a0a0;
       margin-top: 8px;
     }
 
     .help-text a {
-      color: #6366f1;
+      color: #888;
       text-decoration: none;
     }
 
     .help-text a:hover {
-      text-decoration: underline;
+      color: #2d3436;
     }
 
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 12px 24px;
-      font-size: 14px;
-      font-weight: 500;
-      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 450;
+      border-radius: 6px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.15s ease;
       border: none;
+      letter-spacing: -0.01em;
     }
 
     .btn-primary {
-      background: #6366f1;
+      background: #2d3436;
       color: white;
     }
 
     .btn-primary:hover {
-      background: #5558e3;
+      background: #1a1a1a;
     }
 
     .btn-primary:disabled {
-      background: #c7c8f9;
+      background: #d0d0d0;
       cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #2d3436;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e5e5;
     }
 
     .status {
@@ -158,9 +175,9 @@
       align-items: center;
       gap: 8px;
       margin-left: 16px;
-      font-size: 14px;
+      font-size: 13px;
       opacity: 0;
-      transition: opacity 0.3s;
+      transition: opacity 0.2s ease;
     }
 
     .status.visible {
@@ -168,11 +185,11 @@
     }
 
     .status.success {
-      color: #10b981;
+      color: #27ae60;
     }
 
     .status.error {
-      color: #ef4444;
+      color: #c0392b;
     }
 
     .actions {
@@ -181,67 +198,78 @@
     }
 
     .section-divider {
-      margin-top: 32px;
+      margin-top: 28px;
       padding-top: 24px;
       border-top: 1px solid #eee;
     }
 
     .section-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: #333;
+      font-size: 14px;
+      font-weight: 450;
+      color: #2d3436;
       margin-bottom: 16px;
     }
 
     select {
       width: 100%;
-      padding: 12px 16px;
+      padding: 10px 14px;
       font-size: 14px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      background: #fafafa;
       cursor: pointer;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: border-color 0.15s ease;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
     }
 
     select:focus {
       outline: none;
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      border-color: #2d3436;
+      background-color: white;
     }
 
     select:disabled {
-      background: #f5f5f5;
+      background-color: #f5f5f5;
+      color: #a0a0a0;
       cursor: not-allowed;
     }
 
     .fetch-btn {
-      margin-top: 8px;
-      padding: 8px 16px;
-      font-size: 13px;
+      margin-top: 10px;
+      padding: 8px 14px;
+      font-size: 12px;
     }
 
     .shortcut-info {
-      margin-top: 32px;
+      margin-top: 28px;
       padding-top: 24px;
       border-top: 1px solid #eee;
     }
 
     .shortcut-info h2 {
-      font-size: 16px;
-      font-weight: 600;
-      color: #333;
-      margin-bottom: 12px;
+      font-size: 14px;
+      font-weight: 450;
+      color: #2d3436;
+      margin-bottom: 10px;
+    }
+
+    .shortcut-info p {
+      color: #888;
+      font-size: 13px;
     }
 
     .shortcut {
       display: inline-block;
-      background: #f0f0f0;
-      padding: 4px 12px;
-      border-radius: 6px;
-      font-family: monospace;
-      font-size: 13px;
-      color: #333;
+      background: #f5f5f5;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+      font-size: 12px;
+      color: #2d3436;
+      border: 1px solid #e8e8e8;
     }
   </style>
 </head>
