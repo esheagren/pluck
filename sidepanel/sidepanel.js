@@ -280,22 +280,53 @@
       return;
     }
 
-    // Show success
+    // Show success briefly, then close the panel
     mochiBtn.classList.add('btn-success');
     mochiBtn.classList.remove('btn-mochi');
 
     if (errors.length > 0) {
       mochiBtn.querySelector('.btn-text').textContent = `Sent ${sentCount}/${totalCards}`;
+      // If some failed, don't auto-close - let user see the partial result
+      setTimeout(() => {
+        mochiBtn.classList.remove('btn-success');
+        mochiBtn.classList.add('btn-mochi');
+        mochiBtn.disabled = false;
+        updateSelectionCount();
+      }, 2000);
     } else {
       mochiBtn.querySelector('.btn-text').textContent = `Sent ${sentCount}!`;
+      // Success - close panel after brief feedback
+      setTimeout(() => {
+        window.close();
+      }, 600);
+    }
+  }
+
+  /**
+   * Flatten cloze_list cards into individual cards
+   * Handles the new prompt format where cloze_list contains multiple prompts
+   */
+  function flattenCards(rawCards) {
+    const flattened = [];
+
+    for (const card of rawCards) {
+      if (card.style === 'cloze_list' && card.prompts && Array.isArray(card.prompts)) {
+        // Expand cloze_list into individual cloze cards
+        for (const prompt of card.prompts) {
+          flattened.push({
+            style: 'cloze',
+            question: prompt.question,
+            answer: prompt.answer,
+            rationale: card.rationale
+          });
+        }
+      } else {
+        // Regular card (qa, cloze, explanation, application, example_generation)
+        flattened.push(card);
+      }
     }
 
-    setTimeout(() => {
-      mochiBtn.classList.remove('btn-success');
-      mochiBtn.classList.add('btn-mochi');
-      mochiBtn.disabled = false;
-      updateSelectionCount();
-    }, 2000);
+    return flattened;
   }
 
   /**
@@ -318,7 +349,8 @@
         return;
       }
 
-      cards = response.cards;
+      // Flatten any cloze_list cards into individual cards
+      cards = flattenCards(response.cards);
       sourceUrl = response.source?.url || '';
       selectedIndices = new Set();
       editedCards = {};

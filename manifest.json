@@ -7,11 +7,13 @@
     "activeTab",
     "storage",
     "clipboardWrite",
-    "sidePanel"
+    "sidePanel",
+    "alarms"
   ],
   "host_permissions": [
     "https://api.anthropic.com/*",
-    "https://app.mochi.cards/*"
+    "https://app.mochi.cards/*",
+    "https://generativelanguage.googleapis.com/*"
   ],
   "background": {
     "service_worker": "background.js"

@@ -121,6 +121,12 @@
       color: #2d3436;
     }
 
+    .optional-label {
+      font-weight: 400;
+      color: #a0a0a0;
+      font-size: 12px;
+    }
+
     .input-wrapper {
       position: relative;
     }
@@ -349,34 +355,51 @@
         </p>
       </div>
 
+      <div class="form-group">
+        <label for="gemini-api-key">Gemini API Key <span class="optional-label">(optional)</span></label>
+        <div class="input-wrapper">
+          <input
+            type="password"
+            id="gemini-api-key"
+            name="gemini-api-key"
+            placeholder="AIza..."
+            autocomplete="off"
+          >
+        </div>
+        <p class="help-text">
+          For auto-generating images on cards.
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Get Gemini API key</a>
+        </p>
+      </div>
+
       <div class="section-divider">
-        <h2 class="section-title">Mochi Integration (Optional)</h2>
+        <h2 class="section-title">Mochi Integration</h2>
+      </div>
 
-        <div class="form-group">
-          <label for="mochi-api-key">Mochi API Key</label>
-          <div class="input-wrapper">
-            <input
-              type="password"
-              id="mochi-api-key"
-              name="mochi-api-key"
-              placeholder="Enter your Mochi API key"
-              autocomplete="off"
-            >
-          </div>
-          <p class="help-text">
-            Get your API key from Mochi Settings → API (requires Pro)
-          </p>
+      <div class="form-group">
+        <label for="mochi-api-key">Mochi API Key</label>
+        <div class="input-wrapper">
+          <input
+            type="password"
+            id="mochi-api-key"
+            name="mochi-api-key"
+            placeholder="Enter your Mochi API key"
+            autocomplete="off"
+          >
         </div>
+        <p class="help-text">
+          Get your API key from Mochi Settings → API (requires Pro)
+        </p>
+      </div>
 
-        <div class="form-group">
-          <label for="mochi-deck">Default Deck</label>
-          <select id="mochi-deck" disabled>
-            <option value="">Enter API key first</option>
-          </select>
-          <button type="button" class="btn btn-secondary fetch-btn" id="fetch-decks-btn">
-            Fetch Decks
-          </button>
-        </div>
+      <div class="form-group">
+        <label for="mochi-deck">Default Deck</label>
+        <select id="mochi-deck" disabled>
+          <option value="">Enter API key first</option>
+        </select>
+        <button type="button" class="btn btn-secondary fetch-btn" id="fetch-decks-btn">
+          Fetch Decks
+        </button>
       </div>
 
       <div class="actions">
