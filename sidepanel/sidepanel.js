@@ -23,6 +23,9 @@
   const closeBtn = document.getElementById('close-btn');
   const selectedCountEl = document.getElementById('selected-count');
   const totalCountEl = document.getElementById('total-count');
+  const focusInputContainer = document.getElementById('focus-input-container');
+  const focusInput = document.getElementById('focus-input');
+  const generateWithFocusBtn = document.getElementById('generate-with-focus-btn');
 
   // State
   let cards = [];
@@ -331,13 +334,17 @@
 
   /**
    * Generate cards by calling background script
+   * @param {string} focusText - Optional focus/guidance for card generation
    */
-  async function generateCards() {
+  async function generateCards(focusText = '') {
     showState(loadingState);
     await checkMochiStatus();
 
     try {
-      const response = await chrome.runtime.sendMessage({ action: 'generateCards' });
+      const response = await chrome.runtime.sendMessage({
+        action: 'generateCards',
+        focusText: focusText
+      });
 
       if (response.error) {
         handleError(response);
@@ -402,20 +409,61 @@
     window.close();
   }
 
+  /**
+   * Toggle focus input visibility
+   */
+  function toggleFocusInput() {
+    const isExpanded = !focusInputContainer.classList.contains('hidden');
+    if (isExpanded) {
+      // Collapse
+      focusInputContainer.classList.add('hidden');
+    } else {
+      // Expand
+      focusInputContainer.classList.remove('hidden');
+      focusInput.focus();
+    }
+  }
+
+  /**
+   * Generate with focus text and collapse input
+   */
+  function generateWithFocus() {
+    const focusText = focusInput.value.trim();
+    focusInputContainer.classList.add('hidden');
+    focusInput.value = '';
+    generateCards(focusText);
+  }
+
   // Event Listeners
   copyBtn.addEventListener('click', copyToClipboard);
   mochiBtn.addEventListener('click', sendToMochi);
-  retryBtn.addEventListener('click', generateCards);
-  refreshBtn.addEventListener('click', generateCards);
-  regenerateBtn.addEventListener('click', generateCards);
+  retryBtn.addEventListener('click', () => generateCards());
+  refreshBtn.addEventListener('click', () => generateCards());
+  regenerateBtn.addEventListener('click', toggleFocusInput);
+  generateWithFocusBtn.addEventListener('click', generateWithFocus);
+  focusInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      generateWithFocus();
+    }
+    if (e.key === 'Escape') {
+      focusInputContainer.classList.add('hidden');
+      focusInput.value = '';
+    }
+  });
   settingsBtn.addEventListener('click', openSettings);
   openSettingsBtn.addEventListener('click', openSettings);
   closeBtn.addEventListener('click', closePanel);
 
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
+    // Skip shortcuts when typing in input fields
+    const isTyping = e.target.isContentEditable ||
+                     e.target.tagName === 'INPUT' ||
+                     e.target.tagName === 'TEXTAREA';
+
     // Number keys 1-3 to toggle cards
-    if (e.key >= '1' && e.key <= '3' && !e.target.isContentEditable) {
+    if (e.key >= '1' && e.key <= '3' && !isTyping) {
       const index = parseInt(e.key) - 1;
       if (index < cards.length) {
         toggleCard(index);
@@ -423,7 +471,7 @@
     }
 
     // Enter to send to Mochi (if configured) or copy
-    if (e.key === 'Enter' && !e.target.isContentEditable && selectedIndices.size > 0) {
+    if (e.key === 'Enter' && !isTyping && selectedIndices.size > 0) {
       if (mochiConfigured) {
         sendToMochi();
       } else {
@@ -431,14 +479,19 @@
       }
     }
 
-    // R to regenerate
-    if (e.key === 'r' && !e.target.isContentEditable) {
-      generateCards();
+    // R to toggle regenerate focus input
+    if (e.key === 'r' && !isTyping) {
+      toggleFocusInput();
     }
 
-    // Escape to close
+    // Escape to close (but first collapse focus input if open)
     if (e.key === 'Escape') {
-      closePanel();
+      if (!focusInputContainer.classList.contains('hidden')) {
+        focusInputContainer.classList.add('hidden');
+        focusInput.value = '';
+      } else {
+        closePanel();
+      }
     }
   });
 

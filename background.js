@@ -168,11 +168,14 @@ async function getSelectionFromTab(tabId) {
 
 /**
  * Call Claude API to generate cards
+ * @param {Object} selectionData - Selection data from content script
+ * @param {string} apiKey - Claude API key
+ * @param {string} focusText - Optional focus/guidance for card generation
  */
-async function generateCards(selectionData, apiKey) {
+async function generateCards(selectionData, apiKey, focusText = '') {
   const systemPrompt = await getSystemPrompt();
 
-  const userMessage = `**Selection:** ${selectionData.selection}
+  let userMessage = `**Selection:** ${selectionData.selection}
 
 **Context:** ${selectionData.context}
 
@@ -180,6 +183,11 @@ async function generateCards(selectionData, apiKey) {
 **Page Title:** ${selectionData.title}
 
 Generate 2-3 spaced repetition cards for the highlighted selection.`;
+
+  // Append focus guidance if provided
+  if (focusText) {
+    userMessage += `\n\n**Focus:** Please focus the cards on: ${focusText}`;
+  }
 
   const response = await fetch(CLAUDE_API_URL, {
     method: 'POST',
@@ -234,8 +242,10 @@ Generate 2-3 spaced repetition cards for the highlighted selection.`;
 
 /**
  * Main handler for card generation requests
+ * @param {number} tabId - The active tab ID
+ * @param {string} focusText - Optional focus/guidance for card generation
  */
-async function handleGenerateCards(tabId) {
+async function handleGenerateCards(tabId, focusText = '') {
   // Get API key
   const apiKey = await getApiKey();
   if (!apiKey) {
@@ -254,7 +264,7 @@ async function handleGenerateCards(tabId) {
 
   // Generate cards
   try {
-    const cards = await generateCards(selectionData, apiKey);
+    const cards = await generateCards(selectionData, apiKey, focusText);
     return {
       cards,
       source: {
@@ -623,7 +633,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return;
       }
 
-      const result = await handleGenerateCards(tabs[0].id);
+      const result = await handleGenerateCards(tabs[0].id, request.focusText || '');
       sendResponse(result);
     });
 

@@ -60,6 +60,50 @@ body {
   color: #2d3436;
 }
 
+/* Focus Input Container */
+.focus-input-container {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  animation: slideDown 0.15s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.focus-input {
+  flex: 1;
+  padding: 10px 14px;
+  font-size: 13px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: white;
+  transition: border-color 0.15s ease;
+  font-family: inherit;
+}
+
+.focus-input:focus {
+  outline: none;
+  border-color: #2d3436;
+}
+
+.focus-input::placeholder {
+  color: #a0a0a0;
+}
+
+.btn-small {
+  padding: 10px 16px;
+  white-space: nowrap;
+}
+
 /* States */
 .state {
   display: flex;
