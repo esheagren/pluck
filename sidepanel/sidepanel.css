@@ -404,21 +404,3 @@ body {
   flex: 1;
   padding: 12px 20px;
 }
-
-/* Source Info */
-.source-info {
-  font-size: 11px;
-  color: #a0a0a0;
-  text-align: center;
-  padding-top: 12px;
-  border-top: 1px solid #eee;
-}
-
-.source-info a {
-  color: #888;
-  text-decoration: none;
-}
-
-.source-info a:hover {
-  color: #2d3436;
-}

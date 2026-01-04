@@ -12,8 +12,6 @@
   const cardsState = document.getElementById('cards-state');
   const cardsList = document.getElementById('cards-list');
   const errorMessage = document.getElementById('error-message');
-  const sourceInfo = document.getElementById('source-info');
-  const copyBtn = document.getElementById('copy-btn');
   const mochiBtn = document.getElementById('mochi-btn');
   const retryBtn = document.getElementById('retry-btn');
   const refreshBtn = document.getElementById('refresh-btn');
@@ -33,6 +31,7 @@
   let sourceUrl = '';
   let editedCards = {};
   let mochiConfigured = false;
+  let cachedSelectionData = null; // Cache selection for regeneration
 
   /**
    * Show a specific state, hide all others
@@ -58,12 +57,6 @@
     try {
       const response = await chrome.runtime.sendMessage({ action: 'getMochiStatus' });
       mochiConfigured = response.configured;
-
-      if (mochiConfigured) {
-        mochiBtn.classList.remove('hidden');
-      } else {
-        mochiBtn.classList.add('hidden');
-      }
     } catch (error) {
       console.error('Failed to check Mochi status:', error);
       mochiConfigured = false;
@@ -80,18 +73,13 @@
 
     // Update button states
     const hasSelection = count > 0;
-    copyBtn.disabled = !hasSelection;
-    if (mochiConfigured) {
-      mochiBtn.disabled = !hasSelection;
-    }
+    mochiBtn.disabled = !hasSelection;
 
     // Update button text with count
     if (hasSelection && count > 1) {
-      mochiBtn.querySelector('.btn-text').textContent = `Send ${count} to Mochi`;
-      copyBtn.querySelector('.btn-text').textContent = `Copy ${count}`;
+      mochiBtn.querySelector('.btn-text').textContent = `Pluckk ${count}`;
     } else {
-      mochiBtn.querySelector('.btn-text').textContent = 'Send to Mochi';
-      copyBtn.querySelector('.btn-text').textContent = 'Copy';
+      mochiBtn.querySelector('.btn-text').textContent = 'Pluckk';
     }
   }
 
@@ -145,14 +133,6 @@
       cardsList.appendChild(cardEl);
     });
 
-    // Update source info
-    if (sourceUrl) {
-      const displayUrl = sourceUrl.length > 60
-        ? sourceUrl.substring(0, 60) + '...'
-        : sourceUrl;
-      sourceInfo.innerHTML = `Source: <a href="${escapeHtml(sourceUrl)}" target="_blank">${escapeHtml(displayUrl)}</a>`;
-    }
-
     updateSelectionCount();
   }
 
@@ -200,46 +180,6 @@
   }
 
   /**
-   * Copy selected cards to clipboard
-   */
-  async function copyToClipboard() {
-    const selectedCards = getSelectedCards();
-    if (selectedCards.length === 0) return;
-
-    // Format all selected cards
-    const markdown = selectedCards.map(card =>
-      window.MochiFormat.formatForMochi(card.question, card.answer, sourceUrl)
-    ).join('\n\n---\n\n');
-
-    try {
-      await navigator.clipboard.writeText(markdown);
-
-      // Save to Supabase in background (fire-and-forget)
-      for (const card of selectedCards) {
-        chrome.runtime.sendMessage({
-          action: 'saveToSupabase',
-          question: card.question,
-          answer: card.answer,
-          sourceUrl: sourceUrl
-        }).catch(err => console.warn('Supabase save failed:', err));
-      }
-
-      copyBtn.classList.add('btn-success');
-      copyBtn.classList.remove('btn-secondary');
-      copyBtn.querySelector('.btn-text').textContent = 'Copied!';
-
-      setTimeout(() => {
-        copyBtn.classList.remove('btn-success');
-        copyBtn.classList.add('btn-secondary');
-        updateSelectionCount(); // Restore button text
-      }, 2000);
-    } catch (error) {
-      console.error('Failed to copy:', error);
-      showError('Failed to copy to clipboard');
-    }
-  }
-
-  /**
    * Send selected cards to Mochi (one at a time due to rate limiting)
    */
   async function sendToMochi() {
@@ -251,7 +191,7 @@
     let sentCount = 0;
     let errors = [];
 
-    mochiBtn.querySelector('.btn-text').textContent = `Sending 0/${totalCards}...`;
+    mochiBtn.querySelector('.btn-text').textContent = `Pluckking 0/${totalCards}...`;
 
     for (const card of selectedCards) {
       try {
@@ -274,7 +214,7 @@
           console.warn('Supabase save failed:', response.supabase.message);
         }
 
-        mochiBtn.querySelector('.btn-text').textContent = `Sending ${sentCount}/${totalCards}...`;
+        mochiBtn.querySelector('.btn-text').textContent = `Pluckking ${sentCount}/${totalCards}...`;
 
         // Small delay between requests to respect rate limiting
         if (selectedCards.indexOf(card) < selectedCards.length - 1) {
@@ -304,7 +244,7 @@
     mochiBtn.classList.remove('btn-mochi');
 
     if (errors.length > 0) {
-      mochiBtn.querySelector('.btn-text').textContent = `Sent ${sentCount}/${totalCards}`;
+      mochiBtn.querySelector('.btn-text').textContent = `Pluckked ${sentCount}/${totalCards}`;
       // If some failed, don't auto-close - let user see the partial result
       setTimeout(() => {
         mochiBtn.classList.remove('btn-success');
@@ -313,7 +253,7 @@
         updateSelectionCount();
       }, 2000);
     } else {
-      mochiBtn.querySelector('.btn-text').textContent = `Sent ${sentCount}!`;
+      mochiBtn.querySelector('.btn-text').textContent = `Pluckked ${sentCount}!`;
       // Success - close panel after brief feedback
       setTimeout(() => {
         window.close();
@@ -351,15 +291,18 @@
   /**
    * Generate cards by calling background script
    * @param {string} focusText - Optional focus/guidance for card generation
+   * @param {boolean} useCache - Whether to use cached selection (for regeneration)
    */
-  async function generateCards(focusText = '') {
+  async function generateCards(focusText = '', useCache = false) {
     showState(loadingState);
     await checkMochiStatus();
 
     try {
       const response = await chrome.runtime.sendMessage({
         action: 'generateCards',
-        focusText: focusText
+        focusText: focusText,
+        // Pass cached selection if regenerating and we have it
+        cachedSelection: useCache && cachedSelectionData ? cachedSelectionData : null
       });
 
       if (response.error) {
@@ -370,6 +313,11 @@
       if (!response.cards || response.cards.length === 0) {
         showError('No cards generated. Try selecting different text.');
         return;
+      }
+
+      // Cache the selection data for future regeneration
+      if (response.selectionData) {
+        cachedSelectionData = response.selectionData;
       }
 
       // Flatten any cloze_list cards into individual cards
@@ -442,16 +390,17 @@
 
   /**
    * Generate with focus text and collapse input
+   * Uses cached selection so user doesn't need to re-select text
    */
   function generateWithFocus() {
     const focusText = focusInput.value.trim();
     focusInputContainer.classList.add('hidden');
     focusInput.value = '';
-    generateCards(focusText);
+    // Use cached selection for regeneration
+    generateCards(focusText, true);
   }
 
   // Event Listeners
-  copyBtn.addEventListener('click', copyToClipboard);
   mochiBtn.addEventListener('click', sendToMochi);
   retryBtn.addEventListener('click', () => generateCards());
   refreshBtn.addEventListener('click', () => generateCards());
@@ -486,13 +435,9 @@
       }
     }
 
-    // Enter to send to Mochi (if configured) or copy
+    // Enter to send cards
     if (e.key === 'Enter' && !isTyping && selectedIndices.size > 0) {
-      if (mochiConfigured) {
-        sendToMochi();
-      } else {
-        copyToClipboard();
-      }
+      sendToMochi();
     }
 
     // R to toggle regenerate focus input

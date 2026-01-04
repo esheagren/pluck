@@ -248,22 +248,28 @@ Generate 2-3 spaced repetition cards for the highlighted selection.`;
  * Main handler for card generation requests
  * @param {number} tabId - The active tab ID
  * @param {string} focusText - Optional focus/guidance for card generation
+ * @param {Object} cachedSelection - Optional cached selection data from previous generation
  */
-async function handleGenerateCards(tabId, focusText = '') {
+async function handleGenerateCards(tabId, focusText = '', cachedSelection = null) {
   // Get API key
   const apiKey = await getApiKey();
   if (!apiKey) {
     return { error: 'api_key_missing' };
   }
 
-  // Get selection from content script
-  const selectionData = await getSelectionFromTab(tabId);
-  if (!selectionData) {
-    return { error: 'content_script_error', message: 'Could not communicate with page' };
-  }
+  // Use cached selection if provided, otherwise get from content script
+  let selectionData;
+  if (cachedSelection && cachedSelection.selection) {
+    selectionData = cachedSelection;
+  } else {
+    selectionData = await getSelectionFromTab(tabId);
+    if (!selectionData) {
+      return { error: 'content_script_error', message: 'Could not communicate with page' };
+    }
 
-  if (!selectionData.selection) {
-    return { error: 'no_selection' };
+    if (!selectionData.selection) {
+      return { error: 'no_selection' };
+    }
   }
 
   // Generate cards
@@ -274,7 +280,9 @@ async function handleGenerateCards(tabId, focusText = '') {
       source: {
         url: selectionData.url,
         title: selectionData.title
-      }
+      },
+      // Return selection data so sidepanel can cache it
+      selectionData: selectionData
     };
   } catch (error) {
     console.error('Card generation failed:', error);
@@ -743,7 +751,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return;
       }
 
-      const result = await handleGenerateCards(tabs[0].id, request.focusText || '');
+      const result = await handleGenerateCards(
+        tabs[0].id,
+        request.focusText || '',
+        request.cachedSelection || null
+      );
       sendResponse(result);
     });
 
