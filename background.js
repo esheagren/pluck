@@ -14,6 +14,10 @@ const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 const MOCHI_API_URL = 'https://app.mochi.cards/api';
 const GEMINI_IMAGE_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
+// Supabase configuration (hardcoded for personal use)
+const SUPABASE_URL = 'https://grjkoedivfrjlbtfskif.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_E1Is2auN23lNbPWDPzbgYw_RxERFa0W';
+
 const DEFAULT_SYSTEM_PROMPT = `You are a spaced repetition prompt generator. Your goal is to create prompts that produce durable understanding through retrieval practice—not just surface-level memorization.
 
 **Core Principles (from cognitive science):**
@@ -572,6 +576,33 @@ async function generateAndAttachImage(cardId, question, answer, sourceUrl) {
 }
 
 /**
+ * Save card to Supabase
+ */
+async function saveToSupabase(question, answer, sourceUrl) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/cards`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify({
+      question,
+      answer,
+      source_url: sourceUrl
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Supabase error: ${error}`);
+  }
+
+  return { success: true };
+}
+
+/**
  * Create a card in Mochi
  */
 async function createMochiCard(question, answer, sourceUrl) {
@@ -641,9 +672,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === 'sendToMochi') {
-    createMochiCard(request.question, request.answer, request.sourceUrl)
-      .then(result => sendResponse(result))
-      .catch(error => sendResponse({ error: 'mochi_error', message: error.message }));
+    // Save to both Mochi and Supabase in parallel
+    const mochiPromise = createMochiCard(request.question, request.answer, request.sourceUrl)
+      .then(result => ({ mochi: result }))
+      .catch(error => ({ mochi: { error: 'mochi_error', message: error.message } }));
+
+    const supabasePromise = saveToSupabase(request.question, request.answer, request.sourceUrl)
+      .then(result => ({ supabase: result }))
+      .catch(error => ({ supabase: { error: 'supabase_error', message: error.message } }));
+
+    Promise.all([mochiPromise, supabasePromise])
+      .then(([mochiResult, supabaseResult]) => {
+        sendResponse({ ...mochiResult, ...supabaseResult });
+      });
 
     return true; // Keep message channel open for async response
   }
@@ -655,6 +696,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           configured: !!(settings.apiKey && settings.deckId)
         });
       });
+
+    return true;
+  }
+
+  if (request.action === 'saveToSupabase') {
+    saveToSupabase(request.question, request.answer, request.sourceUrl)
+      .then(result => sendResponse(result))
+      .catch(error => sendResponse({ error: 'supabase_error', message: error.message }));
 
     return true;
   }

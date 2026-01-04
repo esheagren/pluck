@@ -214,6 +214,16 @@
     try {
       await navigator.clipboard.writeText(markdown);
 
+      // Save to Supabase in background (fire-and-forget)
+      for (const card of selectedCards) {
+        chrome.runtime.sendMessage({
+          action: 'saveToSupabase',
+          question: card.question,
+          answer: card.answer,
+          sourceUrl: sourceUrl
+        }).catch(err => console.warn('Supabase save failed:', err));
+      }
+
       copyBtn.classList.add('btn-success');
       copyBtn.classList.remove('btn-secondary');
       copyBtn.querySelector('.btn-text').textContent = 'Copied!';
@@ -252,10 +262,16 @@
           sourceUrl: sourceUrl
         });
 
-        if (response.error) {
-          errors.push(response.error);
+        // Handle dual response format (mochi + supabase)
+        if (response.mochi?.error) {
+          errors.push(response.mochi.error);
         } else {
           sentCount++;
+        }
+
+        // Log Supabase status (non-blocking)
+        if (response.supabase?.error) {
+          console.warn('Supabase save failed:', response.supabase.message);
         }
 
         mochiBtn.querySelector('.btn-text').textContent = `Sending ${sentCount}/${totalCards}...`;
