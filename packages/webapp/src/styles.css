@@ -488,3 +488,21 @@ body {
     --card-height: 250px;
   }
 }
+
+/* Footer */
+.footer {
+  position: fixed;
+  bottom: 16px;
+  right: 24px;
+  font-size: 12px;
+}
+
+.footer a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.footer a:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+}
