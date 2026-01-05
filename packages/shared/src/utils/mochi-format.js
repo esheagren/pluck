@@ -1,4 +1,4 @@
-// Pluckk - Mochi Markdown Formatter
+// Mochi Markdown Formatter
 // Formats flashcards for Mochi's expected markdown format
 
 /**
@@ -8,7 +8,7 @@
  * @param {string} sourceUrl - The source URL (optional)
  * @returns {string} Mochi-formatted markdown
  */
-function formatForMochi(question, answer, sourceUrl) {
+export function formatForMochi(question, answer, sourceUrl) {
   let markdown = `# ${question}\n---\n${answer}`;
 
   if (sourceUrl) {
@@ -24,14 +24,6 @@ function formatForMochi(question, answer, sourceUrl) {
  * @param {string} sourceUrl - The source URL (optional)
  * @returns {string} Mochi-formatted markdown
  */
-function formatCardForMochi(card, sourceUrl) {
+export function formatCardForMochi(card, sourceUrl) {
   return formatForMochi(card.question, card.answer, sourceUrl);
-}
-
-// Export for use in popup
-if (typeof window !== 'undefined') {
-  window.MochiFormat = {
-    formatForMochi,
-    formatCardForMochi
-  };
 }

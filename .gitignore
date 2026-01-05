@@ -13,6 +13,14 @@
 # Logs
 *.log
 
-# Build artifacts (if any added later)
-dist/
+# Dependencies
 node_modules/
+
+# Build artifacts
+dist/
+packages/*/dist/
+
+# Environment files
+.env
+.env.local
+.env.*.local
