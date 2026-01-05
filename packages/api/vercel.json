@@ -3,11 +3,6 @@
   "framework": null,
   "buildCommand": "",
   "installCommand": "npm install",
-  "functions": {
-    "api/**/*.js": {
-      "runtime": "@vercel/node@3"
-    }
-  },
   "headers": [
     {
       "source": "/api/(.*)",
