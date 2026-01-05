@@ -1,14 +1,14 @@
 // Pluckk - Background Service Worker
-// Handles Claude API calls, Mochi integration, and message routing
+// Handles API calls via backend proxy, Mochi integration, and message routing
 
 import { createSupabaseClient } from '@pluckk/shared/supabase';
 import {
-  CLAUDE_API_URL,
-  CLAUDE_MODEL,
+  BACKEND_URL,
   MOCHI_API_URL,
   DEFAULT_SYSTEM_PROMPT
 } from '@pluckk/shared/constants';
 import { sleep } from '@pluckk/shared/utils';
+import { getSession, getAccessToken } from './auth.js';
 
 // Initialize Supabase client
 const supabase = createSupabaseClient({
@@ -32,11 +32,11 @@ async function getSystemPrompt() {
 }
 
 /**
- * Get API key from storage
+ * Check if user is authenticated
  */
-async function getApiKey() {
-  const result = await chrome.storage.sync.get(['apiKey']);
-  return result.apiKey || null;
+async function checkAuth() {
+  const { session } = await getSession();
+  return !!session;
 }
 
 /**
@@ -53,77 +53,56 @@ async function getSelectionFromTab(tabId) {
 }
 
 /**
- * Call Claude API to generate cards
+ * Call backend API to generate cards
  * @param {Object} selectionData - Selection data from content script
- * @param {string} apiKey - Claude API key
  * @param {string} focusText - Optional focus/guidance for card generation
  */
-async function generateCards(selectionData, apiKey, focusText = '') {
+async function generateCards(selectionData, focusText = '') {
   const systemPrompt = await getSystemPrompt();
+  const accessToken = await getAccessToken();
 
-  let userMessage = `**Selection:** ${selectionData.selection}
-
-**Context:** ${selectionData.context}
-
-**Source URL:** ${selectionData.url}
-**Page Title:** ${selectionData.title}
-
-Generate 2-3 spaced repetition cards for the highlighted selection.`;
-
-  // Append focus guidance if provided
-  if (focusText) {
-    userMessage += `\n\n**Focus:** Please focus the cards on: ${focusText}`;
+  if (!accessToken) {
+    throw new Error('not_authenticated');
   }
 
-  const response = await fetch(CLAUDE_API_URL, {
+  const response = await fetch(`${BACKEND_URL}/api/generate-cards`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
+      'Authorization': `Bearer ${accessToken}`
     },
     body: JSON.stringify({
-      model: CLAUDE_MODEL,
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: userMessage
-        }
-      ]
+      selection: selectionData.selection,
+      context: selectionData.context,
+      url: selectionData.url,
+      title: selectionData.title,
+      focusText: focusText || undefined,
+      systemPrompt: systemPrompt !== DEFAULT_SYSTEM_PROMPT ? systemPrompt : undefined
     })
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Claude API error:', response.status, errorText);
-    throw new Error(`API error (${response.status}): ${errorText}`);
+    const errorData = await response.json().catch(() => ({}));
+
+    if (response.status === 401) {
+      throw new Error('not_authenticated');
+    }
+
+    if (response.status === 402) {
+      throw new Error('usage_limit_reached');
+    }
+
+    console.error('Backend API error:', response.status, errorData);
+    throw new Error(`API error (${response.status}): ${errorData.error || 'Unknown error'}`);
   }
 
   const data = await response.json();
 
-  // Extract the text content from Claude's response
-  const content = data.content?.[0]?.text;
-  if (!content) {
-    throw new Error('Empty response from Claude');
-  }
-
-  // Parse the JSON from the response
-  // Handle potential markdown code blocks
-  let jsonStr = content.trim();
-  if (jsonStr.startsWith('```')) {
-    jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-  }
-
-  const parsed = JSON.parse(jsonStr);
-
-  if (!parsed.cards || !Array.isArray(parsed.cards)) {
+  if (!data.cards || !Array.isArray(data.cards)) {
     throw new Error('Invalid response format: missing cards array');
   }
 
-  return parsed.cards;
+  return data.cards;
 }
 
 /**
@@ -133,10 +112,10 @@ Generate 2-3 spaced repetition cards for the highlighted selection.`;
  * @param {Object} cachedSelection - Optional cached selection data from previous generation
  */
 async function handleGenerateCards(tabId, focusText = '', cachedSelection = null) {
-  // Get API key
-  const apiKey = await getApiKey();
-  if (!apiKey) {
-    return { error: 'api_key_missing' };
+  // Check authentication
+  const isAuthenticated = await checkAuth();
+  if (!isAuthenticated) {
+    return { error: 'not_authenticated' };
   }
 
   // Use cached selection if provided, otherwise get from content script
@@ -156,7 +135,7 @@ async function handleGenerateCards(tabId, focusText = '', cachedSelection = null
 
   // Generate cards
   try {
-    const cards = await generateCards(selectionData, apiKey, focusText);
+    const cards = await generateCards(selectionData, focusText);
     return {
       cards,
       source: {
@@ -169,8 +148,12 @@ async function handleGenerateCards(tabId, focusText = '', cachedSelection = null
   } catch (error) {
     console.error('Card generation failed:', error);
 
-    if (error.message.includes('401')) {
-      return { error: 'api_key_invalid' };
+    if (error.message === 'not_authenticated') {
+      return { error: 'not_authenticated' };
+    }
+
+    if (error.message === 'usage_limit_reached') {
+      return { error: 'usage_limit_reached' };
     }
 
     if (error.message.includes('429')) {
@@ -178,7 +161,7 @@ async function handleGenerateCards(tabId, focusText = '', cachedSelection = null
     }
 
     if (error instanceof SyntaxError) {
-      return { error: 'parse_error', message: 'Failed to parse Claude response' };
+      return { error: 'parse_error', message: 'Failed to parse response' };
     }
 
     return { error: 'api_error', message: error.message };
@@ -197,61 +180,42 @@ async function getMochiSettings() {
 }
 
 /**
- * Get Gemini API key from storage
+ * Generate an image using backend Gemini proxy based on the card content
  */
-async function getGeminiApiKey() {
-  const result = await chrome.storage.sync.get(['geminiApiKey']);
-  return result.geminiApiKey || null;
-}
+async function generateImageWithBackend(question, answer) {
+  const accessToken = await getAccessToken();
 
-/**
- * Generate an image using Gemini based on the card content
- */
-async function generateImageWithGemini(question, answer, geminiApiKey) {
-  const prompt = `Create a simple, clean, minimalist educational illustration for a flashcard about: ${question} - ${answer}. Style: flat design, iconic, memorable, no text in the image.`;
+  if (!accessToken) {
+    throw new Error('not_authenticated');
+  }
 
-  // Model for image generation (from Google AI docs)
-  const model = 'gemini-2.5-flash-image';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+  console.log(`[Pluckk] Generating image via backend...`);
 
-  console.log(`[Pluckk] Generating image with ${model}...`);
-
-  const response = await fetch(url, {
+  const response = await fetch(`${BACKEND_URL}/api/generate-image`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`
     },
     body: JSON.stringify({
-      contents: [{
-        parts: [{ text: prompt }]
-      }]
+      question,
+      answer
     })
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`[Pluckk] Image generation failed:`, response.status, errorText);
-    throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+    const errorData = await response.json().catch(() => ({}));
+    console.error(`[Pluckk] Image generation failed:`, response.status, errorData);
+    throw new Error(`Image API error (${response.status}): ${errorData.error || 'Unknown error'}`);
   }
 
   const data = await response.json();
-  console.log(`[Pluckk] Response received, checking for image...`);
+  console.log(`[Pluckk] Image generated successfully!`);
 
-  // Extract image data from response
-  const candidate = data.candidates?.[0];
-  if (candidate?.content?.parts) {
-    for (const part of candidate.content.parts) {
-      if (part.inlineData?.data) {
-        console.log(`[Pluckk] Image generated successfully!`);
-        return {
-          data: part.inlineData.data,
-          mimeType: part.inlineData.mimeType || 'image/png'
-        };
-      }
-    }
-  }
-
-  throw new Error('No image in response');
+  return {
+    data: data.imageData,
+    mimeType: data.mimeType || 'image/png'
+  };
 }
 
 /**
@@ -414,12 +378,12 @@ async function generateAndAttachImage(mochiCardId, question, answer, sourceUrl, 
   try {
     console.log('[Pluckk] Starting image generation task:', taskId);
 
-    const geminiApiKey = await getGeminiApiKey();
-    if (!geminiApiKey) {
-      console.log('[Pluckk] No Gemini API key configured, skipping image generation');
+    // Check if user is authenticated (required for backend image generation)
+    const isAuthenticated = await checkAuth();
+    if (!isAuthenticated) {
+      console.log('[Pluckk] User not authenticated, skipping image generation');
       return;
     }
-    console.log('[Pluckk] Gemini API key found, starting image generation...');
 
     const mochiSettings = await getMochiSettings();
     if (!mochiSettings.apiKey) {
@@ -428,8 +392,8 @@ async function generateAndAttachImage(mochiCardId, question, answer, sourceUrl, 
     }
 
     console.log('[Pluckk] Generating image for card:', mochiCardId, 'Question:', question.substring(0, 50));
-    console.log('[Pluckk] Calling Gemini API...');
-    const imageResult = await generateImageWithGemini(question, answer, geminiApiKey);
+    console.log('[Pluckk] Calling backend image API...');
+    const imageResult = await generateImageWithBackend(question, answer);
     console.log('[Pluckk] Image generated successfully, mimeType:', imageResult.mimeType, 'size:', imageResult.data.length);
 
     // Upload to Mochi
@@ -595,6 +559,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     supabase.saveCard(request.question, request.answer, request.sourceUrl)
       .then(result => sendResponse(result))
       .catch(error => sendResponse({ error: 'supabase_error', message: error.message }));
+
+    return true;
+  }
+
+  if (request.action === 'getAuthStatus') {
+    getSession()
+      .then(({ session, user }) => {
+        sendResponse({
+          authenticated: !!session,
+          user: user ? { email: user.email, id: user.id } : null
+        });
+      })
+      .catch(error => sendResponse({ authenticated: false, error: error.message }));
 
     return true;
   }

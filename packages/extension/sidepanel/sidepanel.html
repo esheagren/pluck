@@ -74,12 +74,20 @@
       </button>
     </div>
 
-    <!-- API Key Missing State -->
+    <!-- Auth Required State -->
     <div class="state api-key-state hidden" id="api-key-state">
       <div class="info-icon warning">!</div>
-      <h2>API Key Required</h2>
-      <p>Please configure your Claude API key to use Pluckk.</p>
-      <button class="btn btn-primary" id="open-settings-btn">Open Settings</button>
+      <h2>Sign in Required</h2>
+      <p>Please sign in with Google to use Pluckk.</p>
+      <button class="btn btn-primary" id="open-settings-btn">Sign In</button>
+    </div>
+
+    <!-- Usage Limit Reached State -->
+    <div class="state usage-limit-state hidden" id="usage-limit-state">
+      <div class="info-icon warning">!</div>
+      <h2>Free Limit Reached</h2>
+      <p>You've used all 20 free cards this month. Upgrade to Pro for unlimited cards.</p>
+      <button class="btn btn-primary" id="upgrade-btn">Upgrade to Pro</button>
     </div>
 
     <!-- Cards State -->

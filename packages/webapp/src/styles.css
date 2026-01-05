@@ -328,6 +328,143 @@ body {
   background: var(--color-primary-hover);
 }
 
+/* Login State */
+.login-state {
+  gap: 20px;
+}
+
+.login-icon {
+  width: 80px;
+  height: 80px;
+  background: var(--color-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.login-icon svg {
+  color: var(--color-text-muted);
+}
+
+.login-state h2 {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.login-state p {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+/* Google Sign-in Button */
+.btn-google {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--color-card);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  margin-top: 8px;
+}
+
+.btn-google:hover {
+  background: var(--color-bg);
+  border-color: #d0d0d0;
+}
+
+.btn-google svg {
+  flex-shrink: 0;
+}
+
+/* User Profile */
+.user-profile {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.user-email {
+  font-size: 13px;
+  color: var(--color-text);
+  word-break: break-all;
+  margin-bottom: 8px;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  text-decoration: underline;
+}
+
+.btn-link:hover {
+  color: var(--color-text);
+}
+
+/* Billing UI */
+.billing-info {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.usage-display {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.btn-upgrade {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.btn-upgrade:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.pro-info {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pro-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   :root {

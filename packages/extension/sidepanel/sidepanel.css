@@ -182,7 +182,8 @@ body {
 }
 
 .no-selection-state h2,
-.api-key-state h2 {
+.api-key-state h2,
+.usage-limit-state h2 {
   font-size: 14px;
   font-weight: 500;
   color: #2d3436;
@@ -190,7 +191,8 @@ body {
 }
 
 .no-selection-state p,
-.api-key-state p {
+.api-key-state p,
+.usage-limit-state p {
   color: #888;
   margin-bottom: 18px;
   max-width: 260px;

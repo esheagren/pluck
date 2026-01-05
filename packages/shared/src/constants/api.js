@@ -15,5 +15,8 @@ export const MOCHI_API_URL = 'https://app.mochi.cards/api';
 export const SUPABASE_URL = 'https://grjkoedivfrjlbtfskif.supabase.co';
 export const SUPABASE_KEY = 'sb_publishable_E1Is2auN23lNbPWDPzbgYw_RxERFa0W';
 
+// Stripe configuration
+export const STRIPE_PUBLISHABLE_KEY = 'pk_live_51Q1X4IAiykuoRvR46SWYJHWLh6m5CdMxFDcuC5u72Sn35Jj8HBrdiyygYYmoKxaOtLu6OAgw1iib7f9xXYGwdR6G00trIh6TA9';
+
 // Usage limits
 export const FREE_TIER_LIMIT = 20;

@@ -8,12 +8,15 @@
     "storage",
     "clipboardWrite",
     "sidePanel",
-    "alarms"
+    "alarms",
+    "identity"
   ],
   "host_permissions": [
     "https://api.anthropic.com/*",
     "https://app.mochi.cards/*",
-    "https://generativelanguage.googleapis.com/*"
+    "https://generativelanguage.googleapis.com/*",
+    "https://grjkoedivfrjlbtfskif.supabase.co/*",
+    "https://pluckk-api.vercel.app/*"
   ],
   "background": {
     "service_worker": "src/background.js",

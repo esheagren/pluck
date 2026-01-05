@@ -1,47 +1,126 @@
 // Pluckk - Options Page Script
 
-import { DEFAULT_SYSTEM_PROMPT } from '@pluckk/shared/constants';
+import { DEFAULT_SYSTEM_PROMPT, FREE_TIER_LIMIT, BACKEND_URL } from '@pluckk/shared/constants';
+import {
+  signInWithGoogle,
+  signOut,
+  getSession,
+  getUserProfile,
+  getAccessToken,
+  onAuthStateChange
+} from '../src/auth.js';
+
+// DOM Elements
+const loginSection = document.getElementById('login-section');
+const settingsSection = document.getElementById('settings-section');
+const pageSubtitle = document.getElementById('page-subtitle');
+const googleSignInBtn = document.getElementById('google-sign-in-btn');
+const signOutBtn = document.getElementById('sign-out-btn');
+const userEmailEl = document.getElementById('user-email');
+const usageBarFill = document.getElementById('usage-bar-fill');
+const usageText = document.getElementById('usage-text');
+const billingActions = document.getElementById('billing-actions');
+const proActions = document.getElementById('pro-actions');
+const upgradeBtn = document.getElementById('upgrade-btn');
+const manageSubscriptionBtn = document.getElementById('manage-subscription-btn');
 
 // Prompt elements
 const systemPromptInput = document.getElementById('system-prompt');
 const resetPromptBtn = document.getElementById('reset-prompt-btn');
 
-// Claude settings elements
-const apiKeyInput = document.getElementById('api-key');
-const toggleBtn = document.getElementById('toggle-visibility');
+// Form elements
 const form = document.getElementById('settings-form');
 const saveBtn = document.getElementById('save-btn');
 const statusEl = document.getElementById('status');
 const shortcutDisplay = document.getElementById('shortcut-display');
 const closePageBtn = document.getElementById('close-page-btn');
 
-// Gemini settings elements
-const geminiApiKeyInput = document.getElementById('gemini-api-key');
-
 // Mochi settings elements
 const mochiApiKeyInput = document.getElementById('mochi-api-key');
 const mochiDeckSelect = document.getElementById('mochi-deck');
 const fetchDecksBtn = document.getElementById('fetch-decks-btn');
 
+// State
+let currentUser = null;
+
 // Detect platform for shortcut display
 const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 shortcutDisplay.textContent = isMac ? 'Cmd+Shift+M' : 'Ctrl+Shift+M';
 
-// Load existing settings on page load
+/**
+ * Show login section, hide settings
+ */
+function showLoginState() {
+  loginSection.classList.remove('hidden');
+  settingsSection.classList.add('hidden');
+  pageSubtitle.textContent = 'Sign in to generate flashcards';
+}
+
+/**
+ * Show settings section, hide login
+ */
+function showSettingsState() {
+  loginSection.classList.add('hidden');
+  settingsSection.classList.remove('hidden');
+  pageSubtitle.textContent = 'Configure your Pluckk settings';
+}
+
+/**
+ * Update user display with email and usage stats
+ */
+async function updateUserDisplay(user) {
+  if (!user) {
+    showLoginState();
+    return;
+  }
+
+  userEmailEl.textContent = user.email;
+  showSettingsState();
+
+  // Fetch and display usage stats
+  const profile = await getUserProfile();
+  if (profile) {
+    const used = profile.cards_generated_this_month || 0;
+    const limit = FREE_TIER_LIMIT;
+    const isPro = profile.subscription_status === 'active';
+
+    if (isPro) {
+      usageText.textContent = `${used} cards (unlimited)`;
+      usageBarFill.style.width = '0%';
+      billingActions.classList.add('hidden');
+      proActions.classList.remove('hidden');
+    } else {
+      const percentage = Math.min((used / limit) * 100, 100);
+      usageText.textContent = `${used} / ${limit} cards`;
+      usageBarFill.style.width = `${percentage}%`;
+      billingActions.classList.remove('hidden');
+      proActions.classList.add('hidden');
+
+      // Update bar color based on usage
+      usageBarFill.classList.remove('warning', 'full');
+      if (percentage >= 100) {
+        usageBarFill.classList.add('full');
+      } else if (percentage >= 75) {
+        usageBarFill.classList.add('warning');
+      }
+    }
+  }
+}
+
+/**
+ * Load existing settings on page load
+ */
 async function loadSettings() {
   try {
-    const result = await chrome.storage.sync.get(['apiKey', 'geminiApiKey', 'mochiApiKey', 'mochiDeckId', 'mochiDecks', 'systemPrompt']);
+    const result = await chrome.storage.sync.get([
+      'mochiApiKey',
+      'mochiDeckId',
+      'mochiDecks',
+      'systemPrompt'
+    ]);
 
     // Load system prompt (use default if not set)
     systemPromptInput.value = result.systemPrompt || DEFAULT_SYSTEM_PROMPT;
-
-    if (result.apiKey) {
-      apiKeyInput.value = result.apiKey;
-    }
-
-    if (result.geminiApiKey) {
-      geminiApiKeyInput.value = result.geminiApiKey;
-    }
 
     if (result.mochiApiKey) {
       mochiApiKeyInput.value = result.mochiApiKey;
@@ -56,13 +135,17 @@ async function loadSettings() {
   }
 }
 
-// Reset prompt to default
+/**
+ * Reset prompt to default
+ */
 resetPromptBtn.addEventListener('click', () => {
   systemPromptInput.value = DEFAULT_SYSTEM_PROMPT;
   showStatus('Prompt reset to default', 'success');
 });
 
-// Populate deck dropdown
+/**
+ * Populate deck dropdown
+ */
 function populateDecks(decks, selectedId) {
   mochiDeckSelect.innerHTML = '<option value="">Select a deck</option>';
   mochiDeckSelect.disabled = false;
@@ -78,7 +161,9 @@ function populateDecks(decks, selectedId) {
   });
 }
 
-// Fetch decks from Mochi API
+/**
+ * Fetch decks from Mochi API
+ */
 async function fetchDecks() {
   const mochiApiKey = mochiApiKeyInput.value.trim();
 
@@ -122,23 +207,9 @@ async function fetchDecks() {
   }
 }
 
-// Toggle password visibility
-toggleBtn.addEventListener('click', () => {
-  const isPassword = apiKeyInput.type === 'password';
-  apiKeyInput.type = isPassword ? 'text' : 'password';
-
-  toggleBtn.innerHTML = isPassword
-    ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-         <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-         <line x1="1" y1="1" x2="23" y2="23"></line>
-       </svg>`
-    : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-         <circle cx="12" cy="12" r="3"></circle>
-       </svg>`;
-});
-
-// Show status message
+/**
+ * Show status message
+ */
 function showStatus(message, type) {
   statusEl.textContent = message;
   statusEl.className = `status visible ${type}`;
@@ -148,29 +219,147 @@ function showStatus(message, type) {
   }, 3000);
 }
 
-// Fetch decks button
+/**
+ * Handle Google sign in
+ */
+async function handleSignIn() {
+  googleSignInBtn.disabled = true;
+  googleSignInBtn.textContent = 'Signing in...';
+
+  try {
+    const { user } = await signInWithGoogle();
+    currentUser = user;
+    updateUserDisplay(user);
+  } catch (error) {
+    console.error('Sign in error:', error);
+    showStatus('Sign in failed: ' + error.message, 'error');
+  } finally {
+    googleSignInBtn.disabled = false;
+    googleSignInBtn.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Sign in with Google
+    `;
+  }
+}
+
+/**
+ * Handle sign out
+ */
+async function handleSignOut() {
+  try {
+    await signOut();
+    currentUser = null;
+    showLoginState();
+  } catch (error) {
+    console.error('Sign out error:', error);
+    showStatus('Sign out failed', 'error');
+  }
+}
+
+/**
+ * Handle upgrade button click - open Stripe Checkout
+ */
+async function handleUpgrade() {
+  upgradeBtn.disabled = true;
+  upgradeBtn.textContent = 'Loading...';
+
+  try {
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      showStatus('Please sign in first', 'error');
+      return;
+    }
+
+    const response = await fetch(`${BACKEND_URL}/api/checkout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        successUrl: window.location.href,
+        cancelUrl: window.location.href
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Checkout failed');
+    }
+
+    const { url } = await response.json();
+    // Open checkout in new tab
+    window.open(url, '_blank');
+  } catch (error) {
+    console.error('Upgrade error:', error);
+    showStatus('Failed to start checkout', 'error');
+  } finally {
+    upgradeBtn.disabled = false;
+    upgradeBtn.textContent = 'Upgrade to Pro';
+  }
+}
+
+/**
+ * Handle manage subscription button click - open Stripe Customer Portal
+ */
+async function handleManageSubscription() {
+  manageSubscriptionBtn.disabled = true;
+  manageSubscriptionBtn.textContent = 'Loading...';
+
+  try {
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      showStatus('Please sign in first', 'error');
+      return;
+    }
+
+    const response = await fetch(`${BACKEND_URL}/api/portal`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        returnUrl: window.location.href
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Portal failed');
+    }
+
+    const { url } = await response.json();
+    // Open portal in new tab
+    window.open(url, '_blank');
+  } catch (error) {
+    console.error('Portal error:', error);
+    showStatus('Failed to open subscription portal', 'error');
+  } finally {
+    manageSubscriptionBtn.disabled = false;
+    manageSubscriptionBtn.textContent = 'Manage subscription';
+  }
+}
+
+// Event Listeners
 fetchDecksBtn.addEventListener('click', fetchDecks);
+googleSignInBtn.addEventListener('click', handleSignIn);
+signOutBtn.addEventListener('click', handleSignOut);
+upgradeBtn.addEventListener('click', handleUpgrade);
+manageSubscriptionBtn.addEventListener('click', handleManageSubscription);
 
 // Save settings
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const systemPrompt = systemPromptInput.value.trim();
-  const apiKey = apiKeyInput.value.trim();
-  const geminiApiKey = geminiApiKeyInput.value.trim();
   const mochiApiKey = mochiApiKeyInput.value.trim();
   const mochiDeckId = mochiDeckSelect.value;
-
-  if (!apiKey) {
-    showStatus('Please enter Claude API key', 'error');
-    return;
-  }
-
-  // Basic validation for Claude API key
-  if (!apiKey.startsWith('sk-')) {
-    showStatus('Claude API key should start with sk-', 'error');
-    return;
-  }
 
   saveBtn.disabled = true;
   saveBtn.textContent = 'Saving...';
@@ -178,8 +367,6 @@ form.addEventListener('submit', async (e) => {
   try {
     await chrome.storage.sync.set({
       systemPrompt: systemPrompt || null,
-      apiKey,
-      geminiApiKey: geminiApiKey || null,
       mochiApiKey: mochiApiKey || null,
       mochiDeckId: mochiDeckId || null
     });
@@ -198,5 +385,33 @@ closePageBtn.addEventListener('click', () => {
   window.close();
 });
 
+/**
+ * Initialize the page
+ */
+async function init() {
+  // Check for existing session
+  const { user } = await getSession();
+
+  if (user) {
+    currentUser = user;
+    updateUserDisplay(user);
+    loadSettings();
+  } else {
+    showLoginState();
+  }
+
+  // Listen for auth state changes
+  onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session?.user) {
+      currentUser = session.user;
+      updateUserDisplay(session.user);
+      loadSettings();
+    } else if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      showLoginState();
+    }
+  });
+}
+
 // Initialize
-loadSettings();
+init();

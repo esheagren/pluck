@@ -68,6 +68,173 @@
       color: #2d3436;
     }
 
+    .hidden {
+      display: none !important;
+    }
+
+    /* Login Section */
+    .login-section {
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .login-icon {
+      width: 80px;
+      height: 80px;
+      background: #f5f5f5;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+    }
+
+    .login-icon svg {
+      color: #888;
+    }
+
+    .login-section h2 {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .login-section p {
+      color: #888;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .btn-google {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 500;
+      background: white;
+      color: #2d3436;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    .btn-google:hover {
+      background: #f5f5f5;
+      border-color: #d0d0d0;
+    }
+
+    .btn-google svg {
+      flex-shrink: 0;
+    }
+
+    /* User Profile Section */
+    .user-section {
+      background: #f8f8f8;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .user-email {
+      font-size: 14px;
+      font-weight: 500;
+      color: #2d3436;
+    }
+
+    .usage-info {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .usage-bar {
+      flex: 1;
+      height: 6px;
+      background: #e0e0e0;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .usage-bar-fill {
+      height: 100%;
+      background: #27ae60;
+      transition: width 0.3s ease;
+    }
+
+    .usage-bar-fill.warning {
+      background: #f39c12;
+    }
+
+    .usage-bar-fill.full {
+      background: #e74c3c;
+    }
+
+    .usage-text {
+      font-size: 12px;
+      color: #888;
+      white-space: nowrap;
+    }
+
+    .billing-actions {
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-upgrade {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-upgrade:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .pro-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: underline;
+      font-family: inherit;
+    }
+
+    .btn-link:hover {
+      color: #2d3436;
+    }
+
     .form-group {
       margin-bottom: 20px;
     }
@@ -121,31 +288,8 @@
       color: #2d3436;
     }
 
-    .optional-label {
-      font-weight: 400;
-      color: #a0a0a0;
-      font-size: 12px;
-    }
-
     .input-wrapper {
       position: relative;
-    }
-
-    .toggle-visibility {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: #a0a0a0;
-      padding: 4px;
-      transition: color 0.15s ease;
-    }
-
-    .toggle-visibility:hover {
-      color: #2d3436;
     }
 
     .help-text {
@@ -308,7 +452,7 @@
     <div class="page-header">
       <div>
         <h1>Pluckk Settings</h1>
-        <p class="subtitle">Configure your Claude API key to generate flashcards</p>
+        <p class="subtitle" id="page-subtitle">Sign in to generate flashcards</p>
       </div>
       <button class="close-btn" id="close-page-btn" title="Close">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -318,102 +462,103 @@
       </button>
     </div>
 
-    <form id="settings-form">
-      <div class="form-group">
-        <label for="system-prompt">Card Generation Prompt</label>
-        <textarea id="system-prompt" rows="12" placeholder="Enter your custom prompt for generating flashcards..."></textarea>
-        <p class="help-text">
-          This prompt tells Claude how to generate flashcards.
-          <button type="button" class="reset-prompt-btn" id="reset-prompt-btn">Reset to default</button>
-        </p>
+    <!-- Login Section (shown when not signed in) -->
+    <div class="login-section" id="login-section">
+      <div class="login-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+      </div>
+      <h2>Sign in to Pluckk</h2>
+      <p>Sign in with your Google account to start generating flashcards</p>
+      <button class="btn-google" id="google-sign-in-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Sign in with Google
+      </button>
+    </div>
+
+    <!-- Settings Section (shown when signed in) -->
+    <div id="settings-section" class="hidden">
+      <!-- User Profile -->
+      <div class="user-section">
+        <div class="user-info">
+          <span class="user-email" id="user-email"></span>
+          <button class="btn-link" id="sign-out-btn">Sign out</button>
+        </div>
+        <div class="usage-info">
+          <div class="usage-bar">
+            <div class="usage-bar-fill" id="usage-bar-fill" style="width: 0%"></div>
+          </div>
+          <span class="usage-text" id="usage-text">0 / 20 cards</span>
+        </div>
+        <div class="billing-actions" id="billing-actions">
+          <button class="btn btn-upgrade" id="upgrade-btn">Upgrade to Pro</button>
+        </div>
+        <div class="billing-actions hidden" id="pro-actions">
+          <span class="pro-badge">Pro</span>
+          <button class="btn-link" id="manage-subscription-btn">Manage subscription</button>
+        </div>
       </div>
 
-      <div class="section-divider">
-        <h2 class="section-title">API Keys</h2>
-      </div>
+      <form id="settings-form">
+        <div class="form-group">
+          <label for="system-prompt">Card Generation Prompt</label>
+          <textarea id="system-prompt" rows="12" placeholder="Enter your custom prompt for generating flashcards..."></textarea>
+          <p class="help-text">
+            This prompt tells Claude how to generate flashcards.
+            <button type="button" class="reset-prompt-btn" id="reset-prompt-btn">Reset to default</button>
+          </p>
+        </div>
 
-      <div class="form-group">
-        <label for="api-key">Claude API Key</label>
-        <div class="input-wrapper">
-          <input
-            type="password"
-            id="api-key"
-            name="api-key"
-            placeholder="sk-ant-..."
-            autocomplete="off"
-          >
-          <button type="button" class="toggle-visibility" id="toggle-visibility">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-              <circle cx="12" cy="12" r="3"></circle>
-            </svg>
+        <div class="section-divider">
+          <h2 class="section-title">Mochi Integration</h2>
+        </div>
+
+        <div class="form-group">
+          <label for="mochi-api-key">Mochi API Key</label>
+          <div class="input-wrapper">
+            <input
+              type="password"
+              id="mochi-api-key"
+              name="mochi-api-key"
+              placeholder="Enter your Mochi API key"
+              autocomplete="off"
+            >
+          </div>
+          <p class="help-text">
+            Get your API key from Mochi Settings → API (requires Pro)
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label for="mochi-deck">Default Deck</label>
+          <select id="mochi-deck" disabled>
+            <option value="">Enter API key first</option>
+          </select>
+          <button type="button" class="btn btn-secondary fetch-btn" id="fetch-decks-btn">
+            Fetch Decks
           </button>
         </div>
-        <p class="help-text">
-          Get your API key from the
-          <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Anthropic Console</a>
-        </p>
-      </div>
 
-      <div class="form-group">
-        <label for="gemini-api-key">Gemini API Key <span class="optional-label">(optional)</span></label>
-        <div class="input-wrapper">
-          <input
-            type="password"
-            id="gemini-api-key"
-            name="gemini-api-key"
-            placeholder="AIza..."
-            autocomplete="off"
-          >
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="save-btn">Save Settings</button>
+          <span class="status" id="status"></span>
         </div>
-        <p class="help-text">
-          For auto-generating images on cards.
-          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Get Gemini API key</a>
+      </form>
+
+      <div class="shortcut-info">
+        <h2>Keyboard Shortcut</h2>
+        <p>
+          <span class="shortcut" id="shortcut-display">Cmd+Shift+M</span>
+          to open Pluckk
         </p>
       </div>
-
-      <div class="section-divider">
-        <h2 class="section-title">Mochi Integration</h2>
-      </div>
-
-      <div class="form-group">
-        <label for="mochi-api-key">Mochi API Key</label>
-        <div class="input-wrapper">
-          <input
-            type="password"
-            id="mochi-api-key"
-            name="mochi-api-key"
-            placeholder="Enter your Mochi API key"
-            autocomplete="off"
-          >
-        </div>
-        <p class="help-text">
-          Get your API key from Mochi Settings → API (requires Pro)
-        </p>
-      </div>
-
-      <div class="form-group">
-        <label for="mochi-deck">Default Deck</label>
-        <select id="mochi-deck" disabled>
-          <option value="">Enter API key first</option>
-        </select>
-        <button type="button" class="btn btn-secondary fetch-btn" id="fetch-decks-btn">
-          Fetch Decks
-        </button>
-      </div>
-
-      <div class="actions">
-        <button type="submit" class="btn btn-primary" id="save-btn">Save Settings</button>
-        <span class="status" id="status"></span>
-      </div>
-    </form>
-
-    <div class="shortcut-info">
-      <h2>Keyboard Shortcut</h2>
-      <p>
-        <span class="shortcut" id="shortcut-display">Cmd+Shift+M</span>
-        to open Pluckk
-      </p>
     </div>
   </div>
 

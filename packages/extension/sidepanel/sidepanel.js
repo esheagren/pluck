@@ -8,6 +8,7 @@ const loadingState = document.getElementById('loading-state');
 const errorState = document.getElementById('error-state');
 const noSelectionState = document.getElementById('no-selection-state');
 const apiKeyState = document.getElementById('api-key-state');
+const usageLimitState = document.getElementById('usage-limit-state');
 const cardsState = document.getElementById('cards-state');
 const cardsList = document.getElementById('cards-list');
 const errorMessage = document.getElementById('error-message');
@@ -17,6 +18,7 @@ const refreshBtn = document.getElementById('refresh-btn');
 const regenerateBtn = document.getElementById('regenerate-btn');
 const settingsBtn = document.getElementById('settings-btn');
 const openSettingsBtn = document.getElementById('open-settings-btn');
+const upgradeBtn = document.getElementById('upgrade-btn');
 const closeBtn = document.getElementById('close-btn');
 const selectedCountEl = document.getElementById('selected-count');
 const totalCountEl = document.getElementById('total-count');
@@ -36,7 +38,7 @@ let cachedSelectionData = null; // Cache selection for regeneration
  * Show a specific state, hide all others
  */
 function showState(state) {
-  const states = [loadingState, errorState, noSelectionState, apiKeyState, cardsState];
+  const states = [loadingState, errorState, noSelectionState, apiKeyState, usageLimitState, cardsState];
   states.forEach(s => s.classList.add('hidden'));
   state.classList.remove('hidden');
 }
@@ -329,8 +331,12 @@ async function generateCards(focusText = '', useCache = false) {
  */
 function handleError(response) {
   switch (response.error) {
+    case 'not_authenticated':
     case 'api_key_missing':
       showState(apiKeyState);
+      break;
+    case 'usage_limit_reached':
+      showState(usageLimitState);
       break;
     case 'api_key_invalid':
       showError('Invalid API key. Please check your settings.');
@@ -408,6 +414,7 @@ focusInput.addEventListener('keydown', (e) => {
 });
 settingsBtn.addEventListener('click', openSettings);
 openSettingsBtn.addEventListener('click', openSettings);
+upgradeBtn.addEventListener('click', openSettings); // Opens settings which has upgrade button
 closeBtn.addEventListener('click', closePanel);
 
 // Keyboard shortcuts
