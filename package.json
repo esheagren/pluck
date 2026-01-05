@@ -7,9 +7,11 @@
   "scripts": {
     "dev:extension": "npm run dev -w @pluckk/extension",
     "dev:webapp": "npm run dev -w @pluckk/webapp",
+    "dev:api": "npm run dev -w @pluckk/api",
     "build": "npm run build --workspaces --if-present",
     "build:extension": "npm run build -w @pluckk/extension",
-    "build:webapp": "npm run build -w @pluckk/webapp"
+    "build:webapp": "npm run build -w @pluckk/webapp",
+    "deploy:api": "npm run deploy -w @pluckk/api"
   },
   "devDependencies": {
     "vite": "^6.0.0"
