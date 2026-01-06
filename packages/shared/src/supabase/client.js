@@ -28,14 +28,19 @@ export function createSupabaseClient(options = {}) {
      * @param {string} question - Card question
      * @param {string} answer - Card answer
      * @param {string} sourceUrl - Source URL
-     * @param {Object} options - Optional parameters
-     * @param {string} options.userId - User ID to associate with card
+     * @param {Object} options - Required parameters
+     * @param {string} options.userId - User ID to associate with card (required)
      * @param {string} options.accessToken - User's access token for auth
      * @returns {Promise<{success: boolean, cardId: string}>}
      */
     async saveCard(question, answer, sourceUrl, options = {}) {
       try {
         const { userId, accessToken } = options;
+
+        // Require user_id for all card saves
+        if (!userId) {
+          throw new Error('User must be logged in to save cards');
+        }
 
         // Use user's token if provided, otherwise fall back to anon key
         const authHeaders = accessToken
@@ -45,13 +50,9 @@ export function createSupabaseClient(options = {}) {
         const cardData = {
           question,
           answer,
-          source_url: sourceUrl
+          source_url: sourceUrl,
+          user_id: userId
         };
-
-        // Include user_id if provided
-        if (userId) {
-          cardData.user_id = userId;
-        }
 
         const response = await fetch(`${url}/rest/v1/cards`, {
           method: 'POST',
@@ -73,7 +74,7 @@ export function createSupabaseClient(options = {}) {
     },
 
     /**
-     * Fetch all cards from Supabase
+     * Fetch all cards from Supabase (deprecated - use getCardsByUser instead)
      * @param {string} order - Order clause (default: created_at.desc)
      * @returns {Promise<Array>} Array of cards
      */
@@ -93,6 +94,42 @@ export function createSupabaseClient(options = {}) {
         return await response.json();
       } catch (error) {
         onError('Supabase fetchCards error:', error);
+        return [];
+      }
+    },
+
+    /**
+     * Fetch cards for a specific user
+     * @param {string} userId - User ID to filter by (required)
+     * @param {Object} options - Optional parameters
+     * @param {string} options.accessToken - User's access token for auth
+     * @param {string} options.order - Order clause (default: created_at.desc)
+     * @returns {Promise<Array>} Array of user's cards
+     */
+    async getCardsByUser(userId, options = {}) {
+      if (!userId) {
+        throw new Error('userId is required to fetch cards');
+      }
+
+      const { accessToken, order = 'created_at.desc' } = options;
+
+      try {
+        const authHeaders = accessToken
+          ? { 'apikey': key, 'Authorization': `Bearer ${accessToken}` }
+          : { 'apikey': key, 'Authorization': `Bearer ${key}` };
+
+        const response = await fetch(
+          `${url}/rest/v1/cards?user_id=eq.${userId}&select=*&order=${order}`,
+          { headers: authHeaders }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status}`);
+        }
+
+        return await response.json();
+      } catch (error) {
+        onError('Supabase getCardsByUser error:', error);
         return [];
       }
     },

@@ -566,6 +566,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       // Get user session for user_id
       const { session, user } = await getSession();
 
+      // Require authentication to save cards
+      if (!user?.id) {
+        sendResponse({
+          mochi: { error: 'not_authenticated', message: 'Please sign in to save cards' },
+          supabase: { error: 'not_authenticated', message: 'Please sign in to save cards' }
+        });
+        return;
+      }
+
       // First, save to Supabase with user association
       try {
         const result = await supabase.saveCard(
@@ -573,7 +582,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           request.answer,
           request.sourceUrl,
           {
-            userId: user?.id,
+            userId: user.id,
             accessToken: session?.access_token
           }
         );
@@ -619,12 +628,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     (async () => {
       try {
         const { session, user } = await getSession();
+
+        // Require authentication to save cards
+        if (!user?.id) {
+          sendResponse({ error: 'not_authenticated', message: 'Please sign in to save cards' });
+          return;
+        }
+
         const result = await supabase.saveCard(
           request.question,
           request.answer,
           request.sourceUrl,
           {
-            userId: user?.id,
+            userId: user.id,
             accessToken: session?.access_token
           }
         );
