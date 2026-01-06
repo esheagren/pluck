@@ -43,8 +43,8 @@ export async function authenticateRequest(req) {
  * Check if user has remaining card generation quota
  */
 export function checkUsageLimit(profile) {
-  // Paid users have unlimited access
-  if (profile.subscription_status === 'active') {
+  // Paid users and admins have unlimited access
+  if (profile.subscription_status === 'active' || profile.subscription_status === 'admin') {
     return { allowed: true, remaining: Infinity };
   }
 
