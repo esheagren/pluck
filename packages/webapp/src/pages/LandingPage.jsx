@@ -150,11 +150,7 @@ export default function LandingPage({ onSignIn }) {
       <header className="relative z-10 px-6 py-5">
         <nav className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-stone-800 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M12 3v18M3 12h18M7 7l10 10M17 7L7 17" />
-              </svg>
-            </div>
+            <img src="/logo.png" alt="Pluckk" className="w-8 h-8 rounded-lg" />
             <span className="text-xl font-semibold text-stone-800 tracking-tight">Pluckk</span>
           </div>
           <button
@@ -173,13 +169,6 @@ export default function LandingPage({ onSignIn }) {
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               {/* Left: Copy */}
               <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-100 text-amber-800 text-sm font-medium mb-6">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                  </svg>
-                  Chrome Extension
-                </div>
-
                 <h1 className="text-5xl lg:text-6xl font-bold text-stone-800 leading-[1.1] mb-6 tracking-tight">
                   Turn reading into{' '}
                   <span className="relative">
@@ -395,11 +384,7 @@ export default function LandingPage({ onSignIn }) {
       <footer className="relative z-10 px-6 py-8 border-t border-stone-200">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-stone-400">
-            <div className="w-6 h-6 rounded bg-stone-300 flex items-center justify-center">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M12 3v18M3 12h18M7 7l10 10M17 7L7 17" />
-              </svg>
-            </div>
+            <img src="/logo.png" alt="Pluckk" className="w-6 h-6 rounded opacity-60" />
             <span className="text-sm">Pluckk</span>
           </div>
           <div className="flex items-center gap-6 text-sm text-stone-400">

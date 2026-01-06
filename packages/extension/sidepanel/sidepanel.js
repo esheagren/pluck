@@ -2,7 +2,7 @@
 // Main UI logic for card generation and Mochi integration
 
 import { escapeHtml } from '@pluckk/shared/utils';
-import { DEFAULT_SYSTEM_PROMPT, FREE_TIER_LIMIT, BACKEND_URL } from '@pluckk/shared/constants';
+import { FREE_TIER_LIMIT, BACKEND_URL } from '@pluckk/shared/constants';
 import {
   signInWithGoogle,
   signOut,
@@ -51,8 +51,6 @@ const settingsManageBtn = document.getElementById('settings-manage-btn');
 const settingsMochiKey = document.getElementById('settings-mochi-key');
 const settingsMochiDeck = document.getElementById('settings-mochi-deck');
 const settingsFetchDecks = document.getElementById('settings-fetch-decks');
-const settingsPrompt = document.getElementById('settings-prompt');
-const settingsResetPrompt = document.getElementById('settings-reset-prompt');
 const settingsSaveBtn = document.getElementById('settings-save-btn');
 const settingsStatus = document.getElementById('settings-status');
 const shortcutDisplay = document.getElementById('shortcut-display');
@@ -458,11 +456,8 @@ async function loadSettingsData() {
     const result = await chrome.storage.sync.get([
       'mochiApiKey',
       'mochiDeckId',
-      'mochiDecks',
-      'systemPrompt'
+      'mochiDecks'
     ]);
-
-    settingsPrompt.value = result.systemPrompt || DEFAULT_SYSTEM_PROMPT;
 
     if (result.mochiApiKey) {
       settingsMochiKey.value = result.mochiApiKey;
@@ -590,12 +585,10 @@ async function saveSettings() {
   settingsSaveBtn.textContent = 'Saving...';
 
   try {
-    const systemPrompt = settingsPrompt.value.trim();
     const mochiApiKey = settingsMochiKey.value.trim();
     const mochiDeckId = settingsMochiDeck.value;
 
     await chrome.storage.sync.set({
-      systemPrompt: systemPrompt || null,
       mochiApiKey: mochiApiKey || null,
       mochiDeckId: mochiDeckId || null
     });
@@ -747,14 +740,6 @@ async function handleManageSubscription() {
 }
 
 /**
- * Reset prompt to default
- */
-function resetPromptToDefault() {
-  settingsPrompt.value = DEFAULT_SYSTEM_PROMPT;
-  showSettingsStatus('Reset to default', 'success');
-}
-
-/**
  * Close the side panel
  */
 function closePanel() {
@@ -816,7 +801,6 @@ signOutBtn.addEventListener('click', handleSignOut);
 settingsUpgradeBtn.addEventListener('click', handleUpgrade);
 settingsManageBtn.addEventListener('click', handleManageSubscription);
 settingsFetchDecks.addEventListener('click', fetchMochiDecks);
-settingsResetPrompt.addEventListener('click', resetPromptToDefault);
 settingsSaveBtn.addEventListener('click', saveSettings);
 
 // Keyboard shortcuts
