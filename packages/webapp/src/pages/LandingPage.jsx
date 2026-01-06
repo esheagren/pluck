@@ -123,6 +123,128 @@ export default function LandingPage({ onSignIn }) {
         </div>
       </section>
 
+      {/* Science section - Forgetting curve */}
+      <section className="relative z-10 bg-stone-50 py-24 border-y border-stone-200">
+        <div className="w-full max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            {/* Left - Content */}
+            <div className="space-y-8">
+              <p className="text-stone-400 text-sm tracking-widest uppercase">
+                The science
+              </p>
+              <h2 className="text-3xl lg:text-4xl font-bold text-stone-800 leading-[1.2]">
+                Your brain is designed to forget.
+              </h2>
+
+              <div className="space-y-6 text-stone-600 leading-relaxed">
+                <p>
+                  In 1885, psychologist Hermann Ebbinghaus discovered the <span className="font-semibold text-stone-800">forgetting curve</span>—we
+                  lose 50% of new information within an hour, and up to 90% within a week.
+                </p>
+                <p>
+                  But he also found the solution: <span className="font-semibold text-stone-800">spaced repetition</span>.
+                  By reviewing information at strategic intervals, you can flatten the curve and
+                  move knowledge into long-term memory.
+                </p>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-6 pt-4">
+                <div>
+                  <p className="text-3xl font-bold text-stone-800">50%</p>
+                  <p className="text-sm text-stone-500">forgotten in 1 hour</p>
+                </div>
+                <div>
+                  <p className="text-3xl font-bold text-stone-800">70%</p>
+                  <p className="text-sm text-stone-500">forgotten in 24 hours</p>
+                </div>
+                <div>
+                  <p className="text-3xl font-bold text-stone-800">90%</p>
+                  <p className="text-sm text-stone-500">forgotten in 1 week</p>
+                </div>
+              </div>
+
+              {/* Testing effect callout */}
+              <div className="bg-white rounded-xl p-6 border border-stone-200">
+                <p className="font-semibold text-stone-800 mb-2">The testing effect</p>
+                <p className="text-stone-600 text-sm leading-relaxed">
+                  Research shows that actively recalling information—not just re-reading it—dramatically
+                  improves retention. Testing yourself is more effective than studying, especially for long-term memory.
+                </p>
+              </div>
+            </div>
+
+            {/* Right - Forgetting curve visualization */}
+            <div className="relative">
+              <div className="bg-white rounded-2xl p-8 border border-stone-200 shadow-sm">
+                <p className="text-sm font-medium text-stone-500 mb-6">Memory retention over time</p>
+
+                {/* SVG Chart */}
+                <svg viewBox="0 0 400 250" className="w-full" aria-label="Forgetting curve vs spaced repetition chart">
+                  {/* Grid lines */}
+                  <line x1="50" y1="200" x2="380" y2="200" stroke="#e7e5e4" strokeWidth="1" />
+                  <line x1="50" y1="150" x2="380" y2="150" stroke="#e7e5e4" strokeWidth="1" strokeDasharray="4" />
+                  <line x1="50" y1="100" x2="380" y2="100" stroke="#e7e5e4" strokeWidth="1" strokeDasharray="4" />
+                  <line x1="50" y1="50" x2="380" y2="50" stroke="#e7e5e4" strokeWidth="1" strokeDasharray="4" />
+
+                  {/* Y-axis labels */}
+                  <text x="45" y="205" textAnchor="end" className="text-xs fill-stone-400">0%</text>
+                  <text x="45" y="155" textAnchor="end" className="text-xs fill-stone-400">50%</text>
+                  <text x="45" y="55" textAnchor="end" className="text-xs fill-stone-400">100%</text>
+
+                  {/* X-axis labels */}
+                  <text x="50" y="220" textAnchor="start" className="text-xs fill-stone-400">Learn</text>
+                  <text x="130" y="220" textAnchor="middle" className="text-xs fill-stone-400">1 day</text>
+                  <text x="215" y="220" textAnchor="middle" className="text-xs fill-stone-400">1 week</text>
+                  <text x="300" y="220" textAnchor="middle" className="text-xs fill-stone-400">1 month</text>
+
+                  {/* Forgetting curve (without review) - steep decline */}
+                  <path
+                    d="M 50 50 Q 80 120, 130 160 Q 180 185, 230 192 Q 280 197, 380 198"
+                    fill="none"
+                    stroke="#d6d3d1"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+
+                  {/* Spaced repetition curve - with review bumps */}
+                  <path
+                    d="M 50 50
+                       Q 65 80, 80 95
+                       L 80 60
+                       Q 100 85, 130 100
+                       L 130 70
+                       Q 165 90, 215 105
+                       L 215 80
+                       Q 260 95, 380 100"
+                    fill="none"
+                    stroke="#292524"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+
+                  {/* Review points */}
+                  <circle cx="80" cy="60" r="5" fill="#292524" />
+                  <circle cx="130" cy="70" r="5" fill="#292524" />
+                  <circle cx="215" cy="80" r="5" fill="#292524" />
+
+                  {/* Legend */}
+                  <line x1="240" y1="235" x2="260" y2="235" stroke="#d6d3d1" strokeWidth="3" strokeLinecap="round" />
+                  <text x="265" y="238" className="text-xs fill-stone-400">Without review</text>
+
+                  <line x1="320" y1="235" x2="340" y2="235" stroke="#292524" strokeWidth="3" strokeLinecap="round" />
+                  <text x="345" y="238" className="text-xs fill-stone-500 font-medium">With Pluckk</text>
+                </svg>
+
+                <p className="text-xs text-stone-400 mt-4 text-center">
+                  Each review strengthens memory and extends the time until the next review is needed.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Third section - Capture from AI */}
       <section className="relative z-10 min-h-screen bg-stone-900 text-white flex items-center">
         <div className="w-full max-w-7xl mx-auto px-6 lg:px-12 py-24">
