@@ -47,12 +47,13 @@ Requirements:
 - Style: clean, modern, educational`;
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
     const geminiResponse = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'x-goog-api-key': geminiApiKey
       },
       body: JSON.stringify({
         contents: [{
@@ -68,11 +69,25 @@ Requirements:
       const errorText = await geminiResponse.text();
       console.error('Gemini API error:', geminiResponse.status, errorText);
 
+      // Parse error details if possible
+      let errorDetail = 'Failed to generate image';
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorDetail = errorJson.error?.message || errorText;
+      } catch {
+        errorDetail = errorText;
+      }
+
       if (geminiResponse.status === 429) {
         return res.status(429).json({ error: 'rate_limit', message: 'Image generation rate limited' });
       }
 
-      return res.status(500).json({ error: 'Failed to generate image' });
+      // Return actual error for debugging
+      return res.status(geminiResponse.status).json({
+        error: 'gemini_api_error',
+        message: errorDetail,
+        status: geminiResponse.status
+      });
     }
 
     const data = await geminiResponse.json();
