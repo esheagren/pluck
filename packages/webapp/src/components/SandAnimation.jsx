@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export default function SandAnimation({ className = '' }) {
+export default function SandAnimation({ className = '', filterPosition = 0.65 }) {
   const canvasRef = useRef(null)
 
   useEffect(() => {
@@ -18,13 +18,13 @@ export default function SandAnimation({ className = '' }) {
       maxSize: 3,
       minSpeed: 2,
       maxSpeed: 4,
-      filterPosition: 0.65, // 65% across the screen
+      filterPosition: filterPosition, // configurable filter position
       passThrough: 0.03, // only 3% of particles pass through
       colors: [
-        'rgba(30, 30, 30, 0.7)',
-        'rgba(40, 40, 40, 0.6)',
-        'rgba(20, 20, 20, 0.8)',
-        'rgba(50, 50, 50, 0.5)',
+        'rgba(60, 60, 60, 0.6)',
+        'rgba(70, 70, 70, 0.5)',
+        'rgba(50, 50, 50, 0.6)',
+        'rgba(80, 80, 80, 0.45)',
       ]
     }
 
@@ -164,7 +164,7 @@ export default function SandAnimation({ className = '' }) {
       cancelAnimationFrame(animationId)
       window.removeEventListener('resize', handleResize)
     }
-  }, [])
+  }, [filterPosition])
 
   return (
     <canvas

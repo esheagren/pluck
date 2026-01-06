@@ -1,11 +1,17 @@
 import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
+import SandAnimation from './SandAnimation'
 
 export default function Layout() {
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 relative overflow-hidden">
+      {/* Background animation */}
+      <div className="fixed inset-0 pointer-events-none">
+        <SandAnimation filterPosition={0.875} />
+      </div>
+
       <Sidebar />
-      <main className="flex-1 ml-[220px] flex items-center justify-center p-10 max-md:ml-0">
+      <main className="relative z-10 flex-1 ml-[220px] flex items-center justify-center p-10 max-md:ml-0">
         <Outlet />
       </main>
       <footer className="fixed bottom-4 right-6 text-xs">
