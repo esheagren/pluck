@@ -92,11 +92,18 @@ Requirements:
 
     const data = await geminiResponse.json();
 
+    // Log full response structure for debugging
+    console.log('Gemini response structure:', JSON.stringify(data, null, 2));
+
     // Extract image data from response
     const candidate = data.candidates?.[0];
     if (!candidate) {
-      return res.status(500).json({ error: 'No image generated' });
+      console.error('No candidates in response:', data);
+      return res.status(500).json({ error: 'No image generated', details: 'No candidates in response' });
     }
+
+    // Log candidate parts for debugging
+    console.log('Candidate parts:', JSON.stringify(candidate.content?.parts, null, 2));
 
     // Find the inline_data part with the image
     const imagePart = candidate.content?.parts?.find(
@@ -104,7 +111,16 @@ Requirements:
     );
 
     if (!imagePart) {
-      return res.status(500).json({ error: 'No image in response' });
+      // Return what we got for debugging
+      const partTypes = candidate.content?.parts?.map(p =>
+        p.text ? 'text' : p.inline_data ? `inline_data(${p.inline_data.mime_type})` : 'unknown'
+      );
+      console.error('No image part found. Part types:', partTypes);
+      return res.status(500).json({
+        error: 'No image in response',
+        partTypes: partTypes,
+        finishReason: candidate.finishReason
+      });
     }
 
     return res.status(200).json({
