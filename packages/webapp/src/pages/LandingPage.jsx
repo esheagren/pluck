@@ -129,17 +129,17 @@ export default function LandingPage({ onSignIn }) {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">
               <p className="text-stone-500 text-sm tracking-widest uppercase">
-                Capture from anywhere
+                How it works
               </p>
               <h2 className="text-4xl lg:text-5xl font-bold leading-[1.1] tracking-tight">
-                Turn AI conversations
+                Extract knowledge
                 <br />
-                <span className="text-stone-400">into lasting knowledge.</span>
+                <span className="text-stone-400">from wherever you work.</span>
               </h2>
 
               <p className="text-lg text-stone-400 leading-relaxed max-w-lg">
-                ChatGPT and Claude give you incredible insights—then they vanish into chat history.
-                Pluckk captures what matters and makes it yours forever.
+                Articles, documentation, emails, ChatGPT, Claude—wherever you're learning,
+                Pluckk extracts what matters and makes it yours forever.
               </p>
 
               <div className="space-y-4 pt-4">
@@ -148,8 +148,8 @@ export default function LandingPage({ onSignIn }) {
                     <span className="text-sm font-medium">1</span>
                   </div>
                   <div>
-                    <p className="font-medium">Highlight in any AI chat</p>
-                    <p className="text-stone-500 text-sm">Works with ChatGPT, Claude, and any webpage.</p>
+                    <p className="font-medium">Highlight anywhere in your browser</p>
+                    <p className="text-stone-500 text-sm">Articles, docs, emails, ChatGPT, Claude—anywhere.</p>
                   </div>
                 </div>
 
