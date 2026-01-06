@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 
-export default function Sidebar({ user, billingInfo, reviewedCount, totalCards, onSignOut, onUpgrade, onManage }) {
+export default function Sidebar({ reviewedCount, totalCards }) {
   return (
     <nav className="w-[220px] bg-white border-r border-gray-200 flex flex-col fixed top-0 left-0 bottom-0 max-md:hidden">
       {/* Header */}
@@ -65,47 +65,6 @@ export default function Sidebar({ user, billingInfo, reviewedCount, totalCards, 
           <span className="text-xl font-semibold text-gray-800">{reviewedCount} / {totalCards}</span>
           <span className="text-xs text-gray-500">cards reviewed</span>
         </div>
-
-        {/* User Profile */}
-        {user && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="text-sm text-gray-800 break-all mb-2">{user.email}</div>
-
-            {/* Billing Info */}
-            {billingInfo && !billingInfo.isPro && (
-              <div className="mt-3 flex items-center gap-2">
-                <span className="text-xs text-gray-500">{billingInfo.cardsUsed} / {billingInfo.limit} cards</span>
-                <button
-                  onClick={onUpgrade}
-                  className="btn-upgrade text-white text-xs font-medium px-2.5 py-1 rounded transition-all"
-                >
-                  Upgrade
-                </button>
-              </div>
-            )}
-
-            {billingInfo?.isPro && (
-              <div className="mt-3 flex items-center gap-2">
-                <span className="pro-badge text-white text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide">
-                  Pro
-                </span>
-                <button
-                  onClick={onManage}
-                  className="text-xs text-gray-500 underline hover:text-gray-800"
-                >
-                  Manage
-                </button>
-              </div>
-            )}
-
-            <button
-              onClick={onSignOut}
-              className="mt-3 text-xs text-gray-500 underline hover:text-gray-800"
-            >
-              Sign out
-            </button>
-          </div>
-        )}
       </div>
     </nav>
   )

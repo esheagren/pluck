@@ -46,13 +46,8 @@ export default function App() {
       <Route
         element={
           <Layout
-            user={user}
-            billingInfo={billingInfo}
             reviewedCount={reviewProgress.reviewed}
             totalCards={cards.length}
-            onSignOut={signOut}
-            onUpgrade={handleUpgrade}
-            onManage={handleManageSubscription}
           />
         }
       >
@@ -76,7 +71,18 @@ export default function App() {
             />
           }
         />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route
+          path="/settings"
+          element={
+            <SettingsPage
+              user={user}
+              billingInfo={billingInfo}
+              onSignOut={signOut}
+              onUpgrade={handleUpgrade}
+              onManage={handleManageSubscription}
+            />
+          }
+        />
       </Route>
     </Routes>
   )

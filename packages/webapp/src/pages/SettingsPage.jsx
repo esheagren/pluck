@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { BACKEND_URL, MOCHI_API_URL } from '@pluckk/shared/constants'
 import { getAccessToken } from '@pluckk/shared/supabase'
 
-export default function SettingsPage() {
+export default function SettingsPage({ user, billingInfo, onSignOut, onUpgrade, onManage }) {
   const [mochiApiKey, setMochiApiKey] = useState('')
   const [mochiDeckId, setMochiDeckId] = useState('')
   const [decks, setDecks] = useState([])
@@ -133,6 +133,58 @@ export default function SettingsPage() {
   return (
     <div className="w-full max-w-lg mx-auto">
       <h2 className="text-xl font-semibold text-gray-800 mb-6">Settings</h2>
+
+      {/* Account Section */}
+      <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 mb-6">
+        {/* Email */}
+        <div className="px-5 py-4">
+          <label className="text-xs text-gray-400 uppercase tracking-wide block mb-1">Email</label>
+          <div className="text-gray-800">{user?.email}</div>
+        </div>
+
+        {/* Subscription */}
+        <div className="px-5 py-4">
+          <label className="text-xs text-gray-400 uppercase tracking-wide block mb-1">Subscription</label>
+          {billingInfo?.isPro ? (
+            <div className="flex items-center gap-3">
+              <span className="pro-badge text-white text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide">
+                Pro
+              </span>
+              <button
+                onClick={onManage}
+                className="text-sm text-gray-500 underline hover:text-gray-800"
+              >
+                Manage subscription
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-gray-800">Free</span>
+                <span className="text-gray-400 text-sm ml-2">
+                  {billingInfo?.cardsUsed || 0} / {billingInfo?.limit || 50} cards this month
+                </span>
+              </div>
+              <button
+                onClick={onUpgrade}
+                className="btn-upgrade text-white text-sm font-medium px-4 py-2 rounded-lg transition-all"
+              >
+                Upgrade to Pro
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Sign Out */}
+        <div className="px-5 py-4">
+          <button
+            onClick={onSignOut}
+            className="text-sm text-gray-500 hover:text-gray-800"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
 
       {/* Mochi Integration */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
