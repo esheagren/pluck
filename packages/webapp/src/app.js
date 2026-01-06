@@ -165,10 +165,17 @@ function restartReview() {
  */
 async function fetchUserCards() {
   try {
-    // With RLS enabled, this will automatically filter to user's cards + public cards
+    // Require user to be logged in
+    if (!currentUser?.id) {
+      console.error('No user logged in');
+      return [];
+    }
+
+    // Filter cards by current user's ID
     const { data, error } = await supabase
       .from('cards')
       .select('*')
+      .eq('user_id', currentUser.id)
       .order('created_at', { ascending: false });
 
     if (error) {
