@@ -21,7 +21,7 @@ function LoadingScreen() {
 
 export default function App() {
   const { user, loading: authLoading, billingInfo, signIn, signOut, handleUpgrade, handleManageSubscription } = useAuth()
-  const { cards, loading: cardsLoading, updateCard } = useCards(user?.id)
+  const { cards, loading: cardsLoading, updateCard, deleteCard } = useCards(user?.id)
 
   // Show loading while checking auth
   if (authLoading) {
@@ -44,6 +44,7 @@ export default function App() {
               cards={cards}
               loading={cardsLoading}
               onUpdateCard={updateCard}
+              onDeleteCard={deleteCard}
             />
           }
         />

@@ -72,11 +72,34 @@ export function useCards(userId) {
     }
   }, [])
 
+  const deleteCard = useCallback(async (cardId) => {
+    try {
+      const { error } = await supabase
+        .from('cards')
+        .delete()
+        .eq('id', cardId)
+
+      if (error) {
+        console.error('Error deleting card:', error)
+        return { error }
+      }
+
+      // Update local state
+      setCards(prev => prev.filter(card => card.id !== cardId))
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error deleting card:', error)
+      return { error }
+    }
+  }, [])
+
   return {
     cards,
     loading,
     refetch: fetchCards,
     getShuffledCards,
-    updateCard
+    updateCard,
+    deleteCard
   }
 }
