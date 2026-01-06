@@ -158,21 +158,21 @@
         <div class="settings-group">
           <p class="settings-label">Mochi Integration</p>
           <div class="settings-field">
-            <input type="password" id="settings-mochi-key" placeholder="Mochi API Key" autocomplete="off">
+            <input type="text" id="settings-mochi-key" placeholder="Not configured" disabled>
           </div>
-          <div class="settings-field-row">
+          <div class="settings-field">
             <select id="settings-mochi-deck" disabled>
-              <option value="">Select deck</option>
+              <option value="">Not configured</option>
             </select>
-            <button class="btn btn-secondary btn-sm" id="settings-fetch-decks">Fetch</button>
           </div>
-          <p class="settings-hint">Optional. Get API key from Mochi Settings → API</p>
-        </div>
-
-        <!-- Save Button -->
-        <div class="settings-group">
-          <button class="btn btn-primary btn-full" id="settings-save-btn">Save Settings</button>
-          <span class="settings-status" id="settings-status"></span>
+          <button class="btn btn-secondary btn-full btn-sm" id="settings-manage-link">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
+            Manage in Web App
+          </button>
         </div>
 
         <!-- Keyboard Shortcut -->

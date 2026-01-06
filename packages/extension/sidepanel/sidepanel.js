@@ -50,9 +50,7 @@ const settingsUpgradeBtn = document.getElementById('settings-upgrade-btn');
 const settingsManageBtn = document.getElementById('settings-manage-btn');
 const settingsMochiKey = document.getElementById('settings-mochi-key');
 const settingsMochiDeck = document.getElementById('settings-mochi-deck');
-const settingsFetchDecks = document.getElementById('settings-fetch-decks');
-const settingsSaveBtn = document.getElementById('settings-save-btn');
-const settingsStatus = document.getElementById('settings-status');
+const settingsManageLink = document.getElementById('settings-manage-link');
 const shortcutDisplay = document.getElementById('shortcut-display');
 
 // State
@@ -451,23 +449,93 @@ async function loadSettingsData() {
   // Load auth state
   await updateAuthDisplay();
 
-  // Load saved settings
+  // Sync Mochi settings from backend (this caches them locally)
+  await syncMochiSettingsFromBackend();
+
+  // Load cached settings for display
   try {
     const result = await chrome.storage.sync.get([
       'mochiApiKey',
       'mochiDeckId',
-      'mochiDecks'
+      'mochiDeckName'
     ]);
 
     if (result.mochiApiKey) {
-      settingsMochiKey.value = result.mochiApiKey;
+      settingsMochiKey.value = '••••••••';
+      settingsMochiKey.disabled = true;
+    } else {
+      settingsMochiKey.placeholder = 'Not configured';
+      settingsMochiKey.disabled = true;
     }
 
-    if (result.mochiDecks && result.mochiDecks.length > 0) {
-      populateMochiDecks(result.mochiDecks, result.mochiDeckId);
+    if (result.mochiDeckId && result.mochiDeckName) {
+      settingsMochiDeck.innerHTML = `<option value="${result.mochiDeckId}">${result.mochiDeckName}</option>`;
+      settingsMochiDeck.disabled = true;
+    } else {
+      settingsMochiDeck.innerHTML = '<option value="">Not configured</option>';
+      settingsMochiDeck.disabled = true;
     }
   } catch (error) {
     console.error('Failed to load settings:', error);
+  }
+}
+
+/**
+ * Sync Mochi settings from backend API and cache locally
+ */
+async function syncMochiSettingsFromBackend() {
+  try {
+    const accessToken = await getAccessToken();
+    if (!accessToken) return;
+
+    const response = await fetch(`${BACKEND_URL}/api/user/me`, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const mochiApiKey = data.settings?.mochiApiKey || null;
+      const mochiDeckId = data.settings?.mochiDeckId || null;
+
+      // Cache settings locally for the background script to use
+      await chrome.storage.sync.set({
+        mochiApiKey: mochiApiKey,
+        mochiDeckId: mochiDeckId
+      });
+
+      // If we have an API key, fetch deck name for display
+      if (mochiApiKey && mochiDeckId) {
+        await fetchMochiDeckName(mochiApiKey, mochiDeckId);
+      }
+
+      console.log('[Pluckk] Mochi settings synced from backend');
+    }
+  } catch (error) {
+    console.error('Failed to sync Mochi settings:', error);
+  }
+}
+
+/**
+ * Fetch the deck name for a given deck ID (for display purposes)
+ */
+async function fetchMochiDeckName(mochiApiKey, deckId) {
+  try {
+    const response = await fetch('https://app.mochi.cards/api/decks/', {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Basic ' + btoa(mochiApiKey + ':')
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const deck = data.docs.find(d => d.id === deckId);
+      if (deck) {
+        await chrome.storage.sync.set({ mochiDeckName: deck.name });
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch deck name:', error);
   }
 }
 
@@ -516,104 +584,10 @@ async function updateAuthDisplay() {
 }
 
 /**
- * Populate Mochi deck dropdown
+ * Open webapp settings page
  */
-function populateMochiDecks(decks, selectedId) {
-  settingsMochiDeck.innerHTML = '<option value="">Select deck</option>';
-  settingsMochiDeck.disabled = false;
-
-  decks.forEach(deck => {
-    const option = document.createElement('option');
-    option.value = deck.id;
-    option.textContent = deck.name;
-    if (deck.id === selectedId) {
-      option.selected = true;
-    }
-    settingsMochiDeck.appendChild(option);
-  });
-}
-
-/**
- * Fetch decks from Mochi API
- */
-async function fetchMochiDecks() {
-  const mochiApiKey = settingsMochiKey.value.trim();
-
-  if (!mochiApiKey) {
-    showSettingsStatus('Enter API key first', 'error');
-    return;
-  }
-
-  settingsFetchDecks.disabled = true;
-  settingsFetchDecks.textContent = '...';
-
-  try {
-    const response = await fetch('https://app.mochi.cards/api/decks/', {
-      method: 'GET',
-      headers: {
-        'Authorization': 'Basic ' + btoa(mochiApiKey + ':')
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const decks = data.docs.map(deck => ({
-      id: deck.id,
-      name: deck.name
-    }));
-
-    await chrome.storage.sync.set({ mochiDecks: decks });
-    populateMochiDecks(decks, null);
-    showSettingsStatus('Decks loaded!', 'success');
-  } catch (error) {
-    console.error('Failed to fetch decks:', error);
-    showSettingsStatus('Failed to fetch', 'error');
-  } finally {
-    settingsFetchDecks.disabled = false;
-    settingsFetchDecks.textContent = 'Fetch';
-  }
-}
-
-/**
- * Save settings
- */
-async function saveSettings() {
-  settingsSaveBtn.disabled = true;
-  settingsSaveBtn.textContent = 'Saving...';
-
-  try {
-    const mochiApiKey = settingsMochiKey.value.trim();
-    const mochiDeckId = settingsMochiDeck.value;
-
-    await chrome.storage.sync.set({
-      mochiApiKey: mochiApiKey || null,
-      mochiDeckId: mochiDeckId || null
-    });
-
-    showSettingsStatus('Saved!', 'success');
-    await checkMochiStatus();
-  } catch (error) {
-    console.error('Failed to save settings:', error);
-    showSettingsStatus('Failed to save', 'error');
-  } finally {
-    settingsSaveBtn.disabled = false;
-    settingsSaveBtn.textContent = 'Save Settings';
-  }
-}
-
-/**
- * Show settings status message
- */
-function showSettingsStatus(message, type) {
-  settingsStatus.textContent = message;
-  settingsStatus.className = `settings-status visible ${type}`;
-
-  setTimeout(() => {
-    settingsStatus.classList.remove('visible');
-  }, 2500);
+function openWebappSettings() {
+  chrome.tabs.create({ url: 'https://pluckk.app/settings' });
 }
 
 /**
@@ -800,8 +774,9 @@ googleSignInBtn.addEventListener('click', handleGoogleSignIn);
 signOutBtn.addEventListener('click', handleSignOut);
 settingsUpgradeBtn.addEventListener('click', handleUpgrade);
 settingsManageBtn.addEventListener('click', handleManageSubscription);
-settingsFetchDecks.addEventListener('click', fetchMochiDecks);
-settingsSaveBtn.addEventListener('click', saveSettings);
+if (settingsManageLink) {
+  settingsManageLink.addEventListener('click', openWebappSettings);
+}
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
