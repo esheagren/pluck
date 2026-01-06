@@ -105,15 +105,15 @@ Requirements:
     // Log candidate parts for debugging
     console.log('Candidate parts:', JSON.stringify(candidate.content?.parts, null, 2));
 
-    // Find the inline_data part with the image
+    // Find the inlineData part with the image (Gemini API uses camelCase)
     const imagePart = candidate.content?.parts?.find(
-      part => part.inline_data?.mime_type?.startsWith('image/')
+      part => part.inlineData?.mimeType?.startsWith('image/')
     );
 
     if (!imagePart) {
       // Return what we got for debugging
       const partTypes = candidate.content?.parts?.map(p =>
-        p.text ? 'text' : p.inline_data ? `inline_data(${p.inline_data.mime_type})` : 'unknown'
+        p.text ? 'text' : p.inlineData ? `inlineData(${p.inlineData.mimeType})` : 'unknown'
       );
       console.error('No image part found. Part types:', partTypes);
       return res.status(500).json({
@@ -124,8 +124,8 @@ Requirements:
     }
 
     return res.status(200).json({
-      imageData: imagePart.inline_data.data,
-      mimeType: imagePart.inline_data.mime_type
+      imageData: imagePart.inlineData.data,
+      mimeType: imagePart.inlineData.mimeType
     });
 
   } catch (error) {
