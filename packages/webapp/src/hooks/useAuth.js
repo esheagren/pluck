@@ -50,7 +50,7 @@ export function useAuth() {
     initAuth()
 
     // Listen for auth changes
-    const { data: { subscription } } = onAuthStateChange((event, session) => {
+    const unsubscribe = onAuthStateChange((event, session) => {
       console.log('Auth state changed:', event)
 
       if (event === 'SIGNED_IN' && session?.user) {
@@ -62,7 +62,7 @@ export function useAuth() {
       }
     })
 
-    return () => subscription?.unsubscribe()
+    return unsubscribe
   }, [])
 
   const signIn = async () => {
