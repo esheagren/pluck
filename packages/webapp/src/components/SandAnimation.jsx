@@ -13,21 +13,18 @@ export default function SandAnimation({ className = '' }) {
 
     // Configuration
     const config = {
-      particleCount: 150,
+      particleCount: 800,
       minSize: 1,
-      maxSize: 2.5,
-      minSpeed: 0.3,
-      maxSpeed: 1.2,
-      drift: 0.3,
-      sieveLines: 5,
-      sieveGap: 0.15, // percentage of height between sieve lines
-      sievePauseChance: 0.02, // chance to briefly pause at sieve line
-      sievePauseDuration: 30, // frames to pause
+      maxSize: 2,
+      minSpeed: 2,
+      maxSpeed: 4,
+      filterPosition: 0.65, // 65% across the screen
+      passThrough: 0.03, // only 3% of particles pass through
       colors: [
-        'rgba(217, 199, 175, 0.6)', // light sand
-        'rgba(194, 178, 158, 0.5)', // medium sand
-        'rgba(168, 152, 132, 0.4)', // darker sand
-        'rgba(210, 186, 145, 0.5)', // golden sand
+        'rgba(30, 30, 30, 0.7)',
+        'rgba(40, 40, 40, 0.6)',
+        'rgba(20, 20, 20, 0.8)',
+        'rgba(50, 50, 50, 0.5)',
       ]
     }
 
@@ -43,112 +40,110 @@ export default function SandAnimation({ className = '' }) {
     }
 
     // Create a particle
-    const createParticle = (yPosition = null) => {
+    const createParticle = (xPosition = null) => {
       const height = canvas.height / (window.devicePixelRatio || 1)
       const width = canvas.width / (window.devicePixelRatio || 1)
+      const filterX = width * config.filterPosition
+
+      // Determine if this particle will pass through the filter
+      const willPassThrough = Math.random() < config.passThrough
 
       return {
-        x: Math.random() * width,
-        y: yPosition !== null ? yPosition : -10 - Math.random() * 100,
+        x: xPosition !== null ? xPosition : -5 - Math.random() * 50,
+        y: Math.random() * height,
         size: config.minSize + Math.random() * (config.maxSize - config.minSize),
         speed: config.minSpeed + Math.random() * (config.maxSpeed - config.minSpeed),
-        drift: (Math.random() - 0.5) * config.drift,
-        driftSpeed: 0.01 + Math.random() * 0.02,
-        driftOffset: Math.random() * Math.PI * 2,
         color: config.colors[Math.floor(Math.random() * config.colors.length)],
-        opacity: 0.3 + Math.random() * 0.5,
-        pauseTimer: 0,
-        paused: false,
+        opacity: 0.4 + Math.random() * 0.5,
+        willPassThrough,
+        stopped: false,
+        fadeOut: 0,
+        // Slight vertical drift (very subtle)
+        verticalDrift: (Math.random() - 0.5) * 0.15,
       }
     }
 
     // Initialize particles
     const init = () => {
       particles = []
-      const height = canvas.height / (window.devicePixelRatio || 1)
+      const width = canvas.width / (window.devicePixelRatio || 1)
 
       for (let i = 0; i < config.particleCount; i++) {
-        // Distribute particles throughout the canvas initially
-        particles.push(createParticle(Math.random() * height))
+        // Distribute particles across the left portion initially
+        const startX = Math.random() * width * config.filterPosition
+        particles.push(createParticle(startX))
       }
-    }
-
-    // Calculate sieve line positions
-    const getSieveLines = () => {
-      const height = canvas.height / (window.devicePixelRatio || 1)
-      const lines = []
-      const startOffset = 0.2 // Start 20% down
-
-      for (let i = 0; i < config.sieveLines; i++) {
-        lines.push(height * (startOffset + i * config.sieveGap))
-      }
-      return lines
     }
 
     // Animation loop
-    let frame = 0
     const animate = () => {
       const height = canvas.height / (window.devicePixelRatio || 1)
       const width = canvas.width / (window.devicePixelRatio || 1)
-      const sieveLines = getSieveLines()
+      const filterX = width * config.filterPosition
 
       // Clear canvas
       ctx.clearRect(0, 0, width, height)
 
-      // Draw subtle sieve lines (very faint)
-      ctx.strokeStyle = 'rgba(180, 165, 145, 0.08)'
+      // Draw the filter line (very subtle vertical line)
+      ctx.strokeStyle = 'rgba(60, 60, 60, 0.1)'
       ctx.lineWidth = 1
-      sieveLines.forEach(y => {
-        ctx.beginPath()
-        ctx.moveTo(0, y)
-        ctx.lineTo(width, y)
-        ctx.stroke()
-      })
+      ctx.beginPath()
+      ctx.moveTo(filterX, 0)
+      ctx.lineTo(filterX, height)
+      ctx.stroke()
 
       // Update and draw particles
       particles.forEach((p, index) => {
-        // Handle pause state (simulating catching on sieve)
-        if (p.paused) {
-          p.pauseTimer--
-          if (p.pauseTimer <= 0) {
-            p.paused = false
+        if (!p.stopped) {
+          // Move horizontally (left to right)
+          p.x += p.speed
+          // Very subtle vertical movement
+          p.y += p.verticalDrift
+
+          // Check if particle hits the filter
+          if (p.x >= filterX && !p.willPassThrough) {
+            p.stopped = true
+            p.x = filterX - p.size
+            p.fadeOut = 1
           }
         } else {
-          // Check if particle should pause at a sieve line
-          sieveLines.forEach(lineY => {
-            if (p.y >= lineY - 1 && p.y <= lineY + 1 && Math.random() < config.sievePauseChance) {
-              p.paused = true
-              p.pauseTimer = Math.random() * config.sievePauseDuration
-              p.y = lineY
-            }
-          })
-
-          if (!p.paused) {
-            // Update position with gentle sine wave drift
-            p.y += p.speed
-            p.x += Math.sin(frame * p.driftSpeed + p.driftOffset) * p.drift
+          // Fade out stopped particles
+          p.fadeOut -= 0.008
+          if (p.fadeOut <= 0) {
+            // Reset particle
+            particles[index] = createParticle()
           }
         }
 
         // Draw particle
-        ctx.beginPath()
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
-        ctx.fillStyle = p.color
-        ctx.globalAlpha = p.opacity * (p.paused ? 0.8 : 1)
-        ctx.fill()
-        ctx.globalAlpha = 1
+        const currentOpacity = p.stopped ? p.opacity * p.fadeOut : p.opacity
+        if (currentOpacity > 0) {
+          ctx.beginPath()
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+          ctx.fillStyle = p.color
+          ctx.globalAlpha = currentOpacity
+          ctx.fill()
+          ctx.globalAlpha = 1
+        }
 
-        // Reset particle if it falls off screen
-        if (p.y > height + 10) {
+        // Reset particle if it goes off screen right
+        if (p.x > width + 10) {
           particles[index] = createParticle()
         }
 
-        // Wrap horizontally
-        if (p.x < -10) p.x = width + 10
-        if (p.x > width + 10) p.x = -10
+        // Wrap vertically
+        if (p.y < -10) p.y = height + 10
+        if (p.y > height + 10) p.y = -10
       })
 
-      frame++
+      // Draw accumulation effect at filter line (subtle pile-up)
+      const gradient = ctx.createLinearGradient(filterX - 40, 0, filterX, 0)
+      gradient.addColorStop(0, 'rgba(40, 40, 40, 0)')
+      gradient.addColorStop(0.7, 'rgba(40, 40, 40, 0.03)')
+      gradient.addColorStop(1, 'rgba(40, 40, 40, 0.08)')
+      ctx.fillStyle = gradient
+      ctx.fillRect(filterX - 40, 0, 40, height)
+
       animationId = requestAnimationFrame(animate)
     }
 
@@ -158,15 +153,16 @@ export default function SandAnimation({ className = '' }) {
     animate()
 
     // Handle resize
-    window.addEventListener('resize', () => {
+    const handleResize = () => {
       resize()
       init()
-    })
+    }
+    window.addEventListener('resize', handleResize)
 
     // Cleanup
     return () => {
       cancelAnimationFrame(animationId)
-      window.removeEventListener('resize', resize)
+      window.removeEventListener('resize', handleResize)
     }
   }, [])
 
