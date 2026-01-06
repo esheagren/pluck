@@ -3,7 +3,7 @@
 
 import { authenticateRequest } from '../lib/auth.js';
 
-const GEMINI_MODEL = 'gemini-2.0-flash-exp';
+const GEMINI_MODEL = 'gemini-2.0-flash-exp-image-generation';
 
 export default async function handler(req, res) {
   // Handle CORS preflight
