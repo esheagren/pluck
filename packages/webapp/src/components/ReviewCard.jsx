@@ -12,11 +12,18 @@ export default function ReviewCard({ card, isFlipped, onFlip }) {
           </div>
         </div>
 
-        {/* Back - Answer */}
-        <div className="card-face card-back absolute w-full h-full bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl flex items-center justify-center p-8 shadow-lg">
+        {/* Back - Answer + Image */}
+        <div className="card-face card-back absolute w-full h-full bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl flex flex-col items-center justify-center p-8 shadow-lg">
           <div className="text-lg leading-relaxed text-center text-gray-800 max-h-full overflow-y-auto">
             {card.answer}
           </div>
+          {card.image_url && (
+            <img
+              src={card.image_url}
+              alt=""
+              className="mt-4 max-h-28 rounded-lg object-contain"
+            />
+          )}
         </div>
       </div>
     </div>
