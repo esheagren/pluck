@@ -28,18 +28,35 @@ export function createSupabaseClient(options = {}) {
      * @param {string} question - Card question
      * @param {string} answer - Card answer
      * @param {string} sourceUrl - Source URL
+     * @param {Object} options - Optional parameters
+     * @param {string} options.userId - User ID to associate with card
+     * @param {string} options.accessToken - User's access token for auth
      * @returns {Promise<{success: boolean, cardId: string}>}
      */
-    async saveCard(question, answer, sourceUrl) {
+    async saveCard(question, answer, sourceUrl, options = {}) {
       try {
+        const { userId, accessToken } = options;
+
+        // Use user's token if provided, otherwise fall back to anon key
+        const authHeaders = accessToken
+          ? { ...headers, 'Authorization': `Bearer ${accessToken}` }
+          : headers;
+
+        const cardData = {
+          question,
+          answer,
+          source_url: sourceUrl
+        };
+
+        // Include user_id if provided
+        if (userId) {
+          cardData.user_id = userId;
+        }
+
         const response = await fetch(`${url}/rest/v1/cards`, {
           method: 'POST',
-          headers: { ...headers, 'Prefer': 'return=representation' },
-          body: JSON.stringify({
-            question,
-            answer,
-            source_url: sourceUrl
-          })
+          headers: { ...authHeaders, 'Prefer': 'return=representation' },
+          body: JSON.stringify(cardData)
         });
 
         if (!response.ok) {

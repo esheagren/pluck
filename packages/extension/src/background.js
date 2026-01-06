@@ -520,9 +520,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       let supabaseResult = { supabase: { success: true } };
       let supabaseCardId = null;
 
-      // First, save to Supabase
+      // Get user session for user_id
+      const { session, user } = await getSession();
+
+      // First, save to Supabase with user association
       try {
-        const result = await supabase.saveCard(request.question, request.answer, request.sourceUrl);
+        const result = await supabase.saveCard(
+          request.question,
+          request.answer,
+          request.sourceUrl,
+          {
+            userId: user?.id,
+            accessToken: session?.access_token
+          }
+        );
         supabaseCardId = result.cardId;
         supabaseResult = { supabase: result };
       } catch (error) {
@@ -556,9 +567,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === 'saveToSupabase') {
-    supabase.saveCard(request.question, request.answer, request.sourceUrl)
-      .then(result => sendResponse(result))
-      .catch(error => sendResponse({ error: 'supabase_error', message: error.message }));
+    (async () => {
+      try {
+        const { session, user } = await getSession();
+        const result = await supabase.saveCard(
+          request.question,
+          request.answer,
+          request.sourceUrl,
+          {
+            userId: user?.id,
+            accessToken: session?.access_token
+          }
+        );
+        sendResponse(result);
+      } catch (error) {
+        sendResponse({ error: 'supabase_error', message: error.message });
+      }
+    })();
 
     return true;
   }
