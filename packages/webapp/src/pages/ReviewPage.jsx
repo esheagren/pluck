@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import ReviewCard from '../components/ReviewCard'
 
-export default function ReviewPage({ cards, loading }) {
+export default function ReviewPage({ cards, loading, onUpdateCard }) {
   const [reviewCards, setReviewCards] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
@@ -123,6 +123,7 @@ export default function ReviewPage({ cards, loading }) {
         card={currentCard}
         isFlipped={isFlipped}
         onFlip={flipCard}
+        onUpdateCard={onUpdateCard}
       />
 
       {/* Hint */}

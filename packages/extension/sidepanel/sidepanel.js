@@ -15,6 +15,7 @@ import {
 const loadingState = document.getElementById('loading-state');
 const errorState = document.getElementById('error-state');
 const noSelectionState = document.getElementById('no-selection-state');
+const screenshotState = document.getElementById('screenshot-state');
 const apiKeyState = document.getElementById('api-key-state');
 const usageLimitState = document.getElementById('usage-limit-state');
 const cardsState = document.getElementById('cards-state');
@@ -61,13 +62,18 @@ let editedCards = {};
 let mochiConfigured = false;
 let cachedSelectionData = null; // Cache selection for regeneration
 
+// Screenshot/Image mode state
+let isImageMode = false;
+let pastedImageData = null; // Base64 image data
+let pastedImageMimeType = null; // e.g., 'image/png'
+
 /**
  * Show a specific state, hide all others
  */
 function showState(state) {
-  const states = [loadingState, errorState, noSelectionState, apiKeyState, usageLimitState, cardsState];
-  states.forEach(s => s.classList.add('hidden'));
-  state.classList.remove('hidden');
+  const states = [loadingState, errorState, noSelectionState, screenshotState, apiKeyState, usageLimitState, cardsState];
+  states.forEach(s => s?.classList.add('hidden'));
+  state?.classList.remove('hidden');
 }
 
 /**

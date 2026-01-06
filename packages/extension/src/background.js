@@ -483,9 +483,72 @@ async function generateImageForSupabase(supabaseCardId, question, answer) {
 }
 
 /**
- * Create a card in Mochi
+ * Background task to upload a screenshot to Supabase and optionally attach to Mochi card
+ * Used when user pastes a screenshot for card generation
  */
-async function createMochiCard(question, answer, sourceUrl, supabaseCardId = null) {
+async function uploadScreenshotAndAttach(mochiCardId, question, answer, sourceUrl, supabaseCardId, screenshotData, screenshotMimeType) {
+  const taskId = `screenshot-${supabaseCardId || mochiCardId}-${Date.now()}`;
+  pendingTasks.add(taskId);
+  startKeepAlive();
+
+  try {
+    console.log('[Pluckk] Starting screenshot upload task:', taskId);
+
+    // Upload to Supabase Storage if we have a Supabase card ID
+    if (supabaseCardId) {
+      try {
+        console.log('[Pluckk] Uploading screenshot to Supabase Storage...');
+        const imageUrl = await supabase.uploadImage(screenshotData, screenshotMimeType, supabaseCardId);
+        console.log('[Pluckk] Screenshot uploaded to Supabase:', imageUrl);
+
+        console.log('[Pluckk] Updating Supabase card with image URL...');
+        await supabase.updateCardImage(supabaseCardId, imageUrl);
+        console.log('[Pluckk] Supabase card updated with image URL!');
+      } catch (supabaseError) {
+        console.error('[Pluckk] Supabase screenshot upload failed:', supabaseError.message);
+      }
+    }
+
+    // Attach to Mochi card if we have a Mochi card ID
+    if (mochiCardId) {
+      const mochiSettings = await getMochiSettings();
+      if (mochiSettings.apiKey) {
+        try {
+          console.log('[Pluckk] Uploading screenshot to Mochi card:', mochiCardId);
+          const uploadResult = await uploadMochiAttachment(mochiCardId, screenshotData, screenshotMimeType, mochiSettings.apiKey);
+          const filename = uploadResult.filename;
+          console.log('[Pluckk] Screenshot attached to Mochi successfully:', filename);
+
+          // Update Mochi card content to display the image inline (on answer side)
+          let newContent = `${question}\n---\n${answer}\n\n![](@media/${filename})`;
+          if (sourceUrl) {
+            newContent += `\n\n---\nSource: ${sourceUrl}`;
+          }
+
+          console.log('[Pluckk] Updating Mochi card to display screenshot inline...');
+          await updateMochiCardContent(mochiCardId, newContent, mochiSettings.apiKey);
+          console.log('[Pluckk] Mochi card updated with inline screenshot!');
+        } catch (mochiError) {
+          console.error('[Pluckk] Mochi screenshot attachment failed:', mochiError.message);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[Pluckk] Failed to upload screenshot:', error.message, error);
+  } finally {
+    pendingTasks.delete(taskId);
+    console.log('[Pluckk] Task completed:', taskId, 'Remaining tasks:', pendingTasks.size);
+    if (pendingTasks.size === 0) {
+      stopKeepAlive();
+    }
+  }
+}
+
+/**
+ * Create a card in Mochi (without automatically triggering image generation)
+ * Returns the card ID so caller can decide how to handle image attachment
+ */
+async function createMochiCardWithoutImage(question, answer, sourceUrl) {
   const settings = await getMochiSettings();
 
   if (!settings.apiKey) {
@@ -522,17 +585,28 @@ async function createMochiCard(question, answer, sourceUrl, supabaseCardId = nul
     }
 
     const card = await response.json();
-
-    // Fire-and-forget: trigger background image generation
-    // Don't await - let it run asynchronously so user doesn't experience latency
-    // Pass supabaseCardId so image can also be saved to Supabase
-    generateAndAttachImage(card.id, question, answer, sourceUrl, supabaseCardId);
-
     return { success: true, cardId: card.id };
   } catch (error) {
     console.error('Failed to create Mochi card:', error);
     return { error: 'mochi_api_error', message: error.message };
   }
+}
+
+/**
+ * Create a card in Mochi (legacy function that auto-triggers AI image generation)
+ * @deprecated Use createMochiCardWithoutImage instead for better control
+ */
+async function createMochiCard(question, answer, sourceUrl, supabaseCardId = null) {
+  const result = await createMochiCardWithoutImage(question, answer, sourceUrl);
+
+  if (result.success && result.cardId) {
+    // Fire-and-forget: trigger background image generation
+    // Don't await - let it run asynchronously so user doesn't experience latency
+    // Pass supabaseCardId so image can also be saved to Supabase
+    generateAndAttachImage(result.cardId, question, answer, sourceUrl, supabaseCardId);
+  }
+
+  return result;
 }
 
 // Listen for messages from popup
@@ -558,7 +632,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.action === 'sendToMochi') {
     // Save to Supabase first to get card ID, then create Mochi card with that ID
-    // This allows the image generation to update both Mochi and Supabase
+    // This allows the image (screenshot or AI-generated) to update both Mochi and Supabase
     (async () => {
       let supabaseResult = { supabase: { success: true } };
       let supabaseCardId = null;
@@ -574,6 +648,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
         return;
       }
+
+      // Check if this is a screenshot-based card
+      const hasScreenshot = request.screenshotData && request.screenshotMimeType;
 
       // First, save to Supabase with user association
       try {
@@ -595,13 +672,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       // Then, create Mochi card with Supabase card ID (for image linking)
       let mochiResult;
       try {
-        const result = await createMochiCard(request.question, request.answer, request.sourceUrl, supabaseCardId);
+        const result = await createMochiCardWithoutImage(request.question, request.answer, request.sourceUrl);
         mochiResult = { mochi: result };
 
-        // If Mochi isn't configured but we have a Supabase card, generate image for Supabase only
-        if ((result.error === 'mochi_api_key_missing' || result.error === 'mochi_deck_not_selected') && supabaseCardId) {
-          // Fire-and-forget: generate image for Supabase card
-          generateImageForSupabase(supabaseCardId, request.question, request.answer);
+        if (result.success && result.cardId) {
+          if (hasScreenshot) {
+            // Fire-and-forget: upload screenshot to both Mochi and Supabase
+            uploadScreenshotAndAttach(
+              result.cardId,
+              request.question,
+              request.answer,
+              request.sourceUrl,
+              supabaseCardId,
+              request.screenshotData,
+              request.screenshotMimeType
+            );
+          } else {
+            // Fire-and-forget: generate AI image and attach to Mochi and Supabase
+            generateAndAttachImage(result.cardId, request.question, request.answer, request.sourceUrl, supabaseCardId);
+          }
+        } else if ((result.error === 'mochi_api_key_missing' || result.error === 'mochi_deck_not_selected') && supabaseCardId) {
+          // Mochi isn't configured but we have a Supabase card
+          if (hasScreenshot) {
+            // Fire-and-forget: upload screenshot to Supabase only
+            uploadScreenshotAndAttach(null, request.question, request.answer, request.sourceUrl, supabaseCardId, request.screenshotData, request.screenshotMimeType);
+          } else {
+            // Fire-and-forget: generate image for Supabase card only
+            generateImageForSupabase(supabaseCardId, request.question, request.answer);
+          }
         }
       } catch (error) {
         mochiResult = { mochi: { error: 'mochi_error', message: error.message } };
@@ -611,6 +709,63 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     })();
 
     return true; // Keep message channel open for async response
+  }
+
+  if (request.action === 'generateCardsFromImage') {
+    // Generate cards from a pasted screenshot using Claude vision
+    (async () => {
+      const isAuthenticated = await checkAuth();
+      if (!isAuthenticated) {
+        sendResponse({ error: 'not_authenticated' });
+        return;
+      }
+
+      const accessToken = await getAccessToken();
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/generate-cards-from-image`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({
+            imageData: request.imageData,
+            mimeType: request.mimeType,
+            focusText: request.focusText || ''
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+
+          if (response.status === 401) {
+            sendResponse({ error: 'not_authenticated' });
+            return;
+          }
+
+          if (response.status === 402) {
+            sendResponse({ error: 'usage_limit_reached' });
+            return;
+          }
+
+          console.error('Image card generation API error:', response.status, errorData);
+          sendResponse({ error: 'api_error', message: errorData.error || 'Failed to analyze image' });
+          return;
+        }
+
+        const data = await response.json();
+        sendResponse({
+          cards: data.cards,
+          usage: data.usage
+        });
+      } catch (error) {
+        console.error('Image card generation failed:', error);
+        sendResponse({ error: 'api_error', message: error.message });
+      }
+    })();
+
+    return true;
   }
 
   if (request.action === 'getMochiStatus') {

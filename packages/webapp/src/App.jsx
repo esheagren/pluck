@@ -43,6 +43,7 @@ export default function App() {
             <ReviewPage
               cards={cards}
               loading={cardsLoading}
+              onUpdateCard={updateCard}
             />
           }
         />
