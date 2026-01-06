@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import CardGrid from '../components/CardGrid'
 
 export default function CardsPage({ cards, loading, onUpdateCard }) {
@@ -6,6 +6,8 @@ export default function CardsPage({ cards, loading, onUpdateCard }) {
   const [editQuestion, setEditQuestion] = useState('')
   const [editAnswer, setEditAnswer] = useState('')
   const [saving, setSaving] = useState(false)
+  const questionRef = useRef(null)
+  const answerRef = useRef(null)
 
   // Update edit fields when a card is selected
   useEffect(() => {
@@ -14,6 +16,18 @@ export default function CardsPage({ cards, loading, onUpdateCard }) {
       setEditAnswer(selectedCard.answer)
     }
   }, [selectedCard])
+
+  // Auto-resize textareas when content is set
+  useEffect(() => {
+    if (questionRef.current) {
+      questionRef.current.style.height = 'auto'
+      questionRef.current.style.height = questionRef.current.scrollHeight + 'px'
+    }
+    if (answerRef.current) {
+      answerRef.current.style.height = 'auto'
+      answerRef.current.style.height = answerRef.current.scrollHeight + 'px'
+    }
+  }, [editQuestion, editAnswer])
 
   const handleSave = async () => {
     if (!selectedCard || !onUpdateCard) return
@@ -81,19 +95,35 @@ export default function CardsPage({ cards, loading, onUpdateCard }) {
             <div className="mb-4">
               <label className="text-xs text-gray-400 uppercase tracking-wide mb-2 block">Question</label>
               <textarea
+                ref={questionRef}
                 value={editQuestion}
-                onChange={(e) => setEditQuestion(e.target.value)}
-                className="w-full p-3 border border-gray-200 rounded-lg text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-gray-200"
-                rows={3}
+                onChange={(e) => {
+                  setEditQuestion(e.target.value)
+                  e.target.style.height = 'auto'
+                  e.target.style.height = e.target.scrollHeight + 'px'
+                }}
+                onFocus={(e) => {
+                  e.target.style.height = 'auto'
+                  e.target.style.height = e.target.scrollHeight + 'px'
+                }}
+                className="w-full p-3 border border-gray-200 rounded-lg text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-gray-200 overflow-hidden min-h-[60px]"
               />
             </div>
             <div className="border-t border-gray-100 pt-4">
               <label className="text-xs text-gray-400 uppercase tracking-wide mb-2 block">Answer</label>
               <textarea
+                ref={answerRef}
                 value={editAnswer}
-                onChange={(e) => setEditAnswer(e.target.value)}
-                className="w-full p-3 border border-gray-200 rounded-lg text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-gray-200"
-                rows={4}
+                onChange={(e) => {
+                  setEditAnswer(e.target.value)
+                  e.target.style.height = 'auto'
+                  e.target.style.height = e.target.scrollHeight + 'px'
+                }}
+                onFocus={(e) => {
+                  e.target.style.height = 'auto'
+                  e.target.style.height = e.target.scrollHeight + 'px'
+                }}
+                className="w-full p-3 border border-gray-200 rounded-lg text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-gray-200 overflow-hidden min-h-[60px]"
               />
             </div>
             <div className="mt-6 flex gap-3">
