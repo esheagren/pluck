@@ -1,0 +1,69 @@
+import { useState } from 'react'
+import CardGrid from '../components/CardGrid'
+
+export default function CardsPage({ cards, loading }) {
+  const [selectedCard, setSelectedCard] = useState(null)
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center gap-4">
+        <div className="spinner w-8 h-8 border-3 border-gray-200 border-t-gray-800 rounded-full"></div>
+        <p className="text-gray-500 text-sm">Loading cards...</p>
+      </div>
+    )
+  }
+
+  if (cards.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center gap-4">
+        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-2">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+          </svg>
+        </div>
+        <h2 className="text-lg font-medium text-gray-800">No cards yet</h2>
+        <p className="text-gray-500 text-sm">Use the Pluckk extension to create some flashcards.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="w-full flex flex-col items-center">
+      <div className="w-full max-w-5xl mb-6">
+        <h2 className="text-xl font-semibold text-gray-800">{cards.length} Cards</h2>
+      </div>
+
+      <CardGrid cards={cards} onCardClick={setSelectedCard} />
+
+      {/* Card Detail Modal */}
+      {selectedCard && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          onClick={() => setSelectedCard(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4">
+              <div className="text-xs text-gray-400 uppercase tracking-wide mb-2">Question</div>
+              <div className="text-gray-800">{selectedCard.question}</div>
+            </div>
+            <div className="border-t border-gray-100 pt-4">
+              <div className="text-xs text-gray-400 uppercase tracking-wide mb-2">Answer</div>
+              <div className="text-gray-800">{selectedCard.answer}</div>
+            </div>
+            <button
+              onClick={() => setSelectedCard(null)}
+              className="mt-6 w-full py-3 bg-gray-100 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

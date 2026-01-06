@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom 3D Card Flip Animation */
+.card-wrapper {
+  perspective: 1000px;
+}
+
+.card {
+  transform-style: preserve-3d;
+  transition: transform 0.5s ease;
+}
+
+.card.flipped {
+  transform: rotateY(180deg);
+}
+
+.card-face {
+  backface-visibility: hidden;
+}
+
+.card-back {
+  transform: rotateY(180deg);
+}
+
+/* Spinner Animation */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  animation: spin 0.8s linear infinite;
+}
+
+/* Pro Badge Gradient */
+.btn-upgrade {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
+
+.btn-upgrade:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.pro-badge {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
