@@ -172,7 +172,7 @@ function getSelectedCards() {
 }
 
 /**
- * Send selected cards to Mochi (one at a time due to rate limiting)
+ * Send selected cards to Supabase (and optionally Mochi if configured)
  */
 async function sendToMochi() {
   const selectedCards = getSelectedCards();
@@ -180,8 +180,10 @@ async function sendToMochi() {
 
   mochiBtn.disabled = true;
   const totalCards = selectedCards.length;
-  let sentCount = 0;
-  let errors = [];
+  let savedCount = 0;
+  let mochiCount = 0;
+  let supabaseErrors = [];
+  let mochiConfigured = true; // Assume configured until we learn otherwise
 
   mochiBtn.querySelector('.btn-text').textContent = `Pluckking 0/${totalCards}...`;
 
@@ -194,63 +196,60 @@ async function sendToMochi() {
         sourceUrl: sourceUrl
       });
 
-      // Handle dual response format (mochi + supabase)
-      if (response.mochi?.error) {
-        errors.push(response.mochi.error);
-      } else {
-        sentCount++;
+      // Track Supabase success (primary storage)
+      if (response.supabase?.success || response.supabase?.cardId) {
+        savedCount++;
+      } else if (response.supabase?.error) {
+        supabaseErrors.push(response.supabase.message || response.supabase.error);
       }
 
-      // Log Supabase status (non-blocking)
-      if (response.supabase?.error) {
-        console.warn('Supabase save failed:', response.supabase.message);
+      // Track Mochi success (optional integration)
+      if (response.mochi?.success || response.mochi?.cardId) {
+        mochiCount++;
+      } else if (response.mochi?.error === 'mochi_api_key_missing' || response.mochi?.error === 'mochi_deck_not_selected') {
+        mochiConfigured = false; // Mochi not set up, that's fine
       }
 
-      mochiBtn.querySelector('.btn-text').textContent = `Pluckking ${sentCount}/${totalCards}...`;
+      mochiBtn.querySelector('.btn-text').textContent = `Pluckking ${savedCount}/${totalCards}...`;
 
       // Small delay between requests to respect rate limiting
       if (selectedCards.indexOf(card) < selectedCards.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 300));
       }
     } catch (error) {
-      errors.push(error.message);
+      supabaseErrors.push(error.message);
     }
   }
 
-  if (errors.length > 0 && sentCount === 0) {
-    // All failed
-    let errorMsg = 'Failed to send to Mochi';
-    if (errors[0] === 'mochi_api_key_missing') {
-      errorMsg = 'Mochi API key not configured';
-    } else if (errors[0] === 'mochi_deck_not_selected') {
-      errorMsg = 'No Mochi deck selected';
-    }
-    showError(errorMsg);
+  // Check if anything was saved
+  if (savedCount === 0 && supabaseErrors.length > 0) {
+    // Nothing saved at all - show error
+    showError('Failed to save cards. Please try again.');
     mochiBtn.disabled = false;
     updateSelectionCount();
     return;
   }
 
-  // Show success briefly, then close the panel
+  // Show success
   mochiBtn.classList.add('btn-success');
   mochiBtn.classList.remove('btn-mochi');
 
-  if (errors.length > 0) {
-    mochiBtn.querySelector('.btn-text').textContent = `Pluckked ${sentCount}/${totalCards}`;
-    // If some failed, don't auto-close - let user see the partial result
-    setTimeout(() => {
-      mochiBtn.classList.remove('btn-success');
-      mochiBtn.classList.add('btn-mochi');
-      mochiBtn.disabled = false;
-      updateSelectionCount();
-    }, 2000);
+  // Determine success message
+  let successMsg;
+  if (mochiConfigured && mochiCount > 0) {
+    successMsg = `Pluckked ${savedCount}!`;
+  } else if (savedCount > 0) {
+    successMsg = `Saved ${savedCount}!`;
   } else {
-    mochiBtn.querySelector('.btn-text').textContent = `Pluckked ${sentCount}!`;
-    // Success - close panel after brief feedback
-    setTimeout(() => {
-      window.close();
-    }, 600);
+    successMsg = 'Pluckked!';
   }
+
+  mochiBtn.querySelector('.btn-text').textContent = successMsg;
+
+  // Close panel after brief feedback
+  setTimeout(() => {
+    window.close();
+  }, 600);
 }
 
 /**
