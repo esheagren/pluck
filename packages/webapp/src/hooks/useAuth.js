@@ -24,11 +24,11 @@ export function useAuth() {
       })
 
       if (response.ok) {
-        const profile = await response.json()
+        const data = await response.json()
         setBillingInfo({
-          isPro: profile.subscription_status === 'active',
-          cardsUsed: profile.cards_generated_this_month || 0,
-          limit: FREE_TIER_LIMIT
+          isPro: data.subscription?.isPro || false,
+          cardsUsed: data.usage?.cardsThisMonth || 0,
+          limit: data.usage?.limit || FREE_TIER_LIMIT
         })
       }
     } catch (error) {

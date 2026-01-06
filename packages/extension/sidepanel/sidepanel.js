@@ -285,7 +285,11 @@ function flattenCards(rawCards) {
  * @param {boolean} useCache - Whether to use cached selection (for regeneration)
  */
 async function generateCards(focusText = '', useCache = false) {
-  showState(loadingState);
+  // If using cache, we know we have selection - show loading immediately
+  if (useCache && cachedSelectionData) {
+    showState(loadingState);
+  }
+
   await checkMochiStatus();
 
   try {
@@ -322,6 +326,37 @@ async function generateCards(focusText = '', useCache = false) {
   } catch (error) {
     console.error('Generation failed:', error);
     showError('Failed to generate cards. Please try again.');
+  }
+}
+
+/**
+ * Check for selection and generate cards if found, otherwise show ready state
+ */
+async function initializePanel() {
+  await checkMochiStatus();
+
+  // First, quickly check if there's a selection
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) {
+      showState(noSelectionState);
+      return;
+    }
+
+    // Try to get selection from content script
+    const selectionData = await chrome.tabs.sendMessage(tab.id, { action: 'getSelection' });
+
+    if (selectionData?.selection) {
+      // We have text selected - show loading and generate
+      showState(loadingState);
+      generateCards();
+    } else {
+      // No selection - show ready state (not an error)
+      showState(noSelectionState);
+    }
+  } catch (error) {
+    // Content script not available (e.g., chrome:// pages)
+    showState(noSelectionState);
   }
 }
 
@@ -461,5 +496,5 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
 });
 
-// Start generation on panel open
-generateCards();
+// Initialize panel - check for selection first
+initializePanel();
