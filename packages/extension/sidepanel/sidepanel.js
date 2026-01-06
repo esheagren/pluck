@@ -222,12 +222,20 @@ async function sendToMochi() {
 
   for (const card of selectedCards) {
     try {
-      const response = await chrome.runtime.sendMessage({
+      const messageData = {
         action: 'sendToMochi',
         question: card.question,
         answer: card.answer,
         sourceUrl: sourceUrl
-      });
+      };
+
+      // Include screenshot data if we're in image mode
+      if (isImageMode && pastedImageData && pastedImageMimeType) {
+        messageData.screenshotData = pastedImageData;
+        messageData.screenshotMimeType = pastedImageMimeType;
+      }
+
+      const response = await chrome.runtime.sendMessage(messageData);
 
       // Track Supabase success (primary storage)
       if (response.supabase?.success || response.supabase?.cardId) {
@@ -279,6 +287,13 @@ async function sendToMochi() {
 
   mochiBtn.querySelector('.btn-text').textContent = successMsg;
 
+  // Clear screenshot data to free memory
+  if (isImageMode) {
+    pastedImageData = null;
+    pastedImageMimeType = null;
+    isImageMode = false;
+  }
+
   // Close panel after brief feedback
   setTimeout(() => {
     window.close();
@@ -310,6 +325,171 @@ function flattenCards(rawCards) {
   }
 
   return flattened;
+}
+
+/**
+ * Resize an image to max dimensions and compress to target size
+ * @param {string} base64Data - Base64 encoded image data
+ * @param {string} mimeType - Original mime type
+ * @param {number} maxDimension - Max width/height in pixels
+ * @param {number} targetSizeKB - Target file size in KB
+ * @returns {Promise<{data: string, mimeType: string}>}
+ */
+async function resizeImage(base64Data, mimeType, maxDimension = 1024, targetSizeKB = 200) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      // Calculate new dimensions maintaining aspect ratio
+      let { width, height } = img;
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height / width) * maxDimension);
+          width = maxDimension;
+        } else {
+          width = Math.round((width / height) * maxDimension);
+          height = maxDimension;
+        }
+      }
+
+      // Create canvas and draw resized image
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Try to compress to target size (JPEG for better compression)
+      let quality = 0.9;
+      let result = canvas.toDataURL('image/jpeg', quality);
+
+      // Reduce quality until we're under target size
+      while (result.length > targetSizeKB * 1024 * 1.37 && quality > 0.1) { // 1.37 accounts for base64 overhead
+        quality -= 0.1;
+        result = canvas.toDataURL('image/jpeg', quality);
+      }
+
+      // Extract base64 data without prefix
+      const data = result.split(',')[1];
+      resolve({ data, mimeType: 'image/jpeg' });
+    };
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = `data:${mimeType};base64,${base64Data}`;
+  });
+}
+
+/**
+ * Handle paste event to capture screenshots
+ */
+async function handlePaste(e) {
+  // Skip if user is editing a card
+  if (e.target.isContentEditable || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+    return;
+  }
+
+  const items = e.clipboardData?.items;
+  if (!items) return;
+
+  // Look for image in clipboard
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      e.preventDefault();
+
+      const blob = item.getAsFile();
+      if (!blob) continue;
+
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64WithPrefix = reader.result;
+        const [prefix, rawData] = base64WithPrefix.split(',');
+        const originalMimeType = prefix.match(/data:(.*);base64/)?.[1] || 'image/png';
+
+        try {
+          // Resize and compress the image
+          const { data, mimeType } = await resizeImage(rawData, originalMimeType);
+
+          // Store the screenshot data
+          pastedImageData = data;
+          pastedImageMimeType = mimeType;
+          isImageMode = true;
+
+          // Show screenshot preview
+          showScreenshotPreview(data);
+        } catch (error) {
+          console.error('Failed to process screenshot:', error);
+          showError('Failed to process screenshot. Please try again.');
+        }
+      };
+      reader.readAsDataURL(blob);
+      break; // Only handle first image
+    }
+  }
+}
+
+/**
+ * Show the screenshot preview state
+ */
+function showScreenshotPreview(base64Data) {
+  const previewImg = document.getElementById('screenshot-preview-img');
+  if (previewImg) {
+    previewImg.src = `data:image/jpeg;base64,${base64Data}`;
+  }
+  showState(screenshotState);
+}
+
+/**
+ * Clear the pasted screenshot and return to ready state
+ */
+function clearScreenshot() {
+  pastedImageData = null;
+  pastedImageMimeType = null;
+  isImageMode = false;
+  showState(noSelectionState);
+}
+
+/**
+ * Generate cards from the pasted screenshot
+ * @param {string} focusText - Optional focus/guidance for card generation
+ */
+async function generateCardsFromImage(focusText = '') {
+  if (!pastedImageData || !pastedImageMimeType) {
+    showError('No screenshot to analyze');
+    return;
+  }
+
+  showState(loadingState);
+  await checkMochiStatus();
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: 'generateCardsFromImage',
+      imageData: pastedImageData,
+      mimeType: pastedImageMimeType,
+      focusText: focusText
+    });
+
+    if (response.error) {
+      handleError(response);
+      return;
+    }
+
+    if (!response.cards || response.cards.length === 0) {
+      showError('No cards generated from screenshot. Try a different image.');
+      return;
+    }
+
+    // Flatten any cloze_list cards into individual cards
+    cards = flattenCards(response.cards);
+    sourceUrl = ''; // Screenshots don't have a source URL
+    selectedIndices = new Set();
+    editedCards = {};
+
+    renderCards();
+    showState(cardsState);
+  } catch (error) {
+    console.error('Image card generation failed:', error);
+    showError('Failed to generate cards from screenshot. Please try again.');
+  }
 }
 
 /**
@@ -749,8 +929,14 @@ function generateWithFocus() {
   const focusText = focusInput.value.trim();
   focusInputContainer.classList.add('hidden');
   focusInput.value = '';
-  // Use cached selection for regeneration
-  generateCards(focusText, true);
+
+  // Use appropriate generation method based on mode
+  if (isImageMode && pastedImageData) {
+    generateCardsFromImage(focusText);
+  } else {
+    // Use cached selection for regeneration
+    generateCards(focusText, true);
+  }
 }
 
 // Event Listeners - Main UI
@@ -782,6 +968,19 @@ settingsUpgradeBtn.addEventListener('click', handleUpgrade);
 settingsManageBtn.addEventListener('click', handleManageSubscription);
 if (settingsManageLink) {
   settingsManageLink.addEventListener('click', openWebappSettings);
+}
+
+// Event Listeners - Screenshot handling
+document.addEventListener('paste', handlePaste);
+
+// Wire up screenshot buttons (added dynamically via HTML)
+const screenshotGenerateBtn = document.getElementById('screenshot-generate-btn');
+const screenshotClearBtn = document.getElementById('screenshot-clear-btn');
+if (screenshotGenerateBtn) {
+  screenshotGenerateBtn.addEventListener('click', () => generateCardsFromImage());
+}
+if (screenshotClearBtn) {
+  screenshotClearBtn.addEventListener('click', clearScreenshot);
 }
 
 // Keyboard shortcuts
