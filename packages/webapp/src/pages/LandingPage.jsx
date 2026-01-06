@@ -33,9 +33,6 @@ export default function LandingPage({ onSignIn }) {
               {/* Dramatic statement */}
               <div className="space-y-8">
                 <div className="space-y-4">
-                  <p className="text-stone-400 text-sm tracking-widest uppercase">
-                    The problem
-                  </p>
                   <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-stone-800 leading-[1.1] tracking-tight">
                     You forget
                     <br />
@@ -52,8 +49,8 @@ export default function LandingPage({ onSignIn }) {
                   All that time spent learning—gone.
                 </p>
 
-                <p className="text-lg text-stone-600 leading-relaxed max-w-md font-medium">
-                  Unless you have a system.
+                <p className="text-2xl text-stone-800 leading-relaxed max-w-md font-semibold">
+                  Choose to remember.
                 </p>
 
                 {/* CTA */}

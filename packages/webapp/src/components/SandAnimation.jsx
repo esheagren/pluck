@@ -14,8 +14,8 @@ export default function SandAnimation({ className = '' }) {
     // Configuration
     const config = {
       particleCount: 800,
-      minSize: 1,
-      maxSize: 2,
+      minSize: 1.5,
+      maxSize: 3,
       minSpeed: 2,
       maxSpeed: 4,
       filterPosition: 0.65, // 65% across the screen
