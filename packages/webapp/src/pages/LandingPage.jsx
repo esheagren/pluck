@@ -14,7 +14,7 @@ export default function LandingPage({ onSignIn }) {
     <div className="min-h-screen bg-stone-100 relative overflow-hidden">
       {/* Sand animation - full screen */}
       <div className="absolute inset-0">
-        <SandAnimation />
+        <SandAnimation speed={0.6} />
       </div>
 
       {/* Hero content - positioned on the right side (the "filtered" zone) */}
