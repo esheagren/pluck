@@ -59,8 +59,7 @@ Requirements:
           parts: [{ text: prompt }]
         }],
         generationConfig: {
-          responseModalities: ['image', 'text'],
-          responseMimeType: 'image/png'
+          responseModalities: ['TEXT', 'IMAGE']
         }
       })
     });
