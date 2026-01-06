@@ -1,8 +1,39 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import CardGrid from '../components/CardGrid'
 
-export default function CardsPage({ cards, loading }) {
+export default function CardsPage({ cards, loading, onUpdateCard }) {
   const [selectedCard, setSelectedCard] = useState(null)
+  const [editQuestion, setEditQuestion] = useState('')
+  const [editAnswer, setEditAnswer] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  // Update edit fields when a card is selected
+  useEffect(() => {
+    if (selectedCard) {
+      setEditQuestion(selectedCard.question)
+      setEditAnswer(selectedCard.answer)
+    }
+  }, [selectedCard])
+
+  const handleSave = async () => {
+    if (!selectedCard || !onUpdateCard) return
+
+    setSaving(true)
+    const { error } = await onUpdateCard(selectedCard.id, {
+      question: editQuestion,
+      answer: editAnswer
+    })
+    setSaving(false)
+
+    if (!error) {
+      setSelectedCard(null)
+    }
+  }
+
+  const hasChanges = selectedCard && (
+    editQuestion !== selectedCard.question ||
+    editAnswer !== selectedCard.answer
+  )
 
   if (loading) {
     return (
@@ -37,7 +68,7 @@ export default function CardsPage({ cards, loading }) {
 
       <CardGrid cards={cards} onCardClick={setSelectedCard} />
 
-      {/* Card Detail Modal */}
+      {/* Card Edit Modal */}
       {selectedCard && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
@@ -48,19 +79,38 @@ export default function CardsPage({ cards, loading }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4">
-              <div className="text-xs text-gray-400 uppercase tracking-wide mb-2">Question</div>
-              <div className="text-gray-800">{selectedCard.question}</div>
+              <label className="text-xs text-gray-400 uppercase tracking-wide mb-2 block">Question</label>
+              <textarea
+                value={editQuestion}
+                onChange={(e) => setEditQuestion(e.target.value)}
+                className="w-full p-3 border border-gray-200 rounded-lg text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-gray-200"
+                rows={3}
+              />
             </div>
             <div className="border-t border-gray-100 pt-4">
-              <div className="text-xs text-gray-400 uppercase tracking-wide mb-2">Answer</div>
-              <div className="text-gray-800">{selectedCard.answer}</div>
+              <label className="text-xs text-gray-400 uppercase tracking-wide mb-2 block">Answer</label>
+              <textarea
+                value={editAnswer}
+                onChange={(e) => setEditAnswer(e.target.value)}
+                className="w-full p-3 border border-gray-200 rounded-lg text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-gray-200"
+                rows={4}
+              />
             </div>
-            <button
-              onClick={() => setSelectedCard(null)}
-              className="mt-6 w-full py-3 bg-gray-100 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Close
-            </button>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setSelectedCard(null)}
+                className="flex-1 py-3 bg-gray-100 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={!hasChanges || saving}
+                className="flex-1 py-3 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
           </div>
         </div>
       )}

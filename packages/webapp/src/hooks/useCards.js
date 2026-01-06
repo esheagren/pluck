@@ -46,10 +46,37 @@ export function useCards(userId) {
     return shuffle([...cards])
   }, [cards])
 
+  const updateCard = useCallback(async (cardId, updates) => {
+    try {
+      const { data, error } = await supabase
+        .from('cards')
+        .update(updates)
+        .eq('id', cardId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error updating card:', error)
+        return { error }
+      }
+
+      // Update local state
+      setCards(prev => prev.map(card =>
+        card.id === cardId ? { ...card, ...data } : card
+      ))
+
+      return { data }
+    } catch (error) {
+      console.error('Error updating card:', error)
+      return { error }
+    }
+  }, [])
+
   return {
     cards,
     loading,
     refetch: fetchCards,
-    getShuffledCards
+    getShuffledCards,
+    updateCard
   }
 }
