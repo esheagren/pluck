@@ -1,4 +1,3 @@
-import { useState, useCallback } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { useCards } from './hooks/useCards'
@@ -24,12 +23,6 @@ export default function App() {
   const { user, loading: authLoading, billingInfo, signIn, signOut, handleUpgrade, handleManageSubscription } = useAuth()
   const { cards, loading: cardsLoading, updateCard } = useCards(user?.id)
 
-  const [reviewProgress, setReviewProgress] = useState({ reviewed: 0, total: 0 })
-
-  const handleProgressChange = useCallback((reviewed, total) => {
-    setReviewProgress({ reviewed, total })
-  }, [])
-
   // Show loading while checking auth
   if (authLoading) {
     return <LoadingScreen />
@@ -43,21 +36,13 @@ export default function App() {
   // Authenticated - show main app
   return (
     <Routes>
-      <Route
-        element={
-          <Layout
-            reviewedCount={reviewProgress.reviewed}
-            totalCards={cards.length}
-          />
-        }
-      >
+      <Route element={<Layout />}>
         <Route
           path="/"
           element={
             <ReviewPage
               cards={cards}
               loading={cardsLoading}
-              onProgressChange={handleProgressChange}
             />
           }
         />

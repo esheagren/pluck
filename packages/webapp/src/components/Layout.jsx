@@ -1,13 +1,10 @@
 import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
 
-export default function Layout({ reviewedCount, totalCards }) {
+export default function Layout() {
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar
-        reviewedCount={reviewedCount}
-        totalCards={totalCards}
-      />
+      <Sidebar />
       <main className="flex-1 ml-[220px] flex items-center justify-center p-10 max-md:ml-0">
         <Outlet />
       </main>

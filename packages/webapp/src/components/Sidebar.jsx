@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 
-export default function Sidebar({ reviewedCount, totalCards }) {
+export default function Sidebar() {
   return (
     <nav className="w-[220px] bg-white border-r border-gray-200 flex flex-col fixed top-0 left-0 bottom-0 max-md:hidden">
       {/* Header */}
@@ -41,7 +41,10 @@ export default function Sidebar({ reviewedCount, totalCards }) {
           </svg>
           <span>Cards</span>
         </NavLink>
+      </div>
 
+      {/* Settings at bottom */}
+      <div className="p-3 border-t border-gray-200">
         <NavLink
           to="/settings"
           className={({ isActive }) =>
@@ -56,15 +59,6 @@ export default function Sidebar({ reviewedCount, totalCards }) {
           </svg>
           <span>Settings</span>
         </NavLink>
-      </div>
-
-      {/* Footer */}
-      <div className="p-5 border-t border-gray-200">
-        {/* Progress */}
-        <div className="flex flex-col gap-0.5">
-          <span className="text-xl font-semibold text-gray-800">{reviewedCount} / {totalCards}</span>
-          <span className="text-xs text-gray-500">cards reviewed</span>
-        </div>
       </div>
     </nav>
   )

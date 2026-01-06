@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import ReviewCard from '../components/ReviewCard'
 
-export default function ReviewPage({ cards, loading, onProgressChange }) {
+export default function ReviewPage({ cards, loading }) {
   const [reviewCards, setReviewCards] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
@@ -18,11 +18,6 @@ export default function ReviewPage({ cards, loading, onProgressChange }) {
       setIsFlipped(false)
     }
   }, [cards])
-
-  // Update parent with progress
-  useEffect(() => {
-    onProgressChange?.(reviewedCount, cards.length)
-  }, [reviewedCount, cards.length, onProgressChange])
 
   const flipCard = useCallback(() => {
     setIsFlipped(true)
