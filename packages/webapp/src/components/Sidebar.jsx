@@ -5,7 +5,10 @@ export default function Sidebar() {
     <nav className="w-[220px] bg-white border-r border-gray-200 flex flex-col fixed top-0 left-0 bottom-0 max-md:hidden">
       {/* Header */}
       <div className="px-5 py-6 border-b border-gray-200">
-        <h1 className="text-lg font-semibold text-gray-800 tracking-tight">Pluckk</h1>
+        <div className="flex items-center gap-2">
+          <img src="/logo.png" alt="Pluckk" className="w-7 h-7" />
+          <h1 className="text-lg font-semibold text-gray-800 tracking-tight">Pluckk</h1>
+        </div>
       </div>
 
       {/* Nav Links */}
