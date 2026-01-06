@@ -5,6 +5,7 @@ import { useCards } from './hooks/useCards'
 import Layout from './components/Layout'
 import ReviewPage from './pages/ReviewPage'
 import CardsPage from './pages/CardsPage'
+import SettingsPage from './pages/SettingsPage'
 import LandingPage from './pages/LandingPage'
 
 // Loading Screen Component
@@ -75,6 +76,7 @@ export default function App() {
             />
           }
         />
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
     </Routes>
   )

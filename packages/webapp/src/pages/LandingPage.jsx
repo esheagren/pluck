@@ -178,7 +178,7 @@ export default function LandingPage({ onSignIn }) {
                 </h1>
 
                 <p className="text-xl text-stone-500 leading-relaxed mb-8 max-w-lg">
-                  Highlight any text. Get AI-generated flashcards. Build lasting knowledge with spaced repetition—all without leaving your browser.
+                  Highlight any text to create context-aware flashcards that build lasting knowledge—without breaking your flow.
                 </p>
 
                 <div className="flex flex-wrap items-center gap-4">
