@@ -453,5 +453,14 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// Listen for auth state changes (when user signs in via options page)
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'local' && changes.pluckk_session) {
+    // Session changed, retry generation
+    console.log('Auth state changed, retrying...');
+    generateCards();
+  }
+});
+
 // Start generation on panel open
 generateCards();
