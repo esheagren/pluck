@@ -7,7 +7,7 @@ export default function Layout() {
     <div className="flex min-h-screen bg-gray-50 relative overflow-hidden">
       {/* Background animation */}
       <div className="fixed inset-0 pointer-events-none">
-        <SandAnimation filterPosition={0.875} />
+        <SandAnimation filterPosition={0.875} speed={0.4} opacity={0.4} />
       </div>
 
       <Sidebar />
