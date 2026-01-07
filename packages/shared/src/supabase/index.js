@@ -10,3 +10,4 @@ export {
   onAuthStateChange,
   getAccessToken
 } from './auth.js';
+export { submitFeedback } from './feedback.js';

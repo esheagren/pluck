@@ -819,9 +819,7 @@ body {
 
 /* Keep Open Toggle */
 .keep-open-toggle {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 8px 0 4px;
 }
 
 .toggle-label {
