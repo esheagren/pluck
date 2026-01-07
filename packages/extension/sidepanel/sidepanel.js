@@ -44,6 +44,7 @@ const settingsUsageText = document.getElementById('settings-usage-text');
 const settingsBillingRow = document.getElementById('settings-billing-row');
 const settingsProRow = document.getElementById('settings-pro-row');
 const settingsUpgradeBtn = document.getElementById('settings-upgrade-btn');
+const keepOpenCheckbox = document.getElementById('keep-open-checkbox');
 
 // State
 let cards = [];
@@ -57,6 +58,9 @@ let cachedSelectionData = null; // Cache selection for regeneration
 let isImageMode = false;
 let pastedImageData = null; // Base64 image data
 let pastedImageMimeType = null; // e.g., 'image/png'
+
+// Keep open preference
+let keepOpenAfterStoring = false;
 
 /**
  * Show a specific state, hide all others
@@ -283,10 +287,26 @@ async function sendToMochi() {
     isImageMode = false;
   }
 
-  // Close panel after brief feedback
-  setTimeout(() => {
-    window.close();
-  }, 600);
+  // Close panel after brief feedback (unless user wants to keep it open)
+  if (!keepOpenAfterStoring) {
+    setTimeout(() => {
+      window.close();
+    }, 600);
+  } else {
+    // Reset button after feedback
+    setTimeout(() => {
+      mochiBtn.classList.remove('btn-success');
+      mochiBtn.classList.add('btn-mochi');
+      mochiBtn.querySelector('.btn-text').textContent = 'Store';
+      mochiBtn.disabled = true;
+      // Clear selections and show ready state
+      cards = [];
+      selectedIndices.clear();
+      editedCards = {};
+      cachedSelectionData = null;
+      showState(noSelectionState);
+    }, 1200);
+  }
 }
 
 /**
@@ -872,5 +892,36 @@ if (sandCanvas) {
   });
 }
 
-// Initialize panel - check for selection first
+// Load keep-open preference
+async function loadKeepOpenPreference() {
+  try {
+    const result = await chrome.storage.sync.get(['keepOpenAfterStoring']);
+    keepOpenAfterStoring = result.keepOpenAfterStoring || false;
+    if (keepOpenCheckbox) {
+      keepOpenCheckbox.checked = keepOpenAfterStoring;
+    }
+  } catch (error) {
+    console.error('Failed to load keep-open preference:', error);
+  }
+}
+
+// Save keep-open preference
+async function saveKeepOpenPreference(value) {
+  try {
+    await chrome.storage.sync.set({ keepOpenAfterStoring: value });
+    keepOpenAfterStoring = value;
+  } catch (error) {
+    console.error('Failed to save keep-open preference:', error);
+  }
+}
+
+// Wire up keep-open checkbox
+if (keepOpenCheckbox) {
+  keepOpenCheckbox.addEventListener('change', (e) => {
+    saveKeepOpenPreference(e.target.checked);
+  });
+}
+
+// Load preferences and initialize panel
+loadKeepOpenPreference();
 initializePanel();
