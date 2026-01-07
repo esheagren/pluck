@@ -693,7 +693,7 @@ function handleError(response) {
  * Open the Pluckk web app in a new window
  */
 function openWebapp() {
-  chrome.windows.create({ url: 'https://pluckk.app', type: 'normal' });
+  chrome.tabs.create({ url: 'https://pluckk.app' });
 }
 
 /**
