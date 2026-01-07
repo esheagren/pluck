@@ -40,6 +40,7 @@ const generateWithFocusBtn = document.getElementById('generate-with-focus-btn');
 const authLoggedOut = document.getElementById('auth-logged-out');
 const authLoggedIn = document.getElementById('auth-logged-in');
 const googleSignInBtn = document.getElementById('google-sign-in-btn');
+const usageRow = document.getElementById('usage-row');
 const settingsUsageBar = document.getElementById('settings-usage-bar');
 const settingsUsageText = document.getElementById('settings-usage-text');
 const settingsBillingRow = document.getElementById('settings-billing-row');
@@ -54,6 +55,7 @@ let sourceUrl = '';
 let editedCards = {};
 let mochiConfigured = false;
 let cachedSelectionData = null; // Cache selection for regeneration
+let currentIsPro = false; // Track subscription status for usage updates
 
 // Screenshot/Image mode state
 let isImageMode = false;
@@ -513,6 +515,14 @@ async function generateCardsFromImage(focusText = '', isRetry = false) {
     selectedIndices = new Set();
     editedCards = {};
 
+    // Update usage display if included in response
+    if (response.usage) {
+      applyProfileToUI({
+        usage: response.usage,
+        subscription: { isPro: currentIsPro }
+      });
+    }
+
     renderCards();
     showState(cardsState);
   } catch (error) {
@@ -560,6 +570,14 @@ async function generateCards(focusText = '', useCache = false) {
     sourceUrl = response.source?.url || '';
     selectedIndices = new Set();
     editedCards = {};
+
+    // Update usage display if included in response
+    if (response.usage) {
+      applyProfileToUI({
+        usage: response.usage,
+        subscription: { isPro: currentIsPro }
+      });
+    }
 
     renderCards();
     showState(cardsState);
@@ -740,21 +758,32 @@ function applyProfileToUI(profile) {
   const limit = profile.usage?.limit || FREE_TIER_LIMIT;
   const isPro = profile.subscription?.isPro || profile.subscription?.status === 'active';
 
+  // Store for later use in card generation response
+  currentIsPro = isPro;
+
   if (isPro) {
+    // Pro users: hide bar, show count + Pro badge
+    usageRow.classList.add('pro');
     settingsUsageText.textContent = `${used} (unlimited)`;
     settingsUsageBar.style.width = '0%';
     settingsBillingRow.classList.add('hidden');
     settingsProRow.classList.remove('hidden');
+    settingsUpgradeBtn.classList.remove('at-limit');
   } else {
+    // Free users: show bar + "X of Y cards used"
+    usageRow.classList.remove('pro');
     const percentage = Math.min((used / limit) * 100, 100);
-    settingsUsageText.textContent = `${used} / ${limit}`;
+    settingsUsageText.textContent = `${used} of ${limit} cards used`;
     settingsUsageBar.style.width = `${percentage}%`;
     settingsBillingRow.classList.remove('hidden');
     settingsProRow.classList.add('hidden');
 
     settingsUsageBar.classList.remove('warning', 'full');
+    settingsUpgradeBtn.classList.remove('at-limit');
+
     if (percentage >= 100) {
       settingsUsageBar.classList.add('full');
+      settingsUpgradeBtn.classList.add('at-limit');
     } else if (percentage >= 75) {
       settingsUsageBar.classList.add('warning');
     }
