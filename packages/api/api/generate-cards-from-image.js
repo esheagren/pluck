@@ -35,18 +35,10 @@ const VISION_SYSTEM_PROMPT = `You are a spaced repetition prompt generator that 
 - For textbook screenshots: identify the main concept being explained
 - Generate 2-4 cards that capture the most important knowledge
 
-**Output Format:**
-Return JSON (no markdown code blocks):
-{
-  "cards": [
-    {
-      "style": "qa|cloze|explanation|application",
-      "question": "...",
-      "answer": "...",
-      "rationale": "Brief note on what knowledge this reinforces"
-    }
-  ]
-}`;
+**CRITICAL: Output ONLY valid JSON, nothing else. No explanations, no descriptions, no markdown.**
+
+Output format:
+{"cards":[{"style":"qa|cloze|explanation|application","question":"...","answer":"...","rationale":"..."}]}`;
 
 export default async function handler(req, res) {
   // Handle CORS preflight
@@ -91,9 +83,9 @@ export default async function handler(req, res) {
   }
 
   // Build user message
-  let userMessage = 'Analyze this image and generate 2-4 spaced repetition flashcards based on its content.';
+  let userMessage = 'Analyze this image and generate 2-4 spaced repetition flashcards. Output ONLY JSON.';
   if (focusText) {
-    userMessage += `\n\nPlease focus the cards on: ${focusText}`;
+    userMessage += ` Focus on: ${focusText}`;
   }
 
   try {
@@ -126,6 +118,10 @@ export default async function handler(req, res) {
                 text: userMessage
               }
             ]
+          },
+          {
+            role: 'assistant',
+            content: '{"cards":['
           }
         ]
       })
@@ -153,10 +149,12 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Empty response from AI' });
     }
 
-    // Parse JSON from response (handle markdown code blocks)
-    let jsonStr = content.trim();
-    if (jsonStr.startsWith('```')) {
-      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    // Claude continues from the prefill '{"cards":[', so prepend it
+    let jsonStr = '{"cards":[' + content.trim();
+
+    // Handle if Claude still wrapped in code blocks
+    if (jsonStr.includes('```')) {
+      jsonStr = jsonStr.replace(/```(?:json)?\n?/g, '').replace(/\n?```/g, '');
     }
 
     const parsed = JSON.parse(jsonStr);
@@ -182,7 +180,8 @@ export default async function handler(req, res) {
     console.error('Error generating cards from image:', error);
 
     if (error instanceof SyntaxError) {
-      return res.status(500).json({ error: 'Failed to parse AI response' });
+      console.error('JSON parse error. Raw content from Claude may have been malformed.');
+      return res.status(500).json({ error: 'Failed to parse AI response. Please try again.' });
     }
 
     return res.status(500).json({ error: 'Internal server error' });
