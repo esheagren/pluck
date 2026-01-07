@@ -609,10 +609,10 @@ function handleError(response) {
 }
 
 /**
- * Open the Pluckk web app in a new tab
+ * Open the Pluckk web app in a new window
  */
 function openWebapp() {
-  chrome.tabs.create({ url: 'https://pluckk.app' });
+  chrome.windows.create({ url: 'https://pluckk.app', type: 'normal' });
 }
 
 /**
@@ -927,10 +927,10 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 const sandCanvas = document.getElementById('sand-animation');
 if (sandCanvas) {
   initSandAnimation(sandCanvas, {
-    filterPosition: 0.9,
-    speed: 0.4,
-    opacity: 0.35,
-    particleCount: 300
+    filterPosition: 0.95,
+    speed: 0.3,
+    opacity: 0.2,
+    particleCount: 200
   });
 }
 
