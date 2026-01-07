@@ -927,7 +927,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 const sandCanvas = document.getElementById('sand-animation');
 if (sandCanvas) {
   initSandAnimation(sandCanvas, {
-    filterPosition: 0.95,
+    filterPosition: 0.98,
     speed: 0.3,
     opacity: 0.2,
     particleCount: 200
