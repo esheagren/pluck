@@ -25,8 +25,8 @@ const mochiBtn = document.getElementById('mochi-btn');
 const retryBtn = document.getElementById('retry-btn');
 const logoText = document.getElementById('logo-text');
 const readyHint = document.getElementById('ready-hint');
+const generateBtn = document.getElementById('generate-btn');
 const regenerateBtn = document.getElementById('regenerate-btn');
-const openWebappBtn = document.getElementById('open-webapp-btn');
 const openSettingsBtn = document.getElementById('open-settings-btn');
 const upgradeBtn = document.getElementById('upgrade-btn');
 const closeBtn = document.getElementById('close-btn');
@@ -590,9 +590,6 @@ async function generateCards(focusText = '', useCache = false) {
 // Selection polling
 let selectionPollInterval = null;
 
-// Track if we have a selection (for logo click)
-let hasSelection = false;
-
 /**
  * Check current selection state and update UI
  */
@@ -609,20 +606,17 @@ async function checkSelectionState() {
     const selectionData = await chrome.tabs.sendMessage(tab.id, { action: 'getSelection' });
 
     if (selectionData?.selection) {
-      // We have text selected - activate logo
-      hasSelection = true;
-      readyHint.textContent = 'Click Pluckk to generate';
-      logoText.classList.add('active');
+      // We have text selected - show generate button
+      readyHint.textContent = 'Text selected';
+      generateBtn.classList.remove('hidden');
     } else {
-      // No selection - deactivate logo
-      hasSelection = false;
+      // No selection - hide generate button
       readyHint.textContent = 'Select text or paste screenshot';
-      logoText.classList.remove('active');
+      generateBtn.classList.add('hidden');
     }
   } catch (error) {
     // Content script not available - keep current state
-    hasSelection = false;
-    logoText.classList.remove('active');
+    generateBtn.classList.add('hidden');
   }
 }
 
@@ -933,11 +927,10 @@ function generateWithFocus() {
 // Event Listeners - Main UI
 mochiBtn.addEventListener('click', sendToMochi);
 retryBtn.addEventListener('click', () => generateCards());
-logoText.addEventListener('click', () => {
-  if (hasSelection) {
-    showState(loadingState);
-    generateCards();
-  }
+logoText.addEventListener('click', openWebapp);
+generateBtn.addEventListener('click', () => {
+  showState(loadingState);
+  generateCards();
 });
 regenerateBtn.addEventListener('click', toggleFocusInput);
 generateWithFocusBtn.addEventListener('click', generateWithFocus);
@@ -951,7 +944,6 @@ focusInput.addEventListener('keydown', (e) => {
     focusInput.value = '';
   }
 });
-openWebappBtn.addEventListener('click', openWebapp);
 openSettingsBtn.addEventListener('click', handleGoogleSignIn);
 upgradeBtn.addEventListener('click', handleUpgrade);
 closeBtn.addEventListener('click', closePanel);
