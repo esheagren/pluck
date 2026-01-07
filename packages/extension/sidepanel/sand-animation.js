@@ -5,7 +5,8 @@ export function initSandAnimation(canvas, options = {}) {
   const {
     filterPosition = 0.65,
     speed = 1,
-    opacity = 1
+    opacity = 1,
+    particleCount = 800
   } = options;
 
   if (!canvas) return null;
@@ -19,7 +20,7 @@ export function initSandAnimation(canvas, options = {}) {
 
   // Configuration
   const config = {
-    particleCount: 800,
+    particleCount: particleCount,
     minSize: 1.5,
     maxSize: 3,
     minSpeed: 2 * speed,

@@ -26,7 +26,7 @@ const mochiBtn = document.getElementById('mochi-btn');
 const retryBtn = document.getElementById('retry-btn');
 const refreshBtn = document.getElementById('refresh-btn');
 const regenerateBtn = document.getElementById('regenerate-btn');
-const settingsBtn = document.getElementById('settings-btn');
+const openWebappBtn = document.getElementById('open-webapp-btn');
 const openSettingsBtn = document.getElementById('open-settings-btn');
 const upgradeBtn = document.getElementById('upgrade-btn');
 const closeBtn = document.getElementById('close-btn');
@@ -37,7 +37,6 @@ const focusInput = document.getElementById('focus-input');
 const generateWithFocusBtn = document.getElementById('generate-with-focus-btn');
 
 // DOM Elements - Settings Section
-const settingsSection = document.getElementById('settings-section');
 const authLoggedOut = document.getElementById('auth-logged-out');
 const authLoggedIn = document.getElementById('auth-logged-in');
 const googleSignInBtn = document.getElementById('google-sign-in-btn');
@@ -48,7 +47,6 @@ const settingsBillingRow = document.getElementById('settings-billing-row');
 const settingsProRow = document.getElementById('settings-pro-row');
 const settingsUpgradeBtn = document.getElementById('settings-upgrade-btn');
 const settingsManageBtn = document.getElementById('settings-manage-btn');
-const shortcutDisplay = document.getElementById('shortcut-display');
 
 // State
 let cards = [];
@@ -554,6 +552,7 @@ async function generateCards(focusText = '', useCache = false) {
  */
 async function initializePanel() {
   await checkMochiStatus();
+  await updateAuthDisplay();
 
   // First, quickly check if there's a selection
   try {
@@ -610,32 +609,17 @@ function handleError(response) {
 }
 
 /**
- * Toggle settings section visibility
+ * Open the Pluckk web app in a new tab
  */
-function toggleSettings() {
-  const isHidden = settingsSection.classList.contains('hidden');
-  if (isHidden) {
-    settingsSection.classList.remove('hidden');
-    loadSettingsData();
-    // Scroll to settings
-    settingsSection.scrollIntoView({ behavior: 'smooth' });
-  } else {
-    settingsSection.classList.add('hidden');
-  }
+function openWebapp() {
+  chrome.tabs.create({ url: 'https://pluckk.app' });
 }
 
-
 /**
- * Load settings data into the form
+ * Show status message (logs to console since no status UI)
  */
-async function loadSettingsData() {
-  // Update shortcut display based on platform
-  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-  shortcutDisplay.textContent = isMac ? 'Cmd+Shift+M' : 'Ctrl+Shift+M';
-
-  // Load auth state
-  await updateAuthDisplay();
-
+function showSettingsStatus(message, type) {
+  console.log(`[Pluckk] ${type}: ${message}`);
 }
 
 /**
@@ -861,9 +845,9 @@ focusInput.addEventListener('keydown', (e) => {
     focusInput.value = '';
   }
 });
-settingsBtn.addEventListener('click', toggleSettings);
-openSettingsBtn.addEventListener('click', toggleSettings);
-upgradeBtn.addEventListener('click', toggleSettings);
+openWebappBtn.addEventListener('click', openWebapp);
+openSettingsBtn.addEventListener('click', handleGoogleSignIn);
+upgradeBtn.addEventListener('click', handleUpgrade);
 closeBtn.addEventListener('click', closePanel);
 
 // Event Listeners - Settings Section
@@ -943,9 +927,10 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 const sandCanvas = document.getElementById('sand-animation');
 if (sandCanvas) {
   initSandAnimation(sandCanvas, {
-    filterPosition: 0.65,
-    speed: 1,
-    opacity: 1
+    filterPosition: 0.9,
+    speed: 0.4,
+    opacity: 0.35,
+    particleCount: 300
   });
 }
 
