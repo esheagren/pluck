@@ -1033,13 +1033,16 @@ document.addEventListener('keydown', (e) => {
 // Listen for auth state changes
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === 'local' && changes.pluckk_session) {
-    // Session changed, update settings display if visible
     console.log('Auth state changed');
-    if (!settingsSection.classList.contains('hidden')) {
-      updateAuthDisplay();
+    // Always update the auth display so it stays in sync
+    updateAuthDisplay();
+
+    // If user signed out, show the auth required state
+    if (!changes.pluckk_session.newValue) {
+      showState(apiKeyState);
     }
-    // Retry generation if we were waiting for auth
-    if (apiKeyState && !apiKeyState.classList.contains('hidden')) {
+    // If user signed in while on auth screen, retry
+    else if (apiKeyState && !apiKeyState.classList.contains('hidden')) {
       initializePanel();
     }
   }
