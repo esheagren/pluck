@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDeleteCard }) {
   const [isEditing, setIsEditing] = useState(false)
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
+  const [isImageExpanded, setIsImageExpanded] = useState(false)
   const [editAnswer, setEditAnswer] = useState('')
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -50,7 +51,9 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
 
   const handleKeyDown = (e) => {
     if (e.key === 'Escape') {
-      if (isConfirmingDelete) {
+      if (isImageExpanded) {
+        setIsImageExpanded(false)
+      } else if (isConfirmingDelete) {
         setIsConfirmingDelete(false)
       } else {
         handleCancel()
@@ -59,6 +62,19 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
       handleSave()
     }
   }
+
+  // Close expanded image on Escape
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if (e.key === 'Escape' && isImageExpanded) {
+        setIsImageExpanded(false)
+      }
+    }
+    if (isImageExpanded) {
+      document.addEventListener('keydown', handleGlobalKeyDown)
+      return () => document.removeEventListener('keydown', handleGlobalKeyDown)
+    }
+  }, [isImageExpanded])
 
   return (
     <div className="card-wrapper">
@@ -196,7 +212,11 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
               <img
                 src={card.image_url}
                 alt=""
-                className="mt-4 max-h-40 rounded-lg object-contain"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsImageExpanded(true)
+                }}
+                className="mt-4 max-h-40 rounded-lg object-contain cursor-zoom-in hover:opacity-90 transition-opacity"
               />
             )}
           </div>
@@ -213,6 +233,31 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
           )}
         </div>
       </div>
+
+      {/* Image Lightbox */}
+      {isImageExpanded && card.image_url && (
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 cursor-zoom-out"
+          onClick={() => setIsImageExpanded(false)}
+        >
+          <img
+            src={card.image_url}
+            alt=""
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setIsImageExpanded(false)}
+            className="absolute top-4 right-4 p-2 text-white/70 hover:text-white transition-colors"
+            title="Close (Esc)"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   )
 }
