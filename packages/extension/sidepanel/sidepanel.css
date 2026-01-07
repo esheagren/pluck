@@ -164,17 +164,74 @@ body {
   font-weight: 400;
 }
 
-.spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid #e8e8e8;
-  border-top-color: #2d3436;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+/* Orbital Loading Animation */
+.loading-animation {
+  position: relative;
+  width: 48px;
+  height: 48px;
 }
 
-@keyframes spin {
+.center-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  background: #e0e0e0;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: pulse-center 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-center {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+  50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+}
+
+.orbit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  animation: orbit-rotate 2s linear infinite;
+}
+
+@keyframes orbit-rotate {
   to { transform: rotate(360deg); }
+}
+
+.orbit-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #2d3436;
+  border-radius: 50%;
+  animation: orbit-pulse 1.5s ease-in-out infinite;
+}
+
+.orbit-dot:nth-child(1) {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  animation-delay: 0s;
+}
+
+.orbit-dot:nth-child(2) {
+  bottom: 6px;
+  left: 6px;
+  animation-delay: 0.5s;
+}
+
+.orbit-dot:nth-child(3) {
+  bottom: 6px;
+  right: 6px;
+  animation-delay: 1s;
+}
+
+@keyframes orbit-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
 }
 
 /* Error State */
