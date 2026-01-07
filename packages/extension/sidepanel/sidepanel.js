@@ -23,7 +23,6 @@ const cardsList = document.getElementById('cards-list');
 const errorMessage = document.getElementById('error-message');
 const mochiBtn = document.getElementById('mochi-btn');
 const retryBtn = document.getElementById('retry-btn');
-const refreshBtn = document.getElementById('refresh-btn');
 const regenerateBtn = document.getElementById('regenerate-btn');
 const openWebappBtn = document.getElementById('open-webapp-btn');
 const openSettingsBtn = document.getElementById('open-settings-btn');
@@ -792,7 +791,6 @@ function generateWithFocus() {
 // Event Listeners - Main UI
 mochiBtn.addEventListener('click', sendToMochi);
 retryBtn.addEventListener('click', () => generateCards());
-refreshBtn.addEventListener('click', () => generateCards());
 regenerateBtn.addEventListener('click', toggleFocusInput);
 generateWithFocusBtn.addEventListener('click', generateWithFocus);
 focusInput.addEventListener('keydown', (e) => {

@@ -205,7 +205,6 @@ body {
   font-weight: 500;
 }
 
-.no-selection-state h2,
 .api-key-state h2,
 .usage-limit-state h2 {
   font-size: 14px;
@@ -214,7 +213,6 @@ body {
   margin-bottom: 6px;
 }
 
-.no-selection-state p,
 .api-key-state p,
 .usage-limit-state p {
   color: #888;
@@ -222,6 +220,19 @@ body {
   max-width: 260px;
   font-size: 13px;
   line-height: 1.5;
+}
+
+/* Ready state with logo */
+.logo-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+  opacity: 0.8;
+}
+
+.ready-hint {
+  color: #999;
+  font-size: 13px;
 }
 
 /* Buttons */
