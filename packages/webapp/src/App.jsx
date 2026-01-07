@@ -55,6 +55,7 @@ export default function App() {
               cards={cards}
               loading={cardsLoading}
               onUpdateCard={updateCard}
+              onDeleteCard={deleteCard}
             />
           }
         />

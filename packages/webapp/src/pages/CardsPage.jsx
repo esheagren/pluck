@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import CardGrid from '../components/CardGrid'
 
-export default function CardsPage({ cards, loading, onUpdateCard }) {
+export default function CardsPage({ cards, loading, onUpdateCard, onDeleteCard }) {
   const [selectedCard, setSelectedCard] = useState(null)
   const [editQuestion, setEditQuestion] = useState('')
   const [editAnswer, setEditAnswer] = useState('')
   const [saving, setSaving] = useState(false)
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const questionRef = useRef(null)
   const answerRef = useRef(null)
 
@@ -14,8 +16,18 @@ export default function CardsPage({ cards, loading, onUpdateCard }) {
     if (selectedCard) {
       setEditQuestion(selectedCard.question)
       setEditAnswer(selectedCard.answer)
+      setIsConfirmingDelete(false)
     }
   }, [selectedCard])
+
+  const handleDelete = async () => {
+    if (!selectedCard || !onDeleteCard) return
+    setDeleting(true)
+    await onDeleteCard(selectedCard.id)
+    setDeleting(false)
+    setSelectedCard(null)
+    setIsConfirmingDelete(false)
+  }
 
   // Auto-resize textareas when content is set
   useEffect(() => {
@@ -127,19 +139,49 @@ export default function CardsPage({ cards, loading, onUpdateCard }) {
               />
             </div>
             <div className="mt-6 flex gap-3">
-              <button
-                onClick={() => setSelectedCard(null)}
-                className="flex-1 py-3 bg-gray-100 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={!hasChanges || saving}
-                className="flex-1 py-3 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? 'Saving...' : 'Save'}
-              </button>
+              {!isConfirmingDelete ? (
+                <>
+                  <button
+                    onClick={() => setIsConfirmingDelete(true)}
+                    className="p-3 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete card"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setSelectedCard(null)}
+                    className="flex-1 py-3 bg-gray-100 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={!hasChanges || saving}
+                    className="flex-1 py-3 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {saving ? 'Saving...' : 'Save'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setIsConfirmingDelete(false)}
+                    className="flex-1 py-3 bg-gray-100 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="flex-1 py-3 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {deleting ? 'Deleting...' : 'Confirm Delete'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
