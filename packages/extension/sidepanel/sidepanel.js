@@ -925,14 +925,29 @@ settingsUpgradeBtn.addEventListener('click', handleUpgrade);
 // Event Listeners - Screenshot handling
 document.addEventListener('paste', handlePaste);
 
-// Wire up screenshot buttons (added dynamically via HTML)
+// Wire up screenshot buttons and input
 const screenshotGenerateBtn = document.getElementById('screenshot-generate-btn');
 const screenshotClearBtn = document.getElementById('screenshot-clear-btn');
+const screenshotFocusInput = document.getElementById('screenshot-focus-input');
+
+function generateFromScreenshot() {
+  const focusText = screenshotFocusInput?.value.trim() || '';
+  generateCardsFromImage(focusText);
+}
+
 if (screenshotGenerateBtn) {
-  screenshotGenerateBtn.addEventListener('click', () => generateCardsFromImage());
+  screenshotGenerateBtn.addEventListener('click', generateFromScreenshot);
 }
 if (screenshotClearBtn) {
   screenshotClearBtn.addEventListener('click', clearScreenshot);
+}
+if (screenshotFocusInput) {
+  screenshotFocusInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      generateFromScreenshot();
+    }
+  });
 }
 
 // Keyboard shortcuts

@@ -829,8 +829,27 @@ body {
   text-align: center;
 }
 
-#screenshot-generate-btn {
-  min-width: 160px;
+.screenshot-focus-input {
+  width: 100%;
+  max-width: 280px;
+  padding: 10px 14px;
+  font-size: 13px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: white;
+  transition: border-color 0.15s ease;
+  font-family: inherit;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.screenshot-focus-input:focus {
+  outline: none;
+  border-color: #2d3436;
+}
+
+.screenshot-focus-input::placeholder {
+  color: #a0a0a0;
 }
 
 /* Compact Toggle Switch */
