@@ -133,18 +133,10 @@
 
     <!-- Inline Settings Section -->
     <div class="settings-section hidden" id="settings-section">
-      <div class="settings-header" id="settings-header">
-        <span>Settings</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 15l-6-6-6 6"/>
-        </svg>
-      </div>
-
       <div class="settings-content" id="settings-content">
         <!-- Auth Section -->
         <div class="settings-group" id="auth-section">
           <div class="auth-logged-out" id="auth-logged-out">
-            <p class="settings-label">Account</p>
             <button class="btn-google" id="google-sign-in-btn">
               <svg width="16" height="16" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -157,26 +149,24 @@
           </div>
 
           <div class="auth-logged-in hidden" id="auth-logged-in">
-            <div class="user-row">
-              <span class="user-email" id="settings-user-email"></span>
-              <button class="btn-link" id="sign-out-btn">Sign out</button>
-            </div>
             <div class="usage-row">
               <div class="usage-bar">
                 <div class="usage-bar-fill" id="settings-usage-bar"></div>
               </div>
               <span class="usage-text" id="settings-usage-text">0 / 20</span>
             </div>
-            <div class="billing-row" id="settings-billing-row">
+            <div class="billing-row centered" id="settings-billing-row">
               <button class="btn-upgrade" id="settings-upgrade-btn">Upgrade to Pro</button>
             </div>
-            <div class="billing-row hidden" id="settings-pro-row">
+            <div class="billing-row centered hidden" id="settings-pro-row">
               <span class="pro-badge">Pro</span>
               <button class="btn-link" id="settings-manage-btn">Manage</button>
             </div>
+            <div class="signout-row">
+              <button class="btn-link" id="sign-out-btn">Sign out</button>
+            </div>
           </div>
         </div>
-
 
         <!-- Keyboard Shortcut -->
         <div class="settings-group settings-shortcut">

@@ -38,12 +38,10 @@ const generateWithFocusBtn = document.getElementById('generate-with-focus-btn');
 
 // DOM Elements - Settings Section
 const settingsSection = document.getElementById('settings-section');
-const settingsHeader = document.getElementById('settings-header');
 const authLoggedOut = document.getElementById('auth-logged-out');
 const authLoggedIn = document.getElementById('auth-logged-in');
 const googleSignInBtn = document.getElementById('google-sign-in-btn');
 const signOutBtn = document.getElementById('sign-out-btn');
-const settingsUserEmail = document.getElementById('settings-user-email');
 const settingsUsageBar = document.getElementById('settings-usage-bar');
 const settingsUsageText = document.getElementById('settings-usage-text');
 const settingsBillingRow = document.getElementById('settings-billing-row');
@@ -626,12 +624,6 @@ function toggleSettings() {
   }
 }
 
-/**
- * Toggle settings content collapse
- */
-function toggleSettingsCollapse() {
-  settingsSection.classList.toggle('collapsed');
-}
 
 /**
  * Load settings data into the form
@@ -655,7 +647,6 @@ async function updateAuthDisplay() {
   if (user) {
     authLoggedOut.classList.add('hidden');
     authLoggedIn.classList.remove('hidden');
-    settingsUserEmail.textContent = user.email;
 
     // Fetch usage stats
     const profile = await getUserProfile();
@@ -876,7 +867,6 @@ upgradeBtn.addEventListener('click', toggleSettings);
 closeBtn.addEventListener('click', closePanel);
 
 // Event Listeners - Settings Section
-settingsHeader.addEventListener('click', toggleSettingsCollapse);
 googleSignInBtn.addEventListener('click', handleGoogleSignIn);
 signOutBtn.addEventListener('click', handleSignOut);
 settingsUpgradeBtn.addEventListener('click', handleUpgrade);

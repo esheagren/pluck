@@ -14,6 +14,8 @@ export function initSandAnimation(canvas, options = {}) {
   let animationId;
   let particles = [];
   let isRunning = true;
+  let currentWidth = 0;
+  let currentHeight = 0;
 
   // Configuration
   const config = {
@@ -32,32 +34,25 @@ export function initSandAnimation(canvas, options = {}) {
     ]
   };
 
-  // Resize handler
-  function resize() {
+  // Resize handler - updates canvas buffer to match CSS size
+  function resize(width, height) {
     const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
 
-    // Fallback to window dimensions if rect is empty
-    const width = rect.width || window.innerWidth;
-    const height = rect.height || window.innerHeight;
+    currentWidth = width;
+    currentHeight = height;
 
     canvas.width = width * dpr;
     canvas.height = height * dpr;
-    ctx.scale(dpr, dpr);
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
   // Create a particle
   function createParticle(xPosition = null) {
-    const height = canvas.height / (window.devicePixelRatio || 1);
-    const width = canvas.width / (window.devicePixelRatio || 1);
-
     const willPassThrough = Math.random() < config.passThrough;
 
     return {
       x: xPosition !== null ? xPosition : -5 - Math.random() * 50,
-      y: Math.random() * height,
+      y: Math.random() * currentHeight,
       size: config.minSize + Math.random() * (config.maxSize - config.minSize),
       speed: config.minSpeed + Math.random() * (config.maxSpeed - config.minSpeed),
       color: config.colors[Math.floor(Math.random() * config.colors.length)],
@@ -72,10 +67,8 @@ export function initSandAnimation(canvas, options = {}) {
   // Initialize particles
   function init() {
     particles = [];
-    const width = canvas.width / (window.devicePixelRatio || 1);
-
     for (let i = 0; i < config.particleCount; i++) {
-      const startX = Math.random() * width * config.filterPosition;
+      const startX = Math.random() * currentWidth * config.filterPosition;
       particles.push(createParticle(startX));
     }
   }
@@ -83,20 +76,22 @@ export function initSandAnimation(canvas, options = {}) {
   // Animation loop
   function animate() {
     if (!isRunning) return;
+    if (currentWidth === 0 || currentHeight === 0) {
+      animationId = requestAnimationFrame(animate);
+      return;
+    }
 
-    const height = canvas.height / (window.devicePixelRatio || 1);
-    const width = canvas.width / (window.devicePixelRatio || 1);
-    const filterX = width * config.filterPosition;
+    const filterX = currentWidth * config.filterPosition;
 
     // Clear canvas
-    ctx.clearRect(0, 0, width, height);
+    ctx.clearRect(0, 0, currentWidth, currentHeight);
 
     // Draw the filter line (very subtle vertical line)
     ctx.strokeStyle = 'rgba(60, 60, 60, 0.1)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(filterX, 0);
-    ctx.lineTo(filterX, height);
+    ctx.lineTo(filterX, currentHeight);
     ctx.stroke();
 
     // Update and draw particles
@@ -127,12 +122,12 @@ export function initSandAnimation(canvas, options = {}) {
         ctx.globalAlpha = 1;
       }
 
-      if (p.x > width + 10) {
+      if (p.x > currentWidth + 10) {
         particles[index] = createParticle();
       }
 
-      if (p.y < -10) p.y = height + 10;
-      if (p.y > height + 10) p.y = -10;
+      if (p.y < -10) p.y = currentHeight + 10;
+      if (p.y > currentHeight + 10) p.y = -10;
     });
 
     // Draw accumulation effect at filter line
@@ -141,28 +136,36 @@ export function initSandAnimation(canvas, options = {}) {
     gradient.addColorStop(0.7, 'rgba(40, 40, 40, 0.03)');
     gradient.addColorStop(1, 'rgba(40, 40, 40, 0.08)');
     ctx.fillStyle = gradient;
-    ctx.fillRect(filterX - 40, 0, 40, height);
+    ctx.fillRect(filterX - 40, 0, 40, currentHeight);
 
     animationId = requestAnimationFrame(animate);
   }
 
-  // Handle resize
-  function handleResize() {
-    resize();
-    init();
-  }
+  // Use ResizeObserver to track actual canvas size from CSS
+  const resizeObserver = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) {
+        const needsReinit = particles.length === 0 ||
+          Math.abs(width - currentWidth) > 50 ||
+          Math.abs(height - currentHeight) > 50;
+        resize(width, height);
+        if (needsReinit) {
+          init();
+        }
+      }
+    }
+  });
 
-  // Initialize
-  resize();
-  init();
+  resizeObserver.observe(canvas);
+
+  // Start animation
   animate();
-
-  window.addEventListener('resize', handleResize);
 
   // Return cleanup function
   return function cleanup() {
     isRunning = false;
     cancelAnimationFrame(animationId);
-    window.removeEventListener('resize', handleResize);
+    resizeObserver.disconnect();
   };
 }
