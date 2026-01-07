@@ -5,7 +5,6 @@ import { escapeHtml } from '@pluckk/shared/utils';
 import { FREE_TIER_LIMIT, BACKEND_URL } from '@pluckk/shared/constants';
 import {
   signInWithGoogle,
-  signOut,
   getSession,
   getUserProfile,
   getAccessToken
@@ -40,13 +39,11 @@ const generateWithFocusBtn = document.getElementById('generate-with-focus-btn');
 const authLoggedOut = document.getElementById('auth-logged-out');
 const authLoggedIn = document.getElementById('auth-logged-in');
 const googleSignInBtn = document.getElementById('google-sign-in-btn');
-const signOutBtn = document.getElementById('sign-out-btn');
 const settingsUsageBar = document.getElementById('settings-usage-bar');
 const settingsUsageText = document.getElementById('settings-usage-text');
 const settingsBillingRow = document.getElementById('settings-billing-row');
 const settingsProRow = document.getElementById('settings-pro-row');
 const settingsUpgradeBtn = document.getElementById('settings-upgrade-btn');
-const settingsManageBtn = document.getElementById('settings-manage-btn');
 
 // State
 let cards = [];
@@ -694,19 +691,6 @@ async function handleGoogleSignIn() {
 }
 
 /**
- * Handle sign out
- */
-async function handleSignOut() {
-  try {
-    await signOut();
-    await updateAuthDisplay();
-  } catch (error) {
-    console.error('Sign out error:', error);
-    showSettingsStatus('Sign out failed', 'error');
-  }
-}
-
-/**
  * Handle upgrade button - open Stripe Checkout
  */
 async function handleUpgrade() {
@@ -744,46 +728,6 @@ async function handleUpgrade() {
   } finally {
     settingsUpgradeBtn.disabled = false;
     settingsUpgradeBtn.textContent = 'Upgrade to Pro';
-  }
-}
-
-/**
- * Handle manage subscription - open Stripe Portal
- */
-async function handleManageSubscription() {
-  settingsManageBtn.disabled = true;
-  settingsManageBtn.textContent = '...';
-
-  try {
-    const accessToken = await getAccessToken();
-    if (!accessToken) {
-      showSettingsStatus('Please sign in first', 'error');
-      return;
-    }
-
-    const response = await fetch(`${BACKEND_URL}/api/portal`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      },
-      body: JSON.stringify({
-        returnUrl: 'https://pluckk.app'
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error('Portal failed');
-    }
-
-    const { url } = await response.json();
-    chrome.tabs.create({ url });
-  } catch (error) {
-    console.error('Portal error:', error);
-    showSettingsStatus('Failed to open portal', 'error');
-  } finally {
-    settingsManageBtn.disabled = false;
-    settingsManageBtn.textContent = 'Manage';
   }
 }
 
@@ -850,9 +794,7 @@ closeBtn.addEventListener('click', closePanel);
 
 // Event Listeners - Settings Section
 googleSignInBtn.addEventListener('click', handleGoogleSignIn);
-signOutBtn.addEventListener('click', handleSignOut);
 settingsUpgradeBtn.addEventListener('click', handleUpgrade);
-settingsManageBtn.addEventListener('click', handleManageSubscription);
 
 // Event Listeners - Screenshot handling
 document.addEventListener('paste', handlePaste);
