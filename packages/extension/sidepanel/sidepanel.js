@@ -65,11 +65,19 @@ let keepOpenAfterStoring = false;
 
 /**
  * Show a specific state, hide all others
+ * Also manages selection polling (only poll when in ready state)
  */
 function showState(state) {
   const states = [loadingState, errorState, noSelectionState, screenshotState, apiKeyState, usageLimitState, cardsState];
   states.forEach(s => s?.classList.add('hidden'));
   state?.classList.remove('hidden');
+
+  // Manage selection polling based on state
+  if (state === noSelectionState) {
+    startSelectionPolling();
+  } else {
+    stopSelectionPolling();
+  }
 }
 
 /**
@@ -561,8 +569,62 @@ async function generateCards(focusText = '', useCache = false) {
   }
 }
 
+// Selection polling
+let selectionPollInterval = null;
+
 /**
- * Check for selection and show appropriate UI
+ * Check current selection state and update UI
+ */
+async function checkSelectionState() {
+  // Only check if we're showing the ready state
+  if (noSelectionState.classList.contains('hidden')) {
+    return;
+  }
+
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) return;
+
+    const selectionData = await chrome.tabs.sendMessage(tab.id, { action: 'getSelection' });
+
+    if (selectionData?.selection) {
+      // We have text selected - show button
+      readyHint.textContent = 'Text selected';
+      generateBtn.classList.remove('hidden');
+    } else {
+      // No selection - hide button
+      readyHint.textContent = 'Select text or paste screenshot';
+      generateBtn.classList.add('hidden');
+    }
+  } catch (error) {
+    // Content script not available - keep current state
+  }
+}
+
+/**
+ * Start polling for selection changes
+ */
+function startSelectionPolling() {
+  // Clear any existing interval
+  if (selectionPollInterval) {
+    clearInterval(selectionPollInterval);
+  }
+  // Poll every 500ms
+  selectionPollInterval = setInterval(checkSelectionState, 500);
+}
+
+/**
+ * Stop polling for selection changes
+ */
+function stopSelectionPolling() {
+  if (selectionPollInterval) {
+    clearInterval(selectionPollInterval);
+    selectionPollInterval = null;
+  }
+}
+
+/**
+ * Initialize panel and start selection monitoring
  */
 async function initializePanel() {
   await checkMochiStatus();
@@ -572,28 +634,11 @@ async function initializePanel() {
   generateBtn.classList.add('hidden');
   readyHint.textContent = 'Select text or paste screenshot';
 
-  // Check if there's a selection
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab) {
-      showState(noSelectionState);
-      return;
-    }
+  // Show ready state (this also starts polling)
+  showState(noSelectionState);
 
-    // Try to get selection from content script
-    const selectionData = await chrome.tabs.sendMessage(tab.id, { action: 'getSelection' });
-
-    if (selectionData?.selection) {
-      // We have text selected - show button to generate
-      readyHint.textContent = 'Text selected';
-      generateBtn.classList.remove('hidden');
-    }
-
-    showState(noSelectionState);
-  } catch (error) {
-    // Content script not available (e.g., chrome:// pages)
-    showState(noSelectionState);
-  }
+  // Do initial selection check
+  await checkSelectionState();
 }
 
 /**
