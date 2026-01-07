@@ -102,9 +102,9 @@ function updateSelectionCount() {
 
   // Update button text with count
   if (hasSelection && count > 1) {
-    mochiBtn.querySelector('.btn-text').textContent = `Pluckk ${count}`;
+    mochiBtn.querySelector('.btn-text').textContent = `Store ${count}`;
   } else {
-    mochiBtn.querySelector('.btn-text').textContent = 'Pluckk';
+    mochiBtn.querySelector('.btn-text').textContent = 'Store';
   }
 }
 
@@ -209,7 +209,7 @@ async function sendToMochi() {
   let supabaseErrors = [];
   let mochiConfigured = true; // Assume configured until we learn otherwise
 
-  mochiBtn.querySelector('.btn-text').textContent = `Pluckking 0/${totalCards}...`;
+  mochiBtn.querySelector('.btn-text').textContent = `Storing 0/${totalCards}...`;
 
   for (const card of selectedCards) {
     try {
@@ -242,7 +242,7 @@ async function sendToMochi() {
         mochiConfigured = false; // Mochi not set up, that's fine
       }
 
-      mochiBtn.querySelector('.btn-text').textContent = `Pluckking ${savedCount}/${totalCards}...`;
+      mochiBtn.querySelector('.btn-text').textContent = `Storing ${savedCount}/${totalCards}...`;
 
       // Small delay between requests to respect rate limiting
       if (selectedCards.indexOf(card) < selectedCards.length - 1) {
@@ -268,12 +268,10 @@ async function sendToMochi() {
 
   // Determine success message
   let successMsg;
-  if (mochiConfigured && mochiCount > 0) {
-    successMsg = `Pluckked ${savedCount}!`;
-  } else if (savedCount > 0) {
-    successMsg = `Saved ${savedCount}!`;
+  if (savedCount > 0) {
+    successMsg = `Stored ${savedCount}!`;
   } else {
-    successMsg = 'Pluckked!';
+    successMsg = 'Stored!';
   }
 
   mochiBtn.querySelector('.btn-text').textContent = successMsg;
