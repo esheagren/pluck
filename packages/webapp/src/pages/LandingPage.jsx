@@ -229,11 +229,11 @@ export default function LandingPage({ onSignIn }) {
                   <circle cx="215" cy="80" r="5" fill="#292524" />
 
                   {/* Legend */}
-                  <line x1="240" y1="235" x2="260" y2="235" stroke="#d6d3d1" strokeWidth="3" strokeLinecap="round" />
-                  <text x="265" y="238" className="text-xs fill-stone-400">Without review</text>
+                  <line x1="50" y1="235" x2="70" y2="235" stroke="#d6d3d1" strokeWidth="3" strokeLinecap="round" />
+                  <text x="75" y="238" className="text-xs fill-stone-400">Without review</text>
 
-                  <line x1="320" y1="235" x2="340" y2="235" stroke="#292524" strokeWidth="3" strokeLinecap="round" />
-                  <text x="345" y="238" className="text-xs fill-stone-500 font-medium">With Pluckk</text>
+                  <line x1="180" y1="235" x2="200" y2="235" stroke="#292524" strokeWidth="3" strokeLinecap="round" />
+                  <text x="205" y="238" className="text-xs fill-stone-500 font-medium">With Pluckk</text>
                 </svg>
 
                 <p className="text-xs text-stone-400 mt-4 text-center">
