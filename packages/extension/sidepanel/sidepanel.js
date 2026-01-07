@@ -10,6 +10,7 @@ import {
   getUserProfile,
   getAccessToken
 } from '../src/auth.js';
+import { initSandAnimation } from './sand-animation.js';
 
 // DOM Elements - Main UI
 const loadingState = document.getElementById('loading-state');
@@ -49,9 +50,6 @@ const settingsBillingRow = document.getElementById('settings-billing-row');
 const settingsProRow = document.getElementById('settings-pro-row');
 const settingsUpgradeBtn = document.getElementById('settings-upgrade-btn');
 const settingsManageBtn = document.getElementById('settings-manage-btn');
-const settingsMochiKey = document.getElementById('settings-mochi-key');
-const settingsMochiDeck = document.getElementById('settings-mochi-deck');
-const settingsManageLink = document.getElementById('settings-manage-link');
 const shortcutDisplay = document.getElementById('shortcut-display');
 
 // State
@@ -646,94 +644,6 @@ async function loadSettingsData() {
   // Load auth state
   await updateAuthDisplay();
 
-  // Sync Mochi settings from backend (this caches them locally)
-  await syncMochiSettingsFromBackend();
-
-  // Load cached settings for display
-  try {
-    const result = await chrome.storage.sync.get([
-      'mochiApiKey',
-      'mochiDeckId',
-      'mochiDeckName'
-    ]);
-
-    if (result.mochiApiKey) {
-      settingsMochiKey.value = '••••••••';
-      settingsMochiKey.disabled = true;
-    } else {
-      settingsMochiKey.placeholder = 'Not configured';
-      settingsMochiKey.disabled = true;
-    }
-
-    if (result.mochiDeckId && result.mochiDeckName) {
-      settingsMochiDeck.innerHTML = `<option value="${result.mochiDeckId}">${result.mochiDeckName}</option>`;
-      settingsMochiDeck.disabled = true;
-    } else {
-      settingsMochiDeck.innerHTML = '<option value="">Not configured</option>';
-      settingsMochiDeck.disabled = true;
-    }
-  } catch (error) {
-    console.error('Failed to load settings:', error);
-  }
-}
-
-/**
- * Sync Mochi settings from backend API and cache locally
- */
-async function syncMochiSettingsFromBackend() {
-  try {
-    const accessToken = await getAccessToken();
-    if (!accessToken) return;
-
-    const response = await fetch(`${BACKEND_URL}/api/user/me`, {
-      headers: { 'Authorization': `Bearer ${accessToken}` }
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const mochiApiKey = data.settings?.mochiApiKey || null;
-      const mochiDeckId = data.settings?.mochiDeckId || null;
-
-      // Cache settings locally for the background script to use
-      await chrome.storage.sync.set({
-        mochiApiKey: mochiApiKey,
-        mochiDeckId: mochiDeckId
-      });
-
-      // If we have an API key, fetch deck name for display
-      if (mochiApiKey && mochiDeckId) {
-        await fetchMochiDeckName(mochiApiKey, mochiDeckId);
-      }
-
-      console.log('[Pluckk] Mochi settings synced from backend');
-    }
-  } catch (error) {
-    console.error('Failed to sync Mochi settings:', error);
-  }
-}
-
-/**
- * Fetch the deck name for a given deck ID (for display purposes)
- */
-async function fetchMochiDeckName(mochiApiKey, deckId) {
-  try {
-    const response = await fetch('https://app.mochi.cards/api/decks/', {
-      method: 'GET',
-      headers: {
-        'Authorization': 'Basic ' + btoa(mochiApiKey + ':')
-      }
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const deck = data.docs.find(d => d.id === deckId);
-      if (deck) {
-        await chrome.storage.sync.set({ mochiDeckName: deck.name });
-      }
-    }
-  } catch (error) {
-    console.error('Failed to fetch deck name:', error);
-  }
 }
 
 /**
@@ -780,12 +690,6 @@ async function updateAuthDisplay() {
   }
 }
 
-/**
- * Open webapp settings page
- */
-function openWebappSettings() {
-  chrome.tabs.create({ url: 'https://pluckk.app/settings' });
-}
 
 /**
  * Handle Google sign in
@@ -977,9 +881,6 @@ googleSignInBtn.addEventListener('click', handleGoogleSignIn);
 signOutBtn.addEventListener('click', handleSignOut);
 settingsUpgradeBtn.addEventListener('click', handleUpgrade);
 settingsManageBtn.addEventListener('click', handleManageSubscription);
-if (settingsManageLink) {
-  settingsManageLink.addEventListener('click', openWebappSettings);
-}
 
 // Event Listeners - Screenshot handling
 document.addEventListener('paste', handlePaste);
@@ -1047,6 +948,16 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     }
   }
 });
+
+// Initialize background animation
+const sandCanvas = document.getElementById('sand-animation');
+if (sandCanvas) {
+  initSandAnimation(sandCanvas, {
+    filterPosition: 0.65,
+    speed: 1,
+    opacity: 1
+  });
+}
 
 // Initialize panel - check for selection first
 initializePanel();
