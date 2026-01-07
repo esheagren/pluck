@@ -61,6 +61,35 @@ body {
   letter-spacing: -0.02em;
 }
 
+/* Clickable logo text */
+.logo-text {
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 4px 8px;
+  margin: -4px -8px;
+  border-radius: 6px;
+  position: relative;
+}
+
+.logo-text:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.logo-text.active {
+  color: #c9a66b;
+}
+
+.logo-text.active::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background: #c9a66b;
+  border-radius: 1px;
+}
+
 .header-actions {
   display: flex;
   align-items: center;

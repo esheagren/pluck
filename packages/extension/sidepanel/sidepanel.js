@@ -23,7 +23,7 @@ const cardsList = document.getElementById('cards-list');
 const errorMessage = document.getElementById('error-message');
 const mochiBtn = document.getElementById('mochi-btn');
 const retryBtn = document.getElementById('retry-btn');
-const generateBtn = document.getElementById('generate-btn');
+const logoText = document.getElementById('logo-text');
 const readyHint = document.getElementById('ready-hint');
 const regenerateBtn = document.getElementById('regenerate-btn');
 const openWebappBtn = document.getElementById('open-webapp-btn');
@@ -572,6 +572,9 @@ async function generateCards(focusText = '', useCache = false) {
 // Selection polling
 let selectionPollInterval = null;
 
+// Track if we have a selection (for logo click)
+let hasSelection = false;
+
 /**
  * Check current selection state and update UI
  */
@@ -588,16 +591,20 @@ async function checkSelectionState() {
     const selectionData = await chrome.tabs.sendMessage(tab.id, { action: 'getSelection' });
 
     if (selectionData?.selection) {
-      // We have text selected - show button
-      readyHint.textContent = 'Text selected';
-      generateBtn.classList.remove('hidden');
+      // We have text selected - activate logo
+      hasSelection = true;
+      readyHint.textContent = 'Click Pluckk to generate';
+      logoText.classList.add('active');
     } else {
-      // No selection - hide button
+      // No selection - deactivate logo
+      hasSelection = false;
       readyHint.textContent = 'Select text or paste screenshot';
-      generateBtn.classList.add('hidden');
+      logoText.classList.remove('active');
     }
   } catch (error) {
     // Content script not available - keep current state
+    hasSelection = false;
+    logoText.classList.remove('active');
   }
 }
 
@@ -897,9 +904,11 @@ function generateWithFocus() {
 // Event Listeners - Main UI
 mochiBtn.addEventListener('click', sendToMochi);
 retryBtn.addEventListener('click', () => generateCards());
-generateBtn.addEventListener('click', () => {
-  showState(loadingState);
-  generateCards();
+logoText.addEventListener('click', () => {
+  if (hasSelection) {
+    showState(loadingState);
+    generateCards();
+  }
 });
 regenerateBtn.addEventListener('click', toggleFocusInput);
 generateWithFocusBtn.addEventListener('click', generateWithFocus);
