@@ -690,10 +690,14 @@ function handleError(response) {
 }
 
 /**
- * Open the Pluckk web app in a new window
+ * Navigate current tab to Pluckk web app and close sidepanel
  */
-function openWebapp() {
-  chrome.tabs.create({ url: 'https://pluckk.app' });
+async function openWebapp() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.id) {
+    chrome.tabs.update(tab.id, { url: 'https://pluckk.app' });
+  }
+  window.close();
 }
 
 /**
