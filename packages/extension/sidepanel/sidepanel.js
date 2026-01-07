@@ -23,6 +23,8 @@ const cardsList = document.getElementById('cards-list');
 const errorMessage = document.getElementById('error-message');
 const mochiBtn = document.getElementById('mochi-btn');
 const retryBtn = document.getElementById('retry-btn');
+const generateBtn = document.getElementById('generate-btn');
+const readyHint = document.getElementById('ready-hint');
 const regenerateBtn = document.getElementById('regenerate-btn');
 const openWebappBtn = document.getElementById('open-webapp-btn');
 const openSettingsBtn = document.getElementById('open-settings-btn');
@@ -560,13 +562,17 @@ async function generateCards(focusText = '', useCache = false) {
 }
 
 /**
- * Check for selection and generate cards if found, otherwise show ready state
+ * Check for selection and show appropriate UI
  */
 async function initializePanel() {
   await checkMochiStatus();
   await updateAuthDisplay();
 
-  // First, quickly check if there's a selection
+  // Reset button state
+  generateBtn.classList.add('hidden');
+  readyHint.textContent = 'Select text or paste screenshot';
+
+  // Check if there's a selection
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab) {
@@ -578,13 +584,12 @@ async function initializePanel() {
     const selectionData = await chrome.tabs.sendMessage(tab.id, { action: 'getSelection' });
 
     if (selectionData?.selection) {
-      // We have text selected - show loading and generate
-      showState(loadingState);
-      generateCards();
-    } else {
-      // No selection - show ready state (not an error)
-      showState(noSelectionState);
+      // We have text selected - show button to generate
+      readyHint.textContent = 'Text selected';
+      generateBtn.classList.remove('hidden');
     }
+
+    showState(noSelectionState);
   } catch (error) {
     // Content script not available (e.g., chrome:// pages)
     showState(noSelectionState);
@@ -791,6 +796,10 @@ function generateWithFocus() {
 // Event Listeners - Main UI
 mochiBtn.addEventListener('click', sendToMochi);
 retryBtn.addEventListener('click', () => generateCards());
+generateBtn.addEventListener('click', () => {
+  showState(loadingState);
+  generateCards();
+});
 regenerateBtn.addEventListener('click', toggleFocusInput);
 generateWithFocusBtn.addEventListener('click', generateWithFocus);
 focusInput.addEventListener('keydown', (e) => {

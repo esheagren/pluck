@@ -233,6 +233,11 @@ body {
 .ready-hint {
   color: #999;
   font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.no-selection-state .btn {
+  margin-top: 0;
 }
 
 /* Buttons */
