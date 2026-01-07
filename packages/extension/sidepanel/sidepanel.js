@@ -503,10 +503,8 @@ async function generateCardsFromImage(focusText = '', isRetry = false) {
  * @param {boolean} useCache - Whether to use cached selection (for regeneration)
  */
 async function generateCards(focusText = '', useCache = false) {
-  // If using cache, we know we have selection - show loading immediately
-  if (useCache && cachedSelectionData) {
-    showState(loadingState);
-  }
+  // Always show loading state immediately
+  showState(loadingState);
 
   await checkMochiStatus();
 
