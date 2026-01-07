@@ -243,8 +243,8 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
           <img
             src={card.image_url}
             alt=""
-            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl cursor-zoom-out"
+            onClick={() => setIsImageExpanded(false)}
           />
           <button
             onClick={() => setIsImageExpanded(false)}
