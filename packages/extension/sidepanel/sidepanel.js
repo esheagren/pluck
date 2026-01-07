@@ -635,9 +635,9 @@ async function updateAuthDisplay() {
     // Fetch usage stats
     const profile = await getUserProfile();
     if (profile) {
-      const used = profile.cards_generated_this_month || 0;
-      const limit = FREE_TIER_LIMIT;
-      const isPro = profile.subscription_status === 'active';
+      const used = profile.usage?.cardsThisMonth || 0;
+      const limit = profile.usage?.limit || FREE_TIER_LIMIT;
+      const isPro = profile.subscription?.isPro || profile.subscription?.status === 'active';
 
       if (isPro) {
         settingsUsageText.textContent = `${used} (unlimited)`;
