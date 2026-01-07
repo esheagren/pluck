@@ -1000,6 +1000,16 @@ if (sandCanvas) {
   });
 }
 
+// Update tooltip based on toggle state
+function updateKeepOpenTooltip() {
+  const toggleLabel = keepOpenCheckbox?.closest('.toggle-switch');
+  if (toggleLabel) {
+    toggleLabel.title = keepOpenAfterStoring
+      ? 'Keep Pluck open'
+      : 'Close Pluck after use';
+  }
+}
+
 // Load keep-open preference
 async function loadKeepOpenPreference() {
   try {
@@ -1008,6 +1018,7 @@ async function loadKeepOpenPreference() {
     if (keepOpenCheckbox) {
       keepOpenCheckbox.checked = keepOpenAfterStoring;
     }
+    updateKeepOpenTooltip();
   } catch (error) {
     console.error('Failed to load keep-open preference:', error);
   }
@@ -1018,6 +1029,7 @@ async function saveKeepOpenPreference(value) {
   try {
     await chrome.storage.sync.set({ keepOpenAfterStoring: value });
     keepOpenAfterStoring = value;
+    updateKeepOpenTooltip();
   } catch (error) {
     console.error('Failed to save keep-open preference:', error);
   }
