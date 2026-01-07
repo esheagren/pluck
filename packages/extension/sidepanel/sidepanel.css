@@ -879,3 +879,28 @@ body {
 .toggle-switch input:checked + .toggle-slider::before {
   transform: translateX(12px);
 }
+
+/* Arrow Button */
+.btn-arrow {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #2d3436;
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  margin-top: 16px;
+}
+
+.btn-arrow:hover {
+  background: #1a1a1a;
+  transform: scale(1.05);
+}
+
+.btn-arrow:active {
+  transform: scale(0.98);
+}
