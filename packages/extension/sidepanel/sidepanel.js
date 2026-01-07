@@ -685,6 +685,76 @@ function showSettingsStatus(message, type) {
 }
 
 /**
+ * Cache key for profile data
+ */
+const PROFILE_CACHE_KEY = 'pluckk_profile_cache';
+
+/**
+ * Get cached profile data
+ */
+async function getCachedProfile() {
+  try {
+    const result = await chrome.storage.local.get([PROFILE_CACHE_KEY]);
+    return result[PROFILE_CACHE_KEY] || null;
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Cache profile data
+ */
+async function cacheProfile(profile) {
+  try {
+    await chrome.storage.local.set({ [PROFILE_CACHE_KEY]: profile });
+  } catch (error) {
+    console.error('Failed to cache profile:', error);
+  }
+}
+
+/**
+ * Clear cached profile (on sign out)
+ */
+async function clearCachedProfile() {
+  try {
+    await chrome.storage.local.remove([PROFILE_CACHE_KEY]);
+  } catch (error) {
+    console.error('Failed to clear profile cache:', error);
+  }
+}
+
+/**
+ * Apply profile data to the UI
+ */
+function applyProfileToUI(profile) {
+  if (!profile) return;
+
+  const used = profile.usage?.cardsThisMonth || 0;
+  const limit = profile.usage?.limit || FREE_TIER_LIMIT;
+  const isPro = profile.subscription?.isPro || profile.subscription?.status === 'active';
+
+  if (isPro) {
+    settingsUsageText.textContent = `${used} (unlimited)`;
+    settingsUsageBar.style.width = '0%';
+    settingsBillingRow.classList.add('hidden');
+    settingsProRow.classList.remove('hidden');
+  } else {
+    const percentage = Math.min((used / limit) * 100, 100);
+    settingsUsageText.textContent = `${used} / ${limit}`;
+    settingsUsageBar.style.width = `${percentage}%`;
+    settingsBillingRow.classList.remove('hidden');
+    settingsProRow.classList.add('hidden');
+
+    settingsUsageBar.classList.remove('warning', 'full');
+    if (percentage >= 100) {
+      settingsUsageBar.classList.add('full');
+    } else if (percentage >= 75) {
+      settingsUsageBar.classList.add('warning');
+    }
+  }
+}
+
+/**
  * Update auth display in settings
  */
 async function updateAuthDisplay() {
@@ -694,36 +764,22 @@ async function updateAuthDisplay() {
     authLoggedOut.classList.add('hidden');
     authLoggedIn.classList.remove('hidden');
 
-    // Fetch usage stats
-    const profile = await getUserProfile();
-    if (profile) {
-      const used = profile.usage?.cardsThisMonth || 0;
-      const limit = profile.usage?.limit || FREE_TIER_LIMIT;
-      const isPro = profile.subscription?.isPro || profile.subscription?.status === 'active';
+    // First, apply cached profile immediately (no flash)
+    const cachedProfile = await getCachedProfile();
+    if (cachedProfile) {
+      applyProfileToUI(cachedProfile);
+    }
 
-      if (isPro) {
-        settingsUsageText.textContent = `${used} (unlimited)`;
-        settingsUsageBar.style.width = '0%';
-        settingsBillingRow.classList.add('hidden');
-        settingsProRow.classList.remove('hidden');
-      } else {
-        const percentage = Math.min((used / limit) * 100, 100);
-        settingsUsageText.textContent = `${used} / ${limit}`;
-        settingsUsageBar.style.width = `${percentage}%`;
-        settingsBillingRow.classList.remove('hidden');
-        settingsProRow.classList.add('hidden');
-
-        settingsUsageBar.classList.remove('warning', 'full');
-        if (percentage >= 100) {
-          settingsUsageBar.classList.add('full');
-        } else if (percentage >= 75) {
-          settingsUsageBar.classList.add('warning');
-        }
-      }
+    // Then fetch fresh data in background
+    const freshProfile = await getUserProfile();
+    if (freshProfile) {
+      applyProfileToUI(freshProfile);
+      cacheProfile(freshProfile);
     }
   } else {
     authLoggedOut.classList.remove('hidden');
     authLoggedIn.classList.add('hidden');
+    clearCachedProfile();
   }
 }
 
