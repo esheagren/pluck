@@ -679,13 +679,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'generateCardsFromImage') {
     // Generate cards from a pasted screenshot using Claude vision
     (async () => {
-      const isAuthenticated = await checkAuth();
-      if (!isAuthenticated) {
+      // Get access token (getSession handles token refresh if needed)
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
         sendResponse({ error: 'not_authenticated' });
         return;
       }
-
-      const accessToken = await getAccessToken();
 
       try {
         const response = await fetch(`${BACKEND_URL}/api/generate-cards-from-image`, {

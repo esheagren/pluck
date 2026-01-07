@@ -450,8 +450,9 @@ function clearScreenshot() {
 /**
  * Generate cards from the pasted screenshot
  * @param {string} focusText - Optional focus/guidance for card generation
+ * @param {boolean} isRetry - Whether this is a retry after auth refresh
  */
-async function generateCardsFromImage(focusText = '') {
+async function generateCardsFromImage(focusText = '', isRetry = false) {
   if (!pastedImageData || !pastedImageMimeType) {
     showError('No screenshot to analyze');
     return;
@@ -469,6 +470,16 @@ async function generateCardsFromImage(focusText = '') {
     });
 
     if (response.error) {
+      // If auth failed but we haven't retried yet, try refreshing session
+      if (response.error === 'not_authenticated' && !isRetry) {
+        console.log('[Pluckk] Auth failed, checking if we can refresh session...');
+        const { session } = await getSession();
+        if (session) {
+          // We have a session, try again
+          console.log('[Pluckk] Session exists, retrying...');
+          return generateCardsFromImage(focusText, true);
+        }
+      }
       handleError(response);
       return;
     }
