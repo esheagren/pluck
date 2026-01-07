@@ -483,56 +483,29 @@ async function generateImageForSupabase(supabaseCardId, question, answer) {
 }
 
 /**
- * Background task to upload a screenshot to Supabase and optionally attach to Mochi card
+ * Background task to upload a screenshot to Supabase only
  * Used when user pastes a screenshot for card generation
+ * Note: Screenshots are NOT sent to Mochi, only to Pluckk's Supabase storage
  */
-async function uploadScreenshotAndAttach(mochiCardId, question, answer, sourceUrl, supabaseCardId, screenshotData, screenshotMimeType) {
-  const taskId = `screenshot-${supabaseCardId || mochiCardId}-${Date.now()}`;
+async function uploadScreenshotToSupabase(supabaseCardId, screenshotData, screenshotMimeType) {
+  if (!supabaseCardId) {
+    console.log('[Pluckk] No Supabase card ID, skipping screenshot upload');
+    return;
+  }
+
+  const taskId = `screenshot-${supabaseCardId}-${Date.now()}`;
   pendingTasks.add(taskId);
   startKeepAlive();
 
   try {
     console.log('[Pluckk] Starting screenshot upload task:', taskId);
+    console.log('[Pluckk] Uploading screenshot to Supabase Storage...');
+    const imageUrl = await supabase.uploadImage(screenshotData, screenshotMimeType, supabaseCardId);
+    console.log('[Pluckk] Screenshot uploaded to Supabase:', imageUrl);
 
-    // Upload to Supabase Storage if we have a Supabase card ID
-    if (supabaseCardId) {
-      try {
-        console.log('[Pluckk] Uploading screenshot to Supabase Storage...');
-        const imageUrl = await supabase.uploadImage(screenshotData, screenshotMimeType, supabaseCardId);
-        console.log('[Pluckk] Screenshot uploaded to Supabase:', imageUrl);
-
-        console.log('[Pluckk] Updating Supabase card with image URL...');
-        await supabase.updateCardImage(supabaseCardId, imageUrl);
-        console.log('[Pluckk] Supabase card updated with image URL!');
-      } catch (supabaseError) {
-        console.error('[Pluckk] Supabase screenshot upload failed:', supabaseError.message);
-      }
-    }
-
-    // Attach to Mochi card if we have a Mochi card ID
-    if (mochiCardId) {
-      const mochiSettings = await getMochiSettings();
-      if (mochiSettings.apiKey) {
-        try {
-          console.log('[Pluckk] Uploading screenshot to Mochi card:', mochiCardId);
-          const uploadResult = await uploadMochiAttachment(mochiCardId, screenshotData, screenshotMimeType, mochiSettings.apiKey);
-          const filename = uploadResult.filename;
-          console.log('[Pluckk] Screenshot attached to Mochi successfully:', filename);
-
-          // Update Mochi card content to display the image inline (on answer side)
-          let newContent = `${question}\n---\n${answer}\n\n![](@media/${filename})`;
-          if (sourceUrl) {
-            newContent += `\n\n---\nSource: ${sourceUrl}`;
-          }
-
-          console.log('[Pluckk] Updating Mochi card to display screenshot inline...');
-          await updateMochiCardContent(mochiCardId, newContent, mochiSettings.apiKey);
-          console.log('[Pluckk] Mochi card updated with inline screenshot!');
-        } catch (mochiError) {
-          console.error('[Pluckk] Mochi screenshot attachment failed:', mochiError.message);
-        }
-      }
-    }
+    console.log('[Pluckk] Updating Supabase card with image URL...');
+    await supabase.updateCardImage(supabaseCardId, imageUrl);
+    console.log('[Pluckk] Supabase card updated with image URL!');
   } catch (error) {
     console.error('[Pluckk] Failed to upload screenshot:', error.message, error);
   } finally {
@@ -677,16 +650,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         if (result.success && result.cardId) {
           if (hasScreenshot) {
-            // Fire-and-forget: upload screenshot to both Mochi and Supabase
-            uploadScreenshotAndAttach(
-              result.cardId,
-              request.question,
-              request.answer,
-              request.sourceUrl,
-              supabaseCardId,
-              request.screenshotData,
-              request.screenshotMimeType
-            );
+            // Fire-and-forget: upload screenshot to Supabase only (not Mochi)
+            uploadScreenshotToSupabase(supabaseCardId, request.screenshotData, request.screenshotMimeType);
           } else {
             // Fire-and-forget: generate AI image and attach to Mochi and Supabase
             generateAndAttachImage(result.cardId, request.question, request.answer, request.sourceUrl, supabaseCardId);
@@ -695,7 +660,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           // Mochi isn't configured but we have a Supabase card
           if (hasScreenshot) {
             // Fire-and-forget: upload screenshot to Supabase only
-            uploadScreenshotAndAttach(null, request.question, request.answer, request.sourceUrl, supabaseCardId, request.screenshotData, request.screenshotMimeType);
+            uploadScreenshotToSupabase(supabaseCardId, request.screenshotData, request.screenshotMimeType);
           } else {
             // Fire-and-forget: generate image for Supabase card only
             generateImageForSupabase(supabaseCardId, request.question, request.answer);
