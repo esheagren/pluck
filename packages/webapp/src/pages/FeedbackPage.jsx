@@ -30,7 +30,7 @@ export default function FeedbackPage() {
 
   if (submitted) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="w-full max-w-2xl mx-auto">
         <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
           <div className="text-center py-4">
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -53,7 +53,7 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="w-full max-w-2xl mx-auto">
       <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
         <h2 className="text-xl font-semibold text-gray-800 mb-6">Share Feedback</h2>
         <textarea
