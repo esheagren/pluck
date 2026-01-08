@@ -953,7 +953,7 @@ openSettingsBtn.addEventListener('click', handleGoogleSignIn);
 upgradeBtn.addEventListener('click', handleUpgrade);
 closeBtn.addEventListener('click', closePanel);
 infoBtn.addEventListener('click', () => {
-  chrome.tabs.create({ url: 'https://pluckk.app/info' });
+  chrome.tabs.create({ url: 'https://pluckk.app' });
   window.close();
 });
 
