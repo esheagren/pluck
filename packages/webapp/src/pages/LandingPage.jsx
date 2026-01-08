@@ -438,7 +438,7 @@ export default function LandingPage({ onSignIn }) {
             <span className="text-sm font-medium">Pluckk</span>
           </div>
           <div className="flex items-center gap-6 text-sm text-stone-500">
-            <a href="/privacy.html" className="hover:text-stone-300 transition-colors">Privacy</a>
+            <a href="/privacy" className="hover:text-stone-300 transition-colors">Privacy</a>
             <a href="https://eriksheagren.notion.site" target="_blank" rel="noopener noreferrer" className="hover:text-stone-300 transition-colors">Contact</a>
           </div>
         </div>

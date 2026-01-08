@@ -8,6 +8,7 @@ import SettingsPage from './pages/SettingsPage'
 import FeedbackPage from './pages/FeedbackPage'
 import LandingPage from './pages/LandingPage'
 import InfoPage from './pages/InfoPage'
+import PrivacyPage from './pages/PrivacyPage'
 
 // Loading Screen Component
 function LoadingScreen() {
@@ -26,9 +27,12 @@ export default function App() {
   const { user, loading: authLoading, billingInfo, signIn, signOut, handleUpgrade, handleManageSubscription } = useAuth()
   const { cards, loading: cardsLoading, updateCard, deleteCard } = useCards(user?.id)
 
-  // Info page is always accessible
+  // Info and Privacy pages are always accessible
   if (location.pathname === '/info') {
     return <InfoPage />
+  }
+  if (location.pathname === '/privacy') {
+    return <PrivacyPage />
   }
 
   // Show loading while checking auth
