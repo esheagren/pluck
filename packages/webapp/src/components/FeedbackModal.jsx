@@ -40,7 +40,7 @@ export default function FeedbackModal({ isOpen, onClose, userId }) {
       onClick={handleClose}
     >
       <div
-        className="bg-white rounded-2xl max-w-xl w-full p-8 shadow-xl"
+        className="bg-white rounded-2xl max-w-2xl w-full p-10 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {submitted ? (
@@ -68,7 +68,7 @@ export default function FeedbackModal({ isOpen, onClose, userId }) {
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
               placeholder="Tell us what you think..."
-              className="w-full p-4 border border-gray-200 rounded-lg text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-gray-200 min-h-[180px] text-base"
+              className="w-full p-4 border border-gray-200 rounded-lg text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-gray-200 min-h-[220px] text-base"
               autoFocus
             />
             {error && (
