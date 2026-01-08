@@ -10,6 +10,7 @@ export default function SettingsPage({ user, billingInfo, onSignOut, onUpgrade, 
   const [saving, setSaving] = useState(false)
   const [fetchingDecks, setFetchingDecks] = useState(false)
   const [status, setStatus] = useState({ type: '', message: '' })
+  const [advancedOpen, setAdvancedOpen] = useState(false)
 
   // Load settings on mount
   useEffect(() => {
@@ -175,8 +176,107 @@ export default function SettingsPage({ user, billingInfo, onSignOut, onUpgrade, 
           )}
         </div>
 
-        {/* Sign Out */}
+        {/* Advanced Settings Toggle */}
         <div className="px-5 py-4">
+          <button
+            onClick={() => setAdvancedOpen(!advancedOpen)}
+            className="flex items-center justify-between w-full text-left"
+          >
+            <span className="text-sm text-gray-800">Advanced Settings</span>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className={`text-gray-400 transition-transform ${advancedOpen ? 'rotate-180' : ''}`}
+            >
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        </div>
+
+        {/* Advanced Settings Content */}
+        {advancedOpen && (
+          <div className="px-5 py-4 border-t border-gray-100 bg-gray-50/50">
+            <h4 className="text-xs text-gray-500 uppercase tracking-wide mb-3">Mochi Integration</h4>
+            <p className="text-sm text-gray-500 mb-4">
+              Connect your Mochi account to send flashcards directly from the extension.
+            </p>
+
+            <div className="space-y-4">
+              {/* API Key */}
+              <div>
+                <label className="block text-xs text-gray-500 uppercase tracking-wide mb-2">
+                  API Key
+                </label>
+                <input
+                  type="password"
+                  value={mochiApiKey}
+                  onChange={(e) => setMochiApiKey(e.target.value)}
+                  placeholder="Enter your Mochi API key"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 bg-white"
+                />
+                <p className="text-xs text-gray-400 mt-1.5">
+                  Get your API key from Mochi Settings → API
+                </p>
+              </div>
+
+              {/* Deck Selection */}
+              <div>
+                <label className="block text-xs text-gray-500 uppercase tracking-wide mb-2">
+                  Default Deck
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    value={mochiDeckId}
+                    onChange={(e) => setMochiDeckId(e.target.value)}
+                    disabled={decks.length === 0}
+                    className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:bg-gray-50 disabled:text-gray-400"
+                  >
+                    {decks.length === 0 ? (
+                      <option value="">No decks loaded</option>
+                    ) : (
+                      decks.map((deck) => (
+                        <option key={deck.id} value={deck.id}>
+                          {deck.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <button
+                    onClick={() => fetchDecks()}
+                    disabled={fetchingDecks || !mochiApiKey}
+                    className="px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {fetchingDecks ? 'Loading...' : 'Fetch'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <button
+                onClick={saveSettings}
+                disabled={saving}
+                className="w-full py-2.5 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? 'Saving...' : 'Save Mochi Settings'}
+              </button>
+
+              {status.message && (
+                <p className={`text-sm text-center mt-3 ${status.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                  {status.message}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Sign Out */}
+        <div className="px-5 py-4 border-t border-gray-100">
           <button
             onClick={onSignOut}
             className="text-sm text-gray-500 hover:text-gray-800"
@@ -184,89 +284,6 @@ export default function SettingsPage({ user, billingInfo, onSignOut, onUpgrade, 
             Sign out
           </button>
         </div>
-      </div>
-
-      {/* Mochi Integration */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-sm font-medium text-gray-800 mb-4">Mochi Integration</h3>
-        <p className="text-sm text-gray-500 mb-4">
-          Connect your Mochi account to send flashcards directly from the extension.
-        </p>
-
-        <div className="space-y-4">
-          {/* API Key */}
-          <div>
-            <label className="block text-xs text-gray-500 uppercase tracking-wide mb-2">
-              API Key
-            </label>
-            <input
-              type="password"
-              value={mochiApiKey}
-              onChange={(e) => setMochiApiKey(e.target.value)}
-              placeholder="Enter your Mochi API key"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200"
-            />
-            <p className="text-xs text-gray-400 mt-1.5">
-              Get your API key from Mochi Settings → API
-            </p>
-          </div>
-
-          {/* Deck Selection */}
-          <div>
-            <label className="block text-xs text-gray-500 uppercase tracking-wide mb-2">
-              Default Deck
-            </label>
-            <div className="flex gap-2">
-              <select
-                value={mochiDeckId}
-                onChange={(e) => setMochiDeckId(e.target.value)}
-                disabled={decks.length === 0}
-                className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:bg-gray-50 disabled:text-gray-400"
-              >
-                {decks.length === 0 ? (
-                  <option value="">No decks loaded</option>
-                ) : (
-                  decks.map((deck) => (
-                    <option key={deck.id} value={deck.id}>
-                      {deck.name}
-                    </option>
-                  ))
-                )}
-              </select>
-              <button
-                onClick={() => fetchDecks()}
-                disabled={fetchingDecks || !mochiApiKey}
-                className="px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {fetchingDecks ? 'Loading...' : 'Fetch'}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Save Button */}
-        <div className="mt-6 pt-4 border-t border-gray-100">
-          <button
-            onClick={saveSettings}
-            disabled={saving}
-            className="w-full py-3 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {saving ? 'Saving...' : 'Save Settings'}
-          </button>
-
-          {status.message && (
-            <p className={`text-sm text-center mt-3 ${status.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
-              {status.message}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Extension Info */}
-      <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-        <p className="text-sm text-gray-600">
-          These settings will be used by the Pluckk browser extension. After saving, the extension will automatically use your Mochi configuration.
-        </p>
       </div>
     </div>
   )
