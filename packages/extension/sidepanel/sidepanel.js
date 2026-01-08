@@ -30,6 +30,7 @@ const regenerateBtn = document.getElementById('regenerate-btn');
 const openSettingsBtn = document.getElementById('open-settings-btn');
 const upgradeBtn = document.getElementById('upgrade-btn');
 const closeBtn = document.getElementById('close-btn');
+const infoBtn = document.getElementById('info-btn');
 const selectedCountEl = document.getElementById('selected-count');
 const totalCountEl = document.getElementById('total-count');
 const focusInputContainer = document.getElementById('focus-input-container');
@@ -951,6 +952,10 @@ focusInput.addEventListener('keydown', (e) => {
 openSettingsBtn.addEventListener('click', handleGoogleSignIn);
 upgradeBtn.addEventListener('click', handleUpgrade);
 closeBtn.addEventListener('click', closePanel);
+infoBtn.addEventListener('click', () => {
+  chrome.tabs.create({ url: 'https://pluckk.app/info' });
+  window.close();
+});
 
 // Event Listeners - Settings Section
 googleSignInBtn.addEventListener('click', handleGoogleSignIn);

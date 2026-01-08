@@ -66,6 +66,21 @@ export default function Sidebar() {
           <span>Feedback</span>
         </button>
         <NavLink
+          to="/info"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3.5 py-3 rounded-lg text-sm font-medium transition-all ${
+              isActive ? 'bg-gray-100 text-gray-800' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+            }`
+          }
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <span>About</span>
+        </NavLink>
+        <NavLink
           to="/settings"
           className={({ isActive }) =>
             `flex items-center gap-3 px-3.5 py-3 rounded-lg text-sm font-medium transition-all ${

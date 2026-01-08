@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { useCards } from './hooks/useCards'
 import Layout from './components/Layout'
@@ -6,6 +6,7 @@ import ReviewPage from './pages/ReviewPage'
 import CardsPage from './pages/CardsPage'
 import SettingsPage from './pages/SettingsPage'
 import LandingPage from './pages/LandingPage'
+import InfoPage from './pages/InfoPage'
 
 // Loading Screen Component
 function LoadingScreen() {
@@ -20,8 +21,14 @@ function LoadingScreen() {
 }
 
 export default function App() {
+  const location = useLocation()
   const { user, loading: authLoading, billingInfo, signIn, signOut, handleUpgrade, handleManageSubscription } = useAuth()
   const { cards, loading: cardsLoading, updateCard, deleteCard } = useCards(user?.id)
+
+  // Info page is always accessible
+  if (location.pathname === '/info') {
+    return <InfoPage />
+  }
 
   // Show loading while checking auth
   if (authLoading) {

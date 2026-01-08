@@ -61,17 +61,45 @@ body {
   letter-spacing: -0.02em;
 }
 
-/* Clickable logo text */
+/* Clickable logo text with shimmer effect */
 .logo-text {
   cursor: pointer;
-  transition: all 0.15s ease;
   padding: 4px 8px;
   margin: -4px -8px;
   border-radius: 6px;
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    #2d3436 0%,
+    #2d3436 40%,
+    #c9a66b 50%,
+    #2d3436 60%,
+    #2d3436 100%
+  );
+  background-size: 250% 100%;
+  background-position: 0% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 8s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+@keyframes shimmer {
+  0%, 90%, 100% {
+    background-position: 0% 0;
+  }
+  45% {
+    background-position: 100% 0;
+  }
 }
 
 .logo-text:hover {
-  background: rgba(0, 0, 0, 0.04);
+  animation-play-state: paused;
+  background: #c9a66b;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .header-actions {
