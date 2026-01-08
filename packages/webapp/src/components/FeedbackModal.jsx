@@ -40,7 +40,7 @@ export default function FeedbackModal({ isOpen, onClose, userId }) {
       onClick={handleClose}
     >
       <div
-        className="bg-white rounded-2xl max-w-2xl w-full p-10 shadow-xl"
+        className="bg-white rounded-2xl max-w-3xl w-full p-10 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {submitted ? (
