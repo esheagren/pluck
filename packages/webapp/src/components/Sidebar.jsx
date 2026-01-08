@@ -1,11 +1,6 @@
-import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
-import FeedbackModal from './FeedbackModal'
 
 export default function Sidebar() {
-  const { user } = useAuth()
-  const [showFeedback, setShowFeedback] = useState(false)
 
   return (
     <nav className="w-[220px] bg-white border-r border-gray-200 flex flex-col fixed top-0 left-0 bottom-0 max-md:hidden">
@@ -55,16 +50,20 @@ export default function Sidebar() {
 
       {/* Feedback & Settings at bottom */}
       <div className="p-3 border-t border-gray-200 flex flex-col gap-1">
-        <button
-          onClick={() => setShowFeedback(true)}
-          className="flex items-center gap-3 px-3.5 py-3 rounded-lg text-sm font-medium transition-all text-gray-500 hover:bg-gray-50 hover:text-gray-800 w-full text-left"
+        <NavLink
+          to="/feedback"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3.5 py-3 rounded-lg text-sm font-medium transition-all ${
+              isActive ? 'bg-gray-100 text-gray-800' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+            }`
+          }
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M3 11l18-5v12L3 13v-2z"></path>
             <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path>
           </svg>
           <span>Feedback</span>
-        </button>
+        </NavLink>
         <NavLink
           to="/info"
           className={({ isActive }) =>
@@ -95,12 +94,6 @@ export default function Sidebar() {
           <span>Settings</span>
         </NavLink>
       </div>
-
-      <FeedbackModal
-        isOpen={showFeedback}
-        onClose={() => setShowFeedback(false)}
-        userId={user?.id}
-      />
     </nav>
   )
 }

@@ -5,6 +5,7 @@ import Layout from './components/Layout'
 import ReviewPage from './pages/ReviewPage'
 import CardsPage from './pages/CardsPage'
 import SettingsPage from './pages/SettingsPage'
+import FeedbackPage from './pages/FeedbackPage'
 import LandingPage from './pages/LandingPage'
 import InfoPage from './pages/InfoPage'
 
@@ -78,6 +79,7 @@ export default function App() {
             />
           }
         />
+        <Route path="/feedback" element={<FeedbackPage />} />
       </Route>
     </Routes>
   )
