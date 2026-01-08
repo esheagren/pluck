@@ -31,34 +31,34 @@ export default function PrivacyPage() {
             <div>
               <p className="font-medium text-gray-700 mb-1">Text Selections</p>
               <p className="leading-relaxed">
-                When you use Pluckk, the text you highlight and surrounding context is temporarily processed
-                to generate flashcards. This text is sent to your chosen AI provider (Anthropic Claude API
-                or Google Gemini API) for processing.
-              </p>
-            </div>
-
-            <div>
-              <p className="font-medium text-gray-700 mb-1">API Keys</p>
-              <p className="leading-relaxed">
-                Your API keys for Claude, Gemini, and Mochi are stored locally in your browser using
-                Chrome's secure storage API. These keys never leave your device except when making
-                authorized API calls to their respective services.
+                When you use Pluckk, the text you highlight and surrounding context is sent to our backend
+                servers for processing. We use AI services (Anthropic Claude or Google Gemini) to generate
+                flashcard suggestions. Your highlighted text is not permanently stored after processing.
               </p>
             </div>
 
             <div>
               <p className="font-medium text-gray-700 mb-1">Account Information</p>
               <p className="leading-relaxed">
-                If you create an account, we store your email address and authentication credentials
+                When you create an account, we store your email address and authentication credentials
                 securely to provide you access to your flashcards across devices.
+              </p>
+            </div>
+
+            <div>
+              <p className="font-medium text-gray-700 mb-1">Flashcards</p>
+              <p className="leading-relaxed">
+                The flashcards you create are stored in our database, associated with your account,
+                to enable cross-device access and spaced repetition review.
               </p>
             </div>
 
             <div>
               <p className="font-medium text-gray-700 mb-1">Mochi Integration</p>
               <p className="leading-relaxed">
-                If you connect your Mochi account, your Mochi API key is stored locally and used only
-                to send flashcards to your Mochi decks.
+                If you connect your Mochi account, we securely store your Mochi API key on our servers,
+                associated with your account. This key is used only to send flashcards to your Mochi decks
+                when you choose to export them.
               </p>
             </div>
           </div>
@@ -128,12 +128,12 @@ export default function PrivacyPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
           <h2 className="text-lg font-medium text-gray-800 mb-4">Data Storage</h2>
           <p className="text-gray-600 leading-relaxed mb-4">
-            User preferences and API keys are stored locally in your browser using Chrome's storage.sync API.
-            This data syncs across your Chrome browsers if you are signed into Chrome, but is not accessible to us.
+            Your flashcards, account information, and integration credentials (such as your Mochi API key)
+            are stored securely in our database hosted on Supabase.
           </p>
           <p className="text-gray-600 leading-relaxed">
-            If you create an account, your flashcards are stored securely in our database to enable
-            cross-device access and the review functionality.
+            Some user preferences may be stored locally in your browser using Chrome's storage API
+            for a better experience.
           </p>
         </div>
 
@@ -143,15 +143,15 @@ export default function PrivacyPage() {
           <ul className="space-y-2 text-gray-600">
             <li className="flex items-start gap-2">
               <span className="text-gray-400 mt-1">•</span>
-              <span>API keys are stored using Chrome's secure storage mechanism</span>
+              <span>All communications between the extension and our servers use HTTPS encryption</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-gray-400 mt-1">•</span>
-              <span>All API communications use HTTPS encryption</span>
+              <span>Integration credentials (like Mochi API keys) are stored securely and encrypted</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-gray-400 mt-1">•</span>
-              <span>Account data is stored securely with industry-standard encryption</span>
+              <span>Account data is protected with industry-standard security practices</span>
             </li>
           </ul>
         </div>

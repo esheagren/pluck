@@ -15,7 +15,7 @@ export default function Layout() {
         <Outlet />
       </main>
       <footer className="fixed bottom-4 right-6 text-xs">
-        <a href="/privacy.html" className="text-gray-400 hover:text-gray-600 hover:underline">
+        <a href="/privacy" className="text-gray-400 hover:text-gray-600 hover:underline">
           Privacy Policy
         </a>
       </footer>
