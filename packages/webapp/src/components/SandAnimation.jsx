@@ -157,17 +157,17 @@ export default function SandAnimation({
     init()
     animate()
 
-    // Handle resize
-    const handleResize = () => {
+    // Use ResizeObserver instead of window resize for more reliable size detection on mobile
+    const resizeObserver = new ResizeObserver(() => {
       resize()
       init()
-    }
-    window.addEventListener('resize', handleResize)
+    })
+    resizeObserver.observe(canvas)
 
     // Cleanup
     return () => {
       cancelAnimationFrame(animationId)
-      window.removeEventListener('resize', handleResize)
+      resizeObserver.disconnect()
     }
   }, [filterPosition, speed, opacity])
 
