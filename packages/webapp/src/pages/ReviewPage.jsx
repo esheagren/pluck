@@ -118,7 +118,7 @@ export default function ReviewPage({ cards, loading, onUpdateCard, onDeleteCard 
   const currentCard = reviewCards[currentIndex]
 
   return (
-    <div className="flex flex-col items-center gap-8">
+    <div className="flex flex-col items-center gap-6 md:gap-8 w-full px-4 md:px-0">
       <ReviewCard
         card={currentCard}
         isFlipped={isFlipped}
@@ -129,29 +129,30 @@ export default function ReviewPage({ cards, loading, onUpdateCard, onDeleteCard 
 
       {/* Hint */}
       {!isFlipped && (
-        <div className="text-gray-500 text-sm">
-          <span>Press </span>
-          <kbd className="inline-block px-2 py-1 text-xs bg-white border border-gray-200 rounded shadow-sm">Space</kbd>
-          <span> to reveal answer</span>
+        <div className="text-gray-500 text-sm text-center px-4">
+          <span className="hidden md:inline">Press </span>
+          <kbd className="hidden md:inline-block px-2 py-1 text-xs bg-white border border-gray-200 rounded shadow-sm">Space</kbd>
+          <span className="hidden md:inline"> to reveal answer</span>
+          <span className="md:hidden">Tap card to reveal answer</span>
         </div>
       )}
 
       {/* Actions */}
       {isFlipped && (
-        <div className="flex gap-4">
+        <div className="flex gap-3 md:gap-4 w-full max-w-[500px] px-4 md:px-0">
           <button
             onClick={() => handleAnswer(false)}
-            className="flex items-center gap-2.5 px-7 py-3.5 bg-red-50 text-red-500 text-sm font-medium rounded-lg hover:bg-red-100 transition-colors min-w-[140px] justify-center"
+            className="flex items-center gap-2 md:gap-2.5 flex-1 px-4 md:px-7 py-4 md:py-3.5 bg-red-50 text-red-500 text-sm font-medium rounded-lg hover:bg-red-100 active:bg-red-100 transition-colors justify-center"
           >
             <span>Forgot</span>
-            <kbd className="px-1.5 py-0.5 text-xs bg-red-100 rounded">F</kbd>
+            <kbd className="hidden md:inline px-1.5 py-0.5 text-xs bg-red-100 rounded">F</kbd>
           </button>
           <button
             onClick={() => handleAnswer(true)}
-            className="flex items-center gap-2.5 px-7 py-3.5 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 transition-colors min-w-[140px] justify-center"
+            className="flex items-center gap-2 md:gap-2.5 flex-1 px-4 md:px-7 py-4 md:py-3.5 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 active:bg-gray-900 transition-colors justify-center"
           >
             <span>Got it</span>
-            <kbd className="px-1.5 py-0.5 text-xs bg-white/20 rounded">Space</kbd>
+            <kbd className="hidden md:inline px-1.5 py-0.5 text-xs bg-white/20 rounded">Space</kbd>
           </button>
         </div>
       )}

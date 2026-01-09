@@ -79,18 +79,18 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
   return (
     <div className="card-wrapper">
       <div
-        className={`card w-[500px] min-h-[300px] relative cursor-pointer max-md:w-[calc(100vw-48px)] ${isFlipped ? 'flipped' : ''}`}
+        className={`card w-full max-w-[500px] min-h-[250px] md:min-h-[300px] relative cursor-pointer ${isFlipped ? 'flipped' : ''}`}
         onClick={() => !isFlipped && !isEditing && onFlip()}
       >
         {/* Front - Question */}
-        <div className={`card-face bg-white border border-gray-200 rounded-2xl flex items-center justify-center p-8 shadow-lg w-full min-h-[300px] ${isFlipped ? 'hidden' : ''}`}>
-          <div className="text-lg leading-relaxed text-center text-gray-800">
+        <div className={`card-face bg-white border border-gray-200 rounded-2xl flex items-center justify-center p-6 md:p-8 shadow-lg w-full min-h-[250px] md:min-h-[300px] ${isFlipped ? 'hidden' : ''}`}>
+          <div className="text-base md:text-lg leading-relaxed text-center text-gray-800">
             {card.question}
           </div>
         </div>
 
         {/* Back - Answer + Image + Source */}
-        <div className={`card-face card-back bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl flex flex-col items-center justify-between p-8 shadow-lg w-full min-h-[300px] relative ${isFlipped ? '' : 'hidden'}`}>
+        <div className={`card-face card-back bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl flex flex-col items-center justify-between p-6 md:p-8 shadow-lg w-full min-h-[250px] md:min-h-[300px] relative ${isFlipped ? '' : 'hidden'}`}>
           {/* Action buttons */}
           {!isEditing && !isConfirmingDelete && (
             <div className="absolute top-3 right-3 flex gap-1">
@@ -200,11 +200,11 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
                 }}
                 onKeyDown={handleKeyDown}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full text-lg leading-relaxed text-center text-gray-800 bg-transparent border-none resize-none focus:outline-none focus:ring-0"
+                className="w-full text-base md:text-lg leading-relaxed text-center text-gray-800 bg-transparent border-none resize-none focus:outline-none focus:ring-0"
                 style={{ minHeight: '1.5em' }}
               />
             ) : (
-              <div className="text-lg leading-relaxed text-center text-gray-800">
+              <div className="text-base md:text-lg leading-relaxed text-center text-gray-800">
                 {card.answer}
               </div>
             )}

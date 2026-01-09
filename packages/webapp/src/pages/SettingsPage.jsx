@@ -132,8 +132,8 @@ export default function SettingsPage({ user, billingInfo, onSignOut, onUpgrade, 
   }
 
   return (
-    <div className="w-full max-w-lg mx-auto">
-      <h2 className="text-xl font-semibold text-gray-800 mb-6">Settings</h2>
+    <div className="w-full max-w-lg mx-auto px-4 md:px-0">
+      <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-4 md:mb-6">Settings</h2>
 
       {/* Account Section */}
       <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 mb-6">
@@ -159,7 +159,7 @@ export default function SettingsPage({ user, billingInfo, onSignOut, onUpgrade, 
               </button>
             </div>
           ) : (
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
               <div>
                 <span className="text-gray-800">Free</span>
                 <span className="text-gray-400 text-sm ml-2">
@@ -168,7 +168,7 @@ export default function SettingsPage({ user, billingInfo, onSignOut, onUpgrade, 
               </div>
               <button
                 onClick={onUpgrade}
-                className="btn-upgrade text-white text-sm font-medium px-4 py-2 rounded-lg transition-all"
+                className="btn-upgrade text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-all w-full md:w-auto"
               >
                 Upgrade to Pro
               </button>

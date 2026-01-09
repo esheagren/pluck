@@ -87,9 +87,9 @@ export default function CardsPage({ cards, loading, onUpdateCard, onDeleteCard }
   }
 
   return (
-    <div className="w-full flex flex-col items-center">
-      <div className="w-full max-w-5xl mb-6">
-        <h2 className="text-xl font-semibold text-gray-800">{cards.length} Cards</h2>
+    <div className="w-full flex flex-col items-center px-4 md:px-0">
+      <div className="w-full max-w-5xl mb-4 md:mb-6">
+        <h2 className="text-lg md:text-xl font-semibold text-gray-800">{cards.length} Cards</h2>
       </div>
 
       <CardGrid cards={cards} onCardClick={setSelectedCard} />

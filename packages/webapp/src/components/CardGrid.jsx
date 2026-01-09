@@ -5,7 +5,7 @@ export default function CardGrid({ cards, onCardClick }) {
         <div
           key={card.id}
           onClick={() => onCardClick?.(card)}
-          className="bg-white border border-gray-200 rounded-xl p-5 cursor-pointer hover:shadow-md hover:border-gray-300 transition-all"
+          className="bg-white border border-gray-200 rounded-xl p-4 md:p-5 cursor-pointer hover:shadow-md hover:border-gray-300 active:scale-[0.98] transition-all"
         >
           <div className="text-sm text-gray-800 line-clamp-3 mb-3">
             {card.question}

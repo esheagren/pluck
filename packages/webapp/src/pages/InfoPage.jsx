@@ -1,7 +1,7 @@
 export default function InfoPage() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-6 py-16">
+      <div className="max-w-2xl mx-auto px-4 md:px-6 py-8 md:py-16">
         {/* Back Button */}
         <a
           href="/"
@@ -14,9 +14,9 @@ export default function InfoPage() {
         </a>
 
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-3xl font-semibold text-gray-800 mb-2">Pluckk</h1>
-          <p className="text-gray-500">Turn any content into lasting knowledge</p>
+        <div className="text-center mb-8 md:mb-12">
+          <h1 className="text-2xl md:text-3xl font-semibold text-gray-800 mb-2">Pluckk</h1>
+          <p className="text-gray-500 text-sm md:text-base">Turn any content into lasting knowledge</p>
         </div>
 
         {/* About Section */}
