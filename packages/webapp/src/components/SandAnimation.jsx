@@ -16,9 +16,12 @@ export default function SandAnimation({
     let animationId
     let particles = []
 
+    // Reduce particles on mobile for better scroll performance
+    const isMobile = window.innerWidth < 768
+
     // Configuration
     const config = {
-      particleCount: 800,
+      particleCount: isMobile ? 300 : 800,
       minSize: 1.5,
       maxSize: 3,
       minSpeed: 2 * speed,
@@ -175,7 +178,13 @@ export default function SandAnimation({
     <canvas
       ref={canvasRef}
       className={`absolute inset-0 pointer-events-none ${className}`}
-      style={{ width: '100%', height: '100%' }}
+      style={{
+        width: '100%',
+        height: '100%',
+        willChange: 'transform',
+        transform: 'translateZ(0)',
+        backfaceVisibility: 'hidden'
+      }}
     />
   )
 }
