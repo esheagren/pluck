@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Optimize mobile scroll - prevents initial scroll delay */
+html, body {
+  touch-action: pan-y manipulation;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Card face animation */
 .card-face {
   animation: fadeIn 0.2s ease;
