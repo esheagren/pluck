@@ -32,30 +32,18 @@ export default function MobileNav() {
 
   return (
     <>
-      {/* Mobile Header */}
-      <header className="md:hidden fixed top-0 left-0 right-0 h-14 bg-white/95 backdrop-blur-sm border-b border-gray-200 flex items-center justify-between px-4 z-40">
-        {/* Hamburger Button */}
-        <button
-          onClick={() => setIsOpen(true)}
-          className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-          aria-label="Open menu"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <line x1="4" y1="6" x2="20" y2="6" />
-            <line x1="4" y1="12" x2="20" y2="12" />
-            <line x1="4" y1="18" x2="20" y2="18" />
-          </svg>
-        </button>
-
-        {/* Centered Logo */}
-        <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="Pluckk" className="w-6 h-6" />
-          <span className="text-base font-semibold text-gray-800 tracking-tight">Pluckk</span>
-        </div>
-
-        {/* Spacer for balance */}
-        <div className="w-10" />
-      </header>
+      {/* Floating Hamburger Button */}
+      <button
+        onClick={() => setIsOpen(true)}
+        className="md:hidden fixed top-4 left-4 w-11 h-11 rounded-full bg-white/90 backdrop-blur-sm shadow-md hover:bg-gray-100 flex items-center justify-center transition-colors z-40"
+        aria-label="Open menu"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <line x1="4" y1="6" x2="20" y2="6" />
+          <line x1="4" y1="12" x2="20" y2="12" />
+          <line x1="4" y1="18" x2="20" y2="18" />
+        </svg>
+      </button>
 
       {/* Backdrop */}
       <div

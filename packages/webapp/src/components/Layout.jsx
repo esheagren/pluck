@@ -13,7 +13,7 @@ export default function Layout() {
 
       <Sidebar />
       <MobileNav />
-      <main className="relative z-10 flex-1 ml-[220px] flex items-center justify-center p-10 max-md:ml-0 max-md:pt-20">
+      <main className="relative z-10 flex-1 ml-[220px] flex items-center justify-center p-10 max-md:ml-0">
         <Outlet />
       </main>
       <footer className="fixed bottom-4 right-6 text-xs">
