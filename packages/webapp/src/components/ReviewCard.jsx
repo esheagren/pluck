@@ -79,7 +79,7 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
   return (
     <div className="card-wrapper">
       <div
-        className={`card w-[500px] min-h-[300px] relative cursor-pointer max-md:w-[calc(100vw-48px)] ${isFlipped ? 'flipped' : ''}`}
+        className={`card w-[500px] min-h-[300px] relative cursor-pointer max-md:w-[calc(100vw-80px)] ${isFlipped ? 'flipped' : ''}`}
         onClick={() => !isFlipped && !isEditing && onFlip()}
       >
         {/* Front - Question */}
