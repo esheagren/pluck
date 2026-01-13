@@ -72,6 +72,23 @@
           <polyline points="12 5 19 12 12 19"></polyline>
         </svg>
       </button>
+
+      <!-- Question Input Mode -->
+      <div class="question-input-container" id="question-input-container">
+        <textarea id="question-input" class="question-input" placeholder="Or ask a question..." rows="2"></textarea>
+        <div class="question-input-actions">
+          <label class="context-toggle" title="Use current page URL/title to provide context">
+            <input type="checkbox" id="include-page-context" checked>
+            <span>Page context</span>
+          </label>
+          <button class="btn-arrow btn-question-submit" id="question-submit-btn" title="Generate answer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Screenshot Preview State -->

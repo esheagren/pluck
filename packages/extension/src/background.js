@@ -633,6 +633,68 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  if (request.action === 'answerQuestion') {
+    // Generate answer for a user-typed question
+    (async () => {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        sendResponse({ error: 'not_authenticated' });
+        return;
+      }
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/answer-question`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({
+            question: request.question,
+            url: request.url,
+            title: request.title
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+
+          if (response.status === 401) {
+            sendResponse({ error: 'not_authenticated' });
+            return;
+          }
+
+          if (response.status === 402) {
+            sendResponse({ error: 'usage_limit_reached' });
+            return;
+          }
+
+          if (response.status === 429) {
+            sendResponse({ error: 'rate_limit', message: 'Too many requests, please try again later' });
+            return;
+          }
+
+          console.error('Answer question API error:', response.status, errorData);
+          sendResponse({ error: 'api_error', message: errorData.error || 'Failed to generate answer' });
+          return;
+        }
+
+        const data = await response.json();
+        // Wrap the single card in an array for consistent handling in sidepanel
+        sendResponse({
+          cards: [data.card],
+          isQuestionMode: true,
+          usage: data.usage
+        });
+      } catch (error) {
+        console.error('Answer question failed:', error);
+        sendResponse({ error: 'api_error', message: error.message });
+      }
+    })();
+
+    return true;
+  }
+
   if (request.action === 'getMochiStatus') {
     (async () => {
       const accessToken = await getAccessToken();

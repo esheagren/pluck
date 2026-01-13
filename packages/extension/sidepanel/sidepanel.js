@@ -37,6 +37,12 @@ const focusInputContainer = document.getElementById('focus-input-container');
 const focusInput = document.getElementById('focus-input');
 const generateWithFocusBtn = document.getElementById('generate-with-focus-btn');
 
+// DOM Elements - Question Input Mode
+const questionInputContainer = document.getElementById('question-input-container');
+const questionInput = document.getElementById('question-input');
+const questionSubmitBtn = document.getElementById('question-submit-btn');
+const includePageContextCheckbox = document.getElementById('include-page-context');
+
 // DOM Elements - Settings Section
 const authLoggedOut = document.getElementById('auth-logged-out');
 const authLoggedIn = document.getElementById('auth-logged-in');
@@ -62,6 +68,9 @@ let currentIsPro = false; // Track subscription status for usage updates
 let isImageMode = false;
 let pastedImageData = null; // Base64 image data
 let pastedImageMimeType = null; // e.g., 'image/png'
+
+// Question input mode state
+let isQuestionMode = false;
 
 // Diagram generation state (tracks which diagram cards should generate images)
 let diagramGenerateFlags = {}; // { cardIndex: boolean }
@@ -179,10 +188,19 @@ function renderStandardCard(cardEl, card, index, edited) {
   const question = edited.question !== undefined ? edited.question : card.question;
   const answer = edited.answer !== undefined ? edited.answer : card.answer;
 
+  // Check if this is a question-mode card that was improved
+  const wasImproved = card.wasImproved && card.originalQuestion;
+  const improvedBadge = wasImproved
+    ? `<span class="question-improved-badge" title="Original: ${escapeHtml(card.originalQuestion)}">Refined</span>`
+    : '';
+
   cardEl.innerHTML = `
     <div class="card-checkbox"></div>
     <div class="card-content">
-      <div class="card-question" contenteditable="true" data-field="question">${escapeHtml(question)}</div>
+      <div class="card-question-wrapper">
+        <div class="card-question" contenteditable="true" data-field="question">${escapeHtml(question)}</div>
+        ${improvedBadge}
+      </div>
       <div class="card-divider"></div>
       <div class="card-answer" contenteditable="true" data-field="answer">${escapeHtml(answer)}</div>
     </div>
@@ -779,6 +797,75 @@ async function generateCards(focusText = '', useCache = false) {
   }
 }
 
+/**
+ * Generate card from a user-typed question
+ */
+async function generateFromQuestion() {
+  const question = questionInput.value.trim();
+  if (!question || question.length < 3) {
+    return;
+  }
+
+  isQuestionMode = true;
+  showState(loadingState);
+  await checkMochiStatus();
+
+  // Get page context if checkbox is checked
+  let pageContext = null;
+  if (includePageContextCheckbox?.checked) {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab) {
+        pageContext = { url: tab.url, title: tab.title };
+      }
+    } catch (e) {
+      // Ignore - page context is optional
+    }
+  }
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: 'answerQuestion',
+      question: question,
+      url: pageContext?.url,
+      title: pageContext?.title
+    });
+
+    if (response.error) {
+      handleError(response);
+      return;
+    }
+
+    if (!response.cards || response.cards.length === 0) {
+      showError('Failed to generate answer. Please try again.');
+      return;
+    }
+
+    // Store the card(s) - response includes wasImproved and originalQuestion
+    cards = response.cards;
+    sourceUrl = pageContext?.url || '';
+    selectedIndices = new Set();
+    editedCards = {};
+
+    // Clear the question input
+    questionInput.value = '';
+
+    // Update usage display if included in response
+    if (response.usage) {
+      applyProfileToUI({
+        usage: response.usage,
+        subscription: { isPro: currentIsPro }
+      });
+    }
+
+    renderCards();
+    showState(cardsState);
+  } catch (error) {
+    console.error('Question answer generation failed:', error);
+    showError('Failed to generate answer. Please try again.');
+  }
+}
+
 // Selection polling
 let selectionPollInterval = null;
 
@@ -1176,6 +1263,19 @@ if (screenshotFocusInput) {
     if (e.key === 'Enter') {
       e.preventDefault();
       generateFromScreenshot();
+    }
+  });
+}
+
+// Event Listeners - Question Input Mode
+if (questionSubmitBtn) {
+  questionSubmitBtn.addEventListener('click', generateFromQuestion);
+}
+if (questionInput) {
+  questionInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      generateFromQuestion();
     }
   });
 }
