@@ -1,10 +1,13 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { arrayMove } from '@dnd-kit/sortable'
 import CardGrid from '../components/CardGrid'
 import CreateFolderButton from '../components/CreateFolderButton'
 import FolderList from '../components/FolderList'
 import FolderBadge from '../components/FolderBadge'
+
+const FOLDER_ORDER_KEY = 'pluckk-folder-order'
 
 export default function CardsPage({
   cards,
@@ -26,11 +29,45 @@ export default function CardsPage({
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [activeId, setActiveId] = useState(null)
+  const [folderOrder, setFolderOrder] = useState([])
   const questionRef = useRef(null)
   const answerRef = useRef(null)
 
-  // Get selected folder from URL (default to 'unfiled' if no param)
-  const selectedFolderId = searchParams.get('folder') ?? 'unfiled'
+  // Load folder order from localStorage on mount
+  useEffect(() => {
+    const savedOrder = localStorage.getItem(FOLDER_ORDER_KEY)
+    if (savedOrder) {
+      try {
+        setFolderOrder(JSON.parse(savedOrder))
+      } catch (e) {
+        // Invalid JSON, use default
+        setFolderOrder([])
+      }
+    }
+  }, [])
+
+  // Compute ordered items: merge saved order with current folders
+  const orderedItems = useMemo(() => {
+    const allIds = ['unfiled', ...folders.map(f => f.id)]
+
+    if (folderOrder.length === 0) {
+      return allIds
+    }
+
+    // Start with saved order, filter out any that no longer exist
+    const validSavedOrder = folderOrder.filter(id => allIds.includes(id))
+
+    // Add any new folders that aren't in the saved order
+    const newFolders = allIds.filter(id => !validSavedOrder.includes(id))
+
+    return [...validSavedOrder, ...newFolders]
+  }, [folders, folderOrder])
+
+  // Get default folder (first in order)
+  const defaultFolderId = orderedItems[0] || 'unfiled'
+
+  // Get selected folder from URL (default to first in order if no param)
+  const selectedFolderId = searchParams.get('folder') ?? defaultFolderId
 
   // DnD sensors
   const sensors = useSensors(
@@ -118,6 +155,12 @@ export default function CardsPage({
     setSearchParams({ folder: folderId })
   }
 
+  // Handle folder tab reorder
+  const handleFolderReorder = useCallback((newOrder) => {
+    setFolderOrder(newOrder)
+    localStorage.setItem(FOLDER_ORDER_KEY, JSON.stringify(newOrder))
+  }, [])
+
   // DnD handlers
   const handleDragStart = (event) => {
     setActiveId(event.active.id)
@@ -183,6 +226,8 @@ export default function CardsPage({
                 onSelectFolder={handleSelectFolder}
                 onDeleteFolder={onDeleteFolder}
                 onRenameFolder={onUpdateFolder}
+                orderedItems={orderedItems}
+                onReorder={handleFolderReorder}
               />
             </div>
           </div>
