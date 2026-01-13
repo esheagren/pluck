@@ -6,6 +6,7 @@ import CardGrid from '../components/CardGrid'
 import CreateFolderButton from '../components/CreateFolderButton'
 import FolderList from '../components/FolderList'
 import FolderBadge from '../components/FolderBadge'
+import DroppableFolder from '../components/DroppableFolder'
 
 const FOLDER_ORDER_KEY = 'pluckk-folder-order'
 
@@ -30,6 +31,8 @@ export default function CardsPage({
   const [deleting, setDeleting] = useState(false)
   const [activeId, setActiveId] = useState(null)
   const [folderOrder, setFolderOrder] = useState([])
+  const [selectedCardIds, setSelectedCardIds] = useState(new Set())
+  const [isDragging, setIsDragging] = useState(false)
   const questionRef = useRef(null)
   const answerRef = useRef(null)
 
@@ -161,25 +164,59 @@ export default function CardsPage({
     localStorage.setItem(FOLDER_ORDER_KEY, JSON.stringify(newOrder))
   }, [])
 
+  // Toggle card selection for multi-select
+  const toggleCardSelection = useCallback((cardId, event) => {
+    // If shift key is held and we have a previous selection, select range
+    setSelectedCardIds(prev => {
+      const next = new Set(prev)
+      if (next.has(cardId)) {
+        next.delete(cardId)
+      } else {
+        next.add(cardId)
+      }
+      return next
+    })
+  }, [])
+
+  // Get count of selected cards for drag overlay
+  const selectedCount = useMemo(() => {
+    if (!activeId) return 0
+    // If the dragged card is selected, use selection count; otherwise just 1
+    return selectedCardIds.has(activeId) ? selectedCardIds.size : 1
+  }, [activeId, selectedCardIds])
+
   // DnD handlers
   const handleDragStart = (event) => {
     setActiveId(event.active.id)
+    setIsDragging(true)
   }
 
   const handleDragEnd = async (event) => {
     const { active, over } = event
     setActiveId(null)
+    setIsDragging(false)
 
     if (!over || !onMoveCardToFolder) return
 
-    const cardId = active.id
     const targetFolderId = over.id === 'unfiled' ? null : over.id
 
-    // Find the card to check if it's already in this folder
-    const card = cards.find(c => c.id === cardId)
-    if (!card || card.folder_id === targetFolderId) return
+    // Determine which cards to move: selected cards if dragged card is selected, otherwise just the dragged card
+    const cardsToMove = selectedCardIds.has(active.id)
+      ? [...selectedCardIds]
+      : [active.id]
 
-    await onMoveCardToFolder(cardId, targetFolderId)
+    // Move all cards (filter out ones already in target folder)
+    const movePromises = cardsToMove
+      .filter(cardId => {
+        const card = cards.find(c => c.id === cardId)
+        return card && card.folder_id !== targetFolderId
+      })
+      .map(cardId => onMoveCardToFolder(cardId, targetFolderId))
+
+    await Promise.all(movePromises)
+
+    // Clear selection after move
+    setSelectedCardIds(new Set())
   }
 
   if (loading || foldersLoading) {
@@ -233,21 +270,66 @@ export default function CardsPage({
           </div>
         </div>
 
+        {/* Drop zone overlay - appears when dragging */}
+        {isDragging && (
+          <div className="w-full max-w-5xl mb-6 p-4 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50/80 backdrop-blur-sm">
+            <p className="text-sm text-gray-500 text-center mb-3">
+              Drop {selectedCount > 1 ? `${selectedCount} cards` : 'card'} into a folder:
+            </p>
+            <div className="flex flex-wrap gap-3 justify-center">
+              {orderedItems.map(id => {
+                const isUnfiled = id === 'unfiled'
+                const folder = isUnfiled ? null : folders.find(f => f.id === id)
+                const name = isUnfiled ? 'Unfiled' : folder?.name
+                const color = isUnfiled ? null : folder?.color
+
+                return (
+                  <DroppableFolder key={id} id={id} expanded>
+                    <div className="flex items-center gap-2">
+                      {color && (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color }}>
+                          <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                      )}
+                      <span className="font-medium text-gray-700">{name}</span>
+                    </div>
+                  </DroppableFolder>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         <CardGrid
           cards={filteredCards}
           onCardClick={setSelectedCard}
           showFolderBadge={selectedFolderId === 'all' || selectedFolderId === 'unfiled'}
+          selectedCardIds={selectedCardIds}
+          onToggleSelect={toggleCardSelection}
         />
 
         {/* Drag overlay for visual feedback */}
         <DragOverlay>
           {activeCard ? (
-            <div className="bg-white border border-gray-300 rounded-xl p-5 shadow-lg opacity-90 w-[300px]">
-              <div className="text-sm text-gray-800 line-clamp-2 mb-2">
-                {activeCard.question}
-              </div>
-              {activeCard.folder && (
-                <FolderBadge folder={activeCard.folder} />
+            <div className="bg-white border-2 border-blue-500 rounded-xl p-4 shadow-xl w-[280px]">
+              {selectedCount > 1 ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                    {selectedCount}
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">
+                    Moving {selectedCount} cards
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <div className="text-sm text-gray-800 line-clamp-2 mb-2">
+                    {activeCard.question}
+                  </div>
+                  {activeCard.folder && (
+                    <FolderBadge folder={activeCard.folder} />
+                  )}
+                </>
               )}
             </div>
           ) : null}
