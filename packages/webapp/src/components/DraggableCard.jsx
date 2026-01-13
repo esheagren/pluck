@@ -30,11 +30,13 @@ export default function DraggableCard({ id, children, isSelected }) {
       style={style}
       className={`relative ${isDragging ? 'opacity-50' : ''} ${isSelected ? 'ring-2 ring-blue-500 rounded-xl' : ''}`}
     >
-      {/* Drag handle - only this area triggers drag */}
+      {/* Drag handle - visible on hover OR when selected */}
       <div
         {...listeners}
         {...attributes}
-        className="absolute top-3 left-3 p-1.5 cursor-grab hover:bg-gray-100 active:cursor-grabbing rounded z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+        className={`absolute top-3 left-3 p-1.5 cursor-grab hover:bg-gray-100 active:cursor-grabbing rounded z-10 transition-opacity ${
+          isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <GripIcon />
