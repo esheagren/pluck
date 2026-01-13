@@ -205,9 +205,33 @@ export default function CardsPage({
     setActiveId(null)
     setIsDragging(false)
 
-    if (!over || !onMoveCardToFolder) return
+    if (!over) return
 
-    const targetFolderId = over.id === 'unfiled' ? null : over.id
+    // Check if this is a folder tab reorder (active.id is in orderedItems)
+    const isFolderReorder = orderedItems.includes(active.id)
+
+    if (isFolderReorder) {
+      // Handle folder tab reorder
+      if (active.id === over.id) return
+
+      const oldIndex = orderedItems.indexOf(active.id)
+      const newIndex = orderedItems.indexOf(over.id)
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newOrder = arrayMove(orderedItems, oldIndex, newIndex)
+        handleFolderReorder(newOrder)
+      }
+      return
+    }
+
+    // Handle card move to folder
+    if (!onMoveCardToFolder) return
+
+    // Check if dropping on a valid folder target
+    const isValidFolderTarget = orderedItems.includes(over.id) && over.id !== 'unfiled'
+    if (!isValidFolderTarget) return
+
+    const targetFolderId = over.id
 
     // Determine which cards to move: selected cards if dragged card is selected, otherwise just the dragged card
     const cardsToMove = selectedCardIds.has(active.id)

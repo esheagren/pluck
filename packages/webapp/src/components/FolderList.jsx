@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
-import { SortableContext, useSortable, horizontalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
+import { SortableContext, useSortable, horizontalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import DroppableFolder from './DroppableFolder'
 
@@ -190,58 +189,33 @@ export default function FolderList({
   // Build ordered list of items to render
   const sortableIds = orderedItems.length > 0 ? orderedItems : ['unfiled', ...folders.map(f => f.id)]
 
-  // Sensors for folder tab sorting (separate from card DnD)
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  )
-
-  // Handle folder tab reorder
-  const handleDragEnd = (event) => {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-
-    const oldIndex = sortableIds.indexOf(active.id)
-    const newIndex = sortableIds.indexOf(over.id)
-
-    if (oldIndex !== -1 && newIndex !== -1) {
-      const newOrder = arrayMove(sortableIds, oldIndex, newIndex)
-      onReorder(newOrder)
-    }
-  }
-
   return (
     <div className="flex-1 flex items-center justify-between gap-2">
-      {/* Left side: Sortable folder tabs */}
+      {/* Left side: Sortable folder tabs - uses parent DndContext from CardsPage */}
       <div className="flex flex-wrap gap-2 items-center">
-        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-          <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
-            {sortableIds.map(id => {
-              const isUnfiled = id === 'unfiled'
-              const folder = isUnfiled ? null : folders.find(f => f.id === id)
+        <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
+          {sortableIds.map(id => {
+            const isUnfiled = id === 'unfiled'
+            const folder = isUnfiled ? null : folders.find(f => f.id === id)
 
-              // Skip if folder doesn't exist (was deleted)
-              if (!isUnfiled && !folder) return null
+            // Skip if folder doesn't exist (was deleted)
+            if (!isUnfiled && !folder) return null
 
-              // Unfiled is not a drop target (cards are already unfiled)
-              // Other folders become drop targets, expanded when dragging
-              return (
-                <SortableFolderTab key={id} id={id}>
-                  {isUnfiled ? (
-                    renderFolderTab(folder, isUnfiled)
-                  ) : (
-                    <DroppableFolder id={id} className="rounded-lg" expanded={isDraggingCard}>
-                      {renderFolderTab(folder, isUnfiled)}
-                    </DroppableFolder>
-                  )}
-                </SortableFolderTab>
-              )
-            })}
-          </SortableContext>
-        </DndContext>
+            // Unfiled is not a drop target (cards are already unfiled)
+            // Other folders become drop targets, expanded when dragging
+            return (
+              <SortableFolderTab key={id} id={id}>
+                {isUnfiled ? (
+                  renderFolderTab(folder, isUnfiled)
+                ) : (
+                  <DroppableFolder id={id} className="rounded-lg" expanded={isDraggingCard}>
+                    {renderFolderTab(folder, isUnfiled)}
+                  </DroppableFolder>
+                )}
+              </SortableFolderTab>
+            )
+          })}
+        </SortableContext>
       </div>
 
       {/* Right side: All Cards option - fixed position */}
