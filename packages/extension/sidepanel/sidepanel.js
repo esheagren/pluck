@@ -41,7 +41,6 @@ const generateWithFocusBtn = document.getElementById('generate-with-focus-btn');
 const questionInputContainer = document.getElementById('question-input-container');
 const questionInput = document.getElementById('question-input');
 const questionSubmitBtn = document.getElementById('question-submit-btn');
-const includePageContextCheckbox = document.getElementById('include-page-context');
 
 // DOM Elements - Settings Section
 const authLoggedOut = document.getElementById('auth-logged-out');
@@ -816,17 +815,15 @@ async function generateFromQuestion() {
   showState(loadingState);
   await checkMochiStatus();
 
-  // Get page context if checkbox is checked
+  // Always include page context for better answers
   let pageContext = null;
-  if (includePageContextCheckbox?.checked) {
-    try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab) {
-        pageContext = { url: tab.url, title: tab.title };
-      }
-    } catch (e) {
-      // Ignore - page context is optional
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab) {
+      pageContext = { url: tab.url, title: tab.title };
     }
+  } catch (e) {
+    // Ignore - page context is optional
   }
 
   try {
@@ -853,8 +850,9 @@ async function generateFromQuestion() {
     selectedIndices = new Set();
     editedCards = {};
 
-    // Clear the question input
+    // Clear the question input and reset height
     questionInput.value = '';
+    questionInput.style.height = 'auto';
 
     // Update usage display if included in response
     if (response.usage) {
@@ -1283,6 +1281,11 @@ if (questionInput) {
       e.preventDefault();
       generateFromQuestion();
     }
+  });
+  // Auto-expand textarea as user types
+  questionInput.addEventListener('input', () => {
+    questionInput.style.height = 'auto';
+    questionInput.style.height = Math.min(questionInput.scrollHeight, 120) + 'px';
   });
 }
 

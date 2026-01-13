@@ -331,7 +331,7 @@ body {
 .ready-hint {
   color: #999;
   font-size: 13px;
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
 .no-selection-state .btn {
@@ -1048,24 +1048,28 @@ body {
 /* Question Input Mode */
 .question-input-container {
   width: 100%;
-  max-width: 280px;
-  margin-top: 20px;
+  max-width: 240px;
+  margin-top: 8px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
 }
 
 .question-input {
   width: 100%;
-  padding: 12px 14px;
+  padding: 10px 12px;
   font-size: 13px;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   background: white;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, height 0.1s ease;
   font-family: inherit;
   resize: none;
   line-height: 1.5;
+  min-height: 38px;
+  max-height: 120px;
+  overflow-y: auto;
 }
 
 .question-input:focus {
@@ -1075,34 +1079,6 @@ body {
 
 .question-input::placeholder {
   color: #a0a0a0;
-}
-
-.question-input-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.context-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #888;
-  cursor: pointer;
-  user-select: none;
-}
-
-.context-toggle input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
-  accent-color: #2d3436;
-  cursor: pointer;
-}
-
-.context-toggle:hover {
-  color: #2d3436;
 }
 
 .btn-question-submit {
