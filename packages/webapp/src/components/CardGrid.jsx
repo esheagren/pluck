@@ -12,6 +12,8 @@ export default function CardGrid({
     if (event.shiftKey) {
       // Shift+click toggles selection for multi-select
       event.preventDefault()
+      // Clear any browser text selection caused by shift+click
+      window.getSelection()?.removeAllRanges()
       onToggleSelect?.(card.id)
     } else {
       // Normal click opens card modal
@@ -29,7 +31,7 @@ export default function CardGrid({
         >
           <div
             onClick={(e) => handleCardClick(card, e)}
-            className="group bg-white border border-gray-200 rounded-xl p-5 pt-10 cursor-pointer hover:shadow-md hover:border-gray-300 transition-all h-full"
+            className="group bg-white border border-gray-200 rounded-xl p-5 pt-10 cursor-pointer hover:shadow-md hover:border-gray-300 transition-all h-full select-none"
           >
             <div className="text-sm text-gray-800 line-clamp-3 mb-3">
               {card.question}
