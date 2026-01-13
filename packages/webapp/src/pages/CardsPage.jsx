@@ -49,6 +49,17 @@ export default function CardsPage({
     }
   }, [])
 
+  // Escape key clears card selection
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && selectedCardIds.size > 0) {
+        setSelectedCardIds(new Set())
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedCardIds.size])
+
   // Compute ordered items: merge saved order with current folders
   const orderedItems = useMemo(() => {
     const allIds = ['unfiled', ...folders.map(f => f.id)]
