@@ -853,6 +853,8 @@ async function generateFromQuestion() {
     // Clear the question input and reset height
     questionInput.value = '';
     questionInput.style.height = 'auto';
+    questionInput.style.width = '22px';
+    questionSubmitBtn.classList.add('hidden');
 
     // Update usage display if included in response
     if (response.usage) {
@@ -1282,8 +1284,31 @@ if (questionInput) {
       generateFromQuestion();
     }
   });
-  // Auto-expand textarea as user types
+  // Auto-expand textarea in both directions as user types
   questionInput.addEventListener('input', () => {
+    const text = questionInput.value || questionInput.placeholder;
+    const hasContent = questionInput.value.trim().length > 0;
+
+    // Show/hide submit button based on content
+    if (hasContent) {
+      questionSubmitBtn.classList.remove('hidden');
+    } else {
+      questionSubmitBtn.classList.add('hidden');
+    }
+
+    // Calculate width based on content using a hidden measurement element
+    const measureSpan = document.createElement('span');
+    measureSpan.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font:inherit;padding:0 12px;';
+    measureSpan.textContent = text;
+    document.body.appendChild(measureSpan);
+    const textWidth = measureSpan.offsetWidth + 24; // Add padding
+    document.body.removeChild(measureSpan);
+
+    // Set width (clamped between min and max)
+    const newWidth = Math.max(22, Math.min(textWidth, 260));
+    questionInput.style.width = newWidth + 'px';
+
+    // Set height
     questionInput.style.height = 'auto';
     questionInput.style.height = Math.min(questionInput.scrollHeight, 120) + 'px';
   });

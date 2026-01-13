@@ -1047,8 +1047,6 @@ body {
 
 /* Question Input Mode */
 .question-input-container {
-  width: 100%;
-  max-width: 240px;
   margin-top: 8px;
   display: flex;
   flex-direction: column;
@@ -1057,19 +1055,21 @@ body {
 }
 
 .question-input {
-  width: 100%;
-  padding: 10px 12px;
+  padding: 2px 4px;
   font-size: 13px;
   border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border-radius: 4px;
   background: white;
-  transition: border-color 0.15s ease, height 0.1s ease;
+  transition: border-color 0.15s ease, width 0.15s ease, height 0.1s ease;
   font-family: inherit;
   resize: none;
-  line-height: 1.5;
-  min-height: 38px;
+  line-height: 1.3;
+  min-width: 22px;
+  max-width: 260px;
+  min-height: 20px;
   max-height: 120px;
-  overflow-y: auto;
+  overflow: hidden;
+  text-align: center;
 }
 
 .question-input:focus {
