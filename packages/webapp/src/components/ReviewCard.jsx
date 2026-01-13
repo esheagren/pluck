@@ -190,7 +190,7 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
 
           <div className="flex-1 flex flex-col items-center justify-center w-full">
             {/* Question reminder */}
-            <div className="text-sm text-gray-500 text-center mb-3 pb-3 border-b border-gray-200 w-full">
+            <div className="text-sm text-gray-500 text-center mt-4 mb-3 pb-3 border-b border-gray-200 w-full">
               {card.question}
             </div>
             {isEditing ? (
