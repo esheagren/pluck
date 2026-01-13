@@ -7,64 +7,64 @@ import { incrementCardCount } from '../lib/supabase-admin.js';
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 
-const DEFAULT_SYSTEM_PROMPT = `You are a spaced repetition prompt generator. Your goal is to create prompts that produce durable understanding through retrieval practice—not just surface-level memorization.
+/**
+ * Build the system prompt based on user's subscription status
+ * Pro users get access to the diagram card style
+ */
+function buildSystemPrompt(isPro) {
+  const diagramStyle = isPro ? `
+7. **diagram** - For STRUCTURAL or COMPARATIVE knowledge that benefits from visual representation.
+   When to use: taxonomies, hierarchies, system architectures, X vs Y comparisons, process flows
+   The diagram_prompt describes what image to generate - be specific about layout, relationships, and visual structure.
+   Example:
+   {"style":"diagram","question":"What are the two main branches of supervised learning?","answer":"Classification (predicts categories) and Regression (predicts continuous values)","diagram_prompt":"A tree diagram with 'Supervised Learning' at the top, branching into two nodes: 'Classification' (with examples: spam detection, image recognition) and 'Regression' (with examples: price prediction, temperature forecasting)","tags":{"content_type":"concept","domain":"machine_learning"}}
+` : '';
 
-**Core Principles (from cognitive science):**
-- Retrieval practice strengthens memory more than re-reading
-- Prompts should make you retrieve answers from memory, not infer them trivially
-- Breaking knowledge into atomic components makes review efficient and reliable
+  return `You are a spaced repetition card generator. Create cards that produce durable understanding through retrieval practice.
 
-**Properties of Effective Prompts:**
-- **Focused**: Target one specific detail at a time. Unfocused prompts dilute concentration and produce incomplete retrieval.
-- **Precise**: The question should unambiguously indicate what answer you're looking for. Vague questions produce vague, unreliable answers.
-- **Consistent**: Should produce the same answer each time. Inconsistent retrieval causes "retrieval-induced forgetting" of related knowledge.
-- **Tractable**: You should be able to answer correctly almost always (aim for ~90% accuracy). If a prompt is too hard, break it down further or add cues.
-- **Effortful**: The answer shouldn't be trivially inferrable from the question. Cues help, but don't give the answer away.
+**Card Styles (choose the most appropriate for each piece of knowledge):**
 
-**Card Styles:**
-- **qa**: Direct factual question ("What type of chicken parts are used in stock?" → "Bones")
-- **cloze**: Fill-in-the-blank, best for lists or key terms. Keep surrounding context minimal to avoid pattern-matching.
-- **cloze_list**: A set of related cloze deletions for learning a closed list (see list strategies below)
-- **explanation**: "Why" or "How" questions that connect facts to meaning
-- **application**: Prompts that connect knowledge to real situations
-- **example_generation**: Asks for examples of a category, for open lists
+1. **qa** - Direct factual question for single facts
+   Example:
+   {"style":"qa","question":"What type of chicken parts are used in stock?","answer":"Bones","tags":{"content_type":"fact","domain":"cooking"}}
+
+2. **qa_bidirectional** - For DEFINITIONS where both directions are useful. Generates forward (term→definition) and reverse (definition→term). Counts as ONE card toward the 2-4 target.
+   ALWAYS use this style when the text defines a term, concept, or introduces vocabulary.
+   Example:
+   {"style":"qa_bidirectional","forward":{"question":"What is photosynthesis?","answer":"The process by which plants convert light energy into chemical energy"},"reverse":{"question":"What biological process describes plants converting light energy into chemical energy?","answer":"Photosynthesis"},"tags":{"content_type":"definition","domain":"biology"}}
+
+3. **cloze** - Single fill-in-the-blank for key terms or relationships
+   Example:
+   {"style":"cloze","question":"The mitochondria is the ___ of the cell","answer":"powerhouse","tags":{"content_type":"fact","domain":"biology"}}
+
+4. **cloze_list** - For CLOSED LISTS with fixed, known members. Creates one cloze per item. Counts as ONE card.
+   Example:
+   {"style":"cloze_list","list_name":"Primary colors","items":["red","blue","yellow"],"prompts":[{"question":"Primary colors: ___, blue, yellow","answer":"red"},{"question":"Primary colors: red, ___, yellow","answer":"blue"},{"question":"Primary colors: red, blue, ___","answer":"yellow"}],"tags":{"content_type":"list","domain":"art"}}
+
+5. **explanation** - "Why" or "How" questions connecting facts to deeper meaning
+   Example:
+   {"style":"explanation","question":"Why are bones used instead of meat for making stock?","answer":"Bones contain collagen which converts to gelatin, giving the stock body and richness","tags":{"content_type":"concept","domain":"cooking"}}
+
+6. **application** - Connect knowledge to real-world situations or decision-making
+   Example:
+   {"style":"application","question":"When cooking a savory dish with water, what should you consider using instead?","answer":"Stock, as it adds depth and flavor","tags":{"content_type":"procedure","domain":"cooking"}}
+${diagramStyle}
+**Tags (always include both):**
+- content_type: "definition" | "fact" | "concept" | "procedure" | "list"
+- domain: infer from context (e.g., "biology", "cooking", "programming", "machine_learning", "history")
+
+**Critical Rules:**
+- Generate 2-4 cards total (qa_bidirectional and cloze_list each count as ONE card)
+- ALWAYS use qa_bidirectional when text contains a definition (X is Y, X means Y, X refers to Y)
+- Use cloze_list for enumerated lists with fixed membership
+- Prioritize the most important knowledge, not exhaustive coverage
+- Tags help organization - always include content_type and domain
 
 **Output Format:**
-Given highlighted text and surrounding context, generate 2-4 high-quality prompts in this JSON format (no markdown, just raw JSON):
-{
-  "cards": [
-    {
-      "style": "qa|cloze|cloze_list|explanation|application|example_generation",
-      "question": "...",
-      "answer": "...",
-      "rationale": "Brief note on what knowledge this reinforces and why this framing works"
-    }
-  ]
+Return ONLY valid JSON, no markdown code blocks:
+{"cards":[...]}`;
 }
 
-For cloze_list style (closed lists), output the full set:
-{
-  "cards": [
-    {
-      "style": "cloze_list",
-      "list_name": "List name",
-      "items": ["item1", "item2", "item3"],
-      "prompts": [
-        {"question": "List name: ___, item2, item3", "answer": "item1"},
-        {"question": "List name: item1, ___, item3", "answer": "item2"},
-        {"question": "List name: item1, item2, ___", "answer": "item3"}
-      ],
-      "rationale": "Single-element cloze deletions with consistent ordering for closed list retention"
-    }
-  ]
-}
-
-**Guidelines:**
-- First determine if a list is CLOSED (fixed members) or OPEN (expandable category)—this determines your entire strategy
-- Prioritize prompts that capture the most meaningful knowledge—not exhaustive coverage
-- For cloze cards: the question contains the blank (marked with ___), the answer fills it
-- Keep answers concise but complete
-- Vary styles based on knowledge type, not arbitrarily`;
 
 export default async function handler(req, res) {
   // Handle CORS preflight
@@ -116,8 +116,11 @@ Generate 2-3 spaced repetition cards for the highlighted selection.`;
     userMessage += `\n\n**Focus:** Please focus the cards on: ${focusText}`;
   }
 
-  // Use custom prompt or default
-  const systemPrompt = customPrompt || DEFAULT_SYSTEM_PROMPT;
+  // Determine if user is Pro (for diagram feature access)
+  const isPro = profile.subscription_status === 'active' || profile.subscription_status === 'admin';
+
+  // Use custom prompt or build based on subscription status
+  const systemPrompt = customPrompt || buildSystemPrompt(isPro);
 
   try {
     // Call Claude API with server-side key
@@ -178,9 +181,10 @@ Generate 2-3 spaced repetition cards for the highlighted selection.`;
     // Increment usage count (number of cards generated)
     await incrementCardCount(user.id, parsed.cards.length);
 
-    // Return cards with updated usage info
+    // Return cards with updated usage info and subscription status
     return res.status(200).json({
       cards: parsed.cards,
+      isPro,
       usage: {
         remaining: usage.remaining === Infinity ? 'unlimited' : usage.remaining - parsed.cards.length,
         limit: usage.limit,

@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   }
 
   // Parse request body
-  const { question, answer, sourceUrl } = req.body;
+  const { question, answer, sourceUrl, diagramPrompt } = req.body;
 
   if (!question || !answer) {
     return res.status(400).json({ error: 'Missing question or answer' });
@@ -34,7 +34,22 @@ export default async function handler(req, res) {
   }
 
   // Build prompt for image generation
-  const prompt = `Create a simple, memorable visual that represents this flashcard concept:
+  // Use diagramPrompt if provided (for diagram card style), otherwise generate from Q&A
+  let prompt;
+  if (diagramPrompt) {
+    prompt = `Create a clear, educational diagram based on this description:
+
+${diagramPrompt}
+
+Requirements:
+- Create a structured, informative diagram
+- Use clean layout with clear visual hierarchy
+- Include labeled nodes, arrows, or connections as appropriate
+- Use a professional color scheme (blues, grays, subtle accents)
+- Make relationships and structure visually clear
+- Style: clean, professional, educational diagram`;
+  } else {
+    prompt = `Create a simple, memorable visual that represents this flashcard concept:
 
 Question: ${question}
 Answer: ${answer}
@@ -45,6 +60,7 @@ Requirements:
 - Make it memorable and relevant to the concept
 - Avoid text in the image
 - Style: clean, modern, educational`;
+  }
 
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;

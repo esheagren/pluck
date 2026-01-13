@@ -63,6 +63,10 @@ let isImageMode = false;
 let pastedImageData = null; // Base64 image data
 let pastedImageMimeType = null; // e.g., 'image/png'
 
+// Diagram generation state (tracks which diagram cards should generate images)
+let diagramGenerateFlags = {}; // { cardIndex: boolean }
+let userIsPro = false; // Track if user is Pro (for diagram feature)
+
 // Keep open preference
 let keepOpenAfterStoring = false;
 
@@ -126,55 +130,169 @@ function updateSelectionCount() {
 
 /**
  * Render cards in the UI
+ * Handles special rendering for qa_bidirectional and diagram card styles
  */
 function renderCards() {
   cardsList.innerHTML = '';
+  diagramGenerateFlags = {}; // Reset diagram flags
 
   cards.forEach((card, index) => {
     const isSelected = selectedIndices.has(index);
     const edited = editedCards[index] || {};
-    const question = edited.question !== undefined ? edited.question : card.question;
-    const answer = edited.answer !== undefined ? edited.answer : card.answer;
 
     const cardEl = document.createElement('div');
-    cardEl.className = `card-item${isSelected ? ' selected' : ''}`;
+    cardEl.className = `card-item${isSelected ? ' selected' : ''} ${card.style || ''}`;
     cardEl.dataset.index = index;
 
-    cardEl.innerHTML = `
-      <div class="card-checkbox"></div>
-      <div class="card-content">
-        <div class="card-question" contenteditable="true" data-field="question">${escapeHtml(question)}</div>
-        <div class="card-divider"></div>
-        <div class="card-answer" contenteditable="true" data-field="answer">${escapeHtml(answer)}</div>
-      </div>
-    `;
+    // Render based on card style
+    if (card.style === 'qa_bidirectional') {
+      renderBidirectionalCard(cardEl, card, index, edited);
+    } else if (card.style === 'diagram') {
+      renderDiagramCard(cardEl, card, index, edited);
+    } else {
+      renderStandardCard(cardEl, card, index, edited);
+    }
 
-    // Handle card selection (toggle)
+    // Handle card selection (toggle) - skip if clicking on editable content or checkbox
     cardEl.addEventListener('click', (e) => {
       if (e.target.hasAttribute('contenteditable') && e.target.isContentEditable) {
         return;
       }
+      if (e.target.classList.contains('diagram-checkbox') || e.target.closest('.diagram-checkbox-label')) {
+        return;
+      }
       toggleCard(index);
-    });
-
-    // Handle edits
-    const questionEl = cardEl.querySelector('.card-question');
-    const answerEl = cardEl.querySelector('.card-answer');
-
-    questionEl.addEventListener('input', () => {
-      if (!editedCards[index]) editedCards[index] = {};
-      editedCards[index].question = questionEl.textContent;
-    });
-
-    answerEl.addEventListener('input', () => {
-      if (!editedCards[index]) editedCards[index] = {};
-      editedCards[index].answer = answerEl.textContent;
     });
 
     cardsList.appendChild(cardEl);
   });
 
   updateSelectionCount();
+}
+
+/**
+ * Render a standard card (qa, cloze, explanation, application, etc.)
+ */
+function renderStandardCard(cardEl, card, index, edited) {
+  const question = edited.question !== undefined ? edited.question : card.question;
+  const answer = edited.answer !== undefined ? edited.answer : card.answer;
+
+  cardEl.innerHTML = `
+    <div class="card-checkbox"></div>
+    <div class="card-content">
+      <div class="card-question" contenteditable="true" data-field="question">${escapeHtml(question)}</div>
+      <div class="card-divider"></div>
+      <div class="card-answer" contenteditable="true" data-field="answer">${escapeHtml(answer)}</div>
+    </div>
+  `;
+
+  setupStandardEditHandlers(cardEl, index);
+}
+
+/**
+ * Render a bidirectional card (shows both forward and reverse Q&A)
+ */
+function renderBidirectionalCard(cardEl, card, index, edited) {
+  const forwardQ = edited.forwardQuestion !== undefined ? edited.forwardQuestion : card.forward?.question || '';
+  const forwardA = edited.forwardAnswer !== undefined ? edited.forwardAnswer : card.forward?.answer || '';
+  const reverseQ = edited.reverseQuestion !== undefined ? edited.reverseQuestion : card.reverse?.question || '';
+  const reverseA = edited.reverseAnswer !== undefined ? edited.reverseAnswer : card.reverse?.answer || '';
+
+  cardEl.innerHTML = `
+    <div class="card-checkbox"></div>
+    <div class="card-content">
+      <div class="card-style-label">↔️ Bidirectional</div>
+      <div class="card-direction">
+        <div class="direction-label">Forward:</div>
+        <div class="card-question" contenteditable="true" data-field="forwardQuestion">${escapeHtml(forwardQ)}</div>
+        <div class="card-divider"></div>
+        <div class="card-answer" contenteditable="true" data-field="forwardAnswer">${escapeHtml(forwardA)}</div>
+      </div>
+      <div class="card-direction" style="margin-top: 12px;">
+        <div class="direction-label">Reverse:</div>
+        <div class="card-question" contenteditable="true" data-field="reverseQuestion">${escapeHtml(reverseQ)}</div>
+        <div class="card-divider"></div>
+        <div class="card-answer" contenteditable="true" data-field="reverseAnswer">${escapeHtml(reverseA)}</div>
+      </div>
+    </div>
+  `;
+
+  setupBidirectionalEditHandlers(cardEl, index);
+}
+
+/**
+ * Render a diagram card (shows Q&A plus diagram prompt with checkbox)
+ */
+function renderDiagramCard(cardEl, card, index, edited) {
+  const question = edited.question !== undefined ? edited.question : card.question;
+  const answer = edited.answer !== undefined ? edited.answer : card.answer;
+  const diagramPrompt = card.diagram_prompt || '';
+
+  cardEl.innerHTML = `
+    <div class="card-checkbox"></div>
+    <div class="card-content">
+      <div class="card-question" contenteditable="true" data-field="question">${escapeHtml(question)}</div>
+      <div class="card-divider"></div>
+      <div class="card-answer" contenteditable="true" data-field="answer">${escapeHtml(answer)}</div>
+      <div class="diagram-section">
+        <div class="diagram-label">📊 Diagram prompt:</div>
+        <div class="diagram-prompt">${escapeHtml(diagramPrompt)}</div>
+        <label class="diagram-checkbox-label">
+          <input type="checkbox" class="diagram-checkbox" data-index="${index}">
+          Generate diagram
+        </label>
+      </div>
+    </div>
+  `;
+
+  setupStandardEditHandlers(cardEl, index);
+
+  // Handle diagram checkbox
+  const checkbox = cardEl.querySelector('.diagram-checkbox');
+  if (checkbox) {
+    checkbox.addEventListener('change', (e) => {
+      diagramGenerateFlags[index] = e.target.checked;
+    });
+  }
+}
+
+/**
+ * Setup edit handlers for standard cards
+ */
+function setupStandardEditHandlers(cardEl, index) {
+  const questionEl = cardEl.querySelector('.card-question');
+  const answerEl = cardEl.querySelector('.card-answer');
+
+  if (questionEl) {
+    questionEl.addEventListener('input', () => {
+      if (!editedCards[index]) editedCards[index] = {};
+      editedCards[index].question = questionEl.textContent;
+    });
+  }
+
+  if (answerEl) {
+    answerEl.addEventListener('input', () => {
+      if (!editedCards[index]) editedCards[index] = {};
+      editedCards[index].answer = answerEl.textContent;
+    });
+  }
+}
+
+/**
+ * Setup edit handlers for bidirectional cards
+ */
+function setupBidirectionalEditHandlers(cardEl, index) {
+  const fields = ['forwardQuestion', 'forwardAnswer', 'reverseQuestion', 'reverseAnswer'];
+
+  fields.forEach(field => {
+    const el = cardEl.querySelector(`[data-field="${field}"]`);
+    if (el) {
+      el.addEventListener('input', () => {
+        if (!editedCards[index]) editedCards[index] = {};
+        editedCards[index][field] = el.textContent;
+      });
+    }
+  });
 }
 
 /**
@@ -198,17 +316,53 @@ function toggleCard(index) {
 
 /**
  * Get all selected cards with edits applied
+ * Expands qa_bidirectional into two separate cards for storage
  */
 function getSelectedCards() {
-  return Array.from(selectedIndices).sort().map(index => {
+  const result = [];
+
+  Array.from(selectedIndices).sort().forEach(index => {
     const card = cards[index];
     const edited = editedCards[index] || {};
-    return {
-      question: edited.question !== undefined ? edited.question : card.question,
-      answer: edited.answer !== undefined ? edited.answer : card.answer,
-      style: card.style
-    };
+
+    if (card.style === 'qa_bidirectional') {
+      // Expand bidirectional card into two separate cards
+      result.push({
+        question: edited.forwardQuestion !== undefined ? edited.forwardQuestion : card.forward?.question || '',
+        answer: edited.forwardAnswer !== undefined ? edited.forwardAnswer : card.forward?.answer || '',
+        style: 'qa',
+        tags: card.tags,
+        direction: 'forward'
+      });
+      result.push({
+        question: edited.reverseQuestion !== undefined ? edited.reverseQuestion : card.reverse?.question || '',
+        answer: edited.reverseAnswer !== undefined ? edited.reverseAnswer : card.reverse?.answer || '',
+        style: 'qa',
+        tags: card.tags,
+        direction: 'reverse'
+      });
+    } else if (card.style === 'diagram') {
+      // Include diagram info for potential image generation
+      result.push({
+        question: edited.question !== undefined ? edited.question : card.question,
+        answer: edited.answer !== undefined ? edited.answer : card.answer,
+        style: card.style,
+        tags: card.tags,
+        diagram_prompt: card.diagram_prompt,
+        generateDiagram: diagramGenerateFlags[index] || false
+      });
+    } else {
+      // Standard card
+      result.push({
+        question: edited.question !== undefined ? edited.question : card.question,
+        answer: edited.answer !== undefined ? edited.answer : card.answer,
+        style: card.style,
+        tags: card.tags
+      });
+    }
   });
+
+  return result;
 }
 
 /**
@@ -233,13 +387,20 @@ async function sendToMochi() {
         action: 'sendToMochi',
         question: card.question,
         answer: card.answer,
-        sourceUrl: sourceUrl
+        sourceUrl: sourceUrl,
+        tags: card.tags
       };
 
       // Include screenshot data if we're in image mode
       if (isImageMode && pastedImageData && pastedImageMimeType) {
         messageData.screenshotData = pastedImageData;
         messageData.screenshotMimeType = pastedImageMimeType;
+      }
+
+      // Include diagram data if this is a diagram card with generation requested
+      if (card.style === 'diagram' && card.generateDiagram && card.diagram_prompt) {
+        messageData.generateDiagram = true;
+        messageData.diagramPrompt = card.diagram_prompt;
       }
 
       const response = await chrome.runtime.sendMessage(messageData);
@@ -324,6 +485,7 @@ async function sendToMochi() {
 /**
  * Flatten cloze_list cards into individual cards
  * Handles the new prompt format where cloze_list contains multiple prompts
+ * Note: qa_bidirectional and diagram cards are kept as single cards in UI
  */
 function flattenCards(rawCards) {
   const flattened = [];
@@ -336,11 +498,12 @@ function flattenCards(rawCards) {
           style: 'cloze',
           question: prompt.question,
           answer: prompt.answer,
-          rationale: card.rationale
+          rationale: card.rationale,
+          tags: card.tags
         });
       }
     } else {
-      // Regular card (qa, cloze, explanation, application, example_generation)
+      // Regular cards including qa_bidirectional and diagram (kept as single cards)
       flattened.push(card);
     }
   }

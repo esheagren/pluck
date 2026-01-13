@@ -38,10 +38,39 @@ async function checkAuth() {
 }
 
 /**
+ * Inject content script into the tab if not already injected
+ */
+async function ensureContentScriptInjected(tabId) {
+  try {
+    // Try to ping the content script first to see if it's already there
+    await chrome.tabs.sendMessage(tabId, { action: 'ping' });
+    return true;
+  } catch {
+    // Content script not injected yet, inject it now
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ['content.js']
+      });
+      return true;
+    } catch (error) {
+      console.error('Failed to inject content script:', error);
+      return false;
+    }
+  }
+}
+
+/**
  * Get selection data from the active tab's content script
  */
 async function getSelectionFromTab(tabId) {
   try {
+    // Ensure content script is injected first
+    const injected = await ensureContentScriptInjected(tabId);
+    if (!injected) {
+      return null;
+    }
+
     const response = await chrome.tabs.sendMessage(tabId, { action: 'getSelection' });
     return response;
   } catch (error) {
@@ -169,15 +198,23 @@ async function handleGenerateCards(tabId, focusText = '', cachedSelection = null
 
 /**
  * Generate an image using backend Gemini proxy based on the card content
+ * @param {string} question - Card question
+ * @param {string} answer - Card answer
+ * @param {string} diagramPrompt - Optional diagram prompt for diagram card style
  */
-async function generateImageWithBackend(question, answer) {
+async function generateImageWithBackend(question, answer, diagramPrompt = null) {
   const accessToken = await getAccessToken();
 
   if (!accessToken) {
     throw new Error('not_authenticated');
   }
 
-  console.log(`[Pluckk] Generating image via backend...`);
+  console.log(`[Pluckk] Generating image via backend...${diagramPrompt ? ' (diagram mode)' : ''}`);
+
+  const body = { question, answer };
+  if (diagramPrompt) {
+    body.diagramPrompt = diagramPrompt;
+  }
 
   const response = await fetch(`${BACKEND_URL}/api/generate-image`, {
     method: 'POST',
@@ -185,10 +222,7 @@ async function generateImageWithBackend(question, answer) {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${accessToken}`
     },
-    body: JSON.stringify({
-      question,
-      answer
-    })
+    body: JSON.stringify(body)
   });
 
   if (!response.ok) {
@@ -238,8 +272,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 /**
  * Background task to generate and attach image to a Mochi card (and optionally Supabase)
  * This runs asynchronously after the card is created (fire-and-forget)
+ * @param {string} diagramPrompt - Optional diagram prompt for diagram card style
  */
-async function generateAndAttachImage(mochiCardId, question, answer, sourceUrl, supabaseCardId = null) {
+async function generateAndAttachImage(mochiCardId, question, answer, sourceUrl, supabaseCardId = null, diagramPrompt = null) {
   const taskId = `${mochiCardId}-${Date.now()}`;
   pendingTasks.add(taskId);
 
@@ -247,7 +282,7 @@ async function generateAndAttachImage(mochiCardId, question, answer, sourceUrl, 
   startKeepAlive();
 
   try {
-    console.log('[Pluckk] Starting image generation task:', taskId);
+    console.log('[Pluckk] Starting image generation task:', taskId, diagramPrompt ? '(diagram)' : '');
 
     const accessToken = await getAccessToken();
     if (!accessToken) {
@@ -256,7 +291,7 @@ async function generateAndAttachImage(mochiCardId, question, answer, sourceUrl, 
     }
 
     console.log('[Pluckk] Generating image for card:', mochiCardId, 'Question:', question.substring(0, 50));
-    const imageResult = await generateImageWithBackend(question, answer);
+    const imageResult = await generateImageWithBackend(question, answer, diagramPrompt);
     console.log('[Pluckk] Image generated successfully, mimeType:', imageResult.mimeType);
 
     // Attach to Mochi via backend API
@@ -317,14 +352,15 @@ async function generateAndAttachImage(mochiCardId, question, answer, sourceUrl, 
 /**
  * Background task to generate image and upload to Supabase only (no Mochi)
  * Used when Mochi is not configured
+ * @param {string} diagramPrompt - Optional diagram prompt for diagram card style
  */
-async function generateImageForSupabase(supabaseCardId, question, answer) {
+async function generateImageForSupabase(supabaseCardId, question, answer, diagramPrompt = null) {
   const taskId = `supabase-${supabaseCardId}-${Date.now()}`;
   pendingTasks.add(taskId);
   startKeepAlive();
 
   try {
-    console.log('[Pluckk] Starting Supabase-only image generation task:', taskId);
+    console.log('[Pluckk] Starting Supabase-only image generation task:', taskId, diagramPrompt ? '(diagram)' : '');
 
     // Check if user is authenticated (required for backend image generation)
     const isAuthenticated = await checkAuth();
@@ -334,7 +370,7 @@ async function generateImageForSupabase(supabaseCardId, question, answer) {
     }
 
     console.log('[Pluckk] Generating image for Supabase card:', supabaseCardId);
-    const imageResult = await generateImageWithBackend(question, answer);
+    const imageResult = await generateImageWithBackend(question, answer, diagramPrompt);
     console.log('[Pluckk] Image generated successfully, mimeType:', imageResult.mimeType);
 
     // Upload to Supabase Storage
@@ -516,12 +552,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           const result = await sendCardToMochi(request.question, request.answer, request.sourceUrl);
           mochiResult = { mochi: result };
 
-          if (result.success && result.cardId) {
+          // Determine if we should generate an image:
+          // - For diagram cards (has diagramPrompt): only if generateDiagram checkbox was checked
+          // - For regular cards: always generate
+          const isDiagramCard = !!request.diagramPrompt;
+          const shouldGenerateImage = isDiagramCard ? request.generateDiagram : true;
+          const diagramPrompt = shouldGenerateImage && isDiagramCard ? request.diagramPrompt : null;
+
+          if (result.success && result.cardId && shouldGenerateImage) {
             // Fire-and-forget: generate AI image and attach to Mochi and Supabase
-            generateAndAttachImage(result.cardId, request.question, request.answer, request.sourceUrl, supabaseCardId);
-          } else if (result.error === 'mochi_not_configured' && supabaseCardId) {
+            generateAndAttachImage(result.cardId, request.question, request.answer, request.sourceUrl, supabaseCardId, diagramPrompt);
+          } else if (result.error === 'mochi_not_configured' && supabaseCardId && shouldGenerateImage) {
             // Mochi isn't configured but we have a Supabase card
-            generateImageForSupabase(supabaseCardId, request.question, request.answer);
+            generateImageForSupabase(supabaseCardId, request.question, request.answer, diagramPrompt);
           }
         }
       } catch (error) {

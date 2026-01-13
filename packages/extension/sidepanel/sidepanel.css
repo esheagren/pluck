@@ -1044,3 +1044,90 @@ body {
 .btn-arrow:active {
   transform: scale(0.98);
 }
+
+/* Bidirectional Card Styles */
+.card-style-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #888;
+  margin-bottom: 8px;
+  padding: 3px 8px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.card-direction {
+  padding: 8px;
+  background: #fafafa;
+  border-radius: 6px;
+  border: 1px solid #f0f0f0;
+}
+
+.direction-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #a0a0a0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+/* Diagram Card Styles */
+.diagram-section {
+  margin-top: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, #f8f9ff 0%, #f5f0ff 100%);
+  border-radius: 8px;
+  border: 1px solid #e8e4f0;
+}
+
+.diagram-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6366f1;
+  margin-bottom: 6px;
+}
+
+.diagram-prompt {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 10px;
+  font-style: italic;
+}
+
+.diagram-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #6366f1;
+  cursor: pointer;
+  padding: 6px 10px;
+  background: white;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.15s ease;
+}
+
+.diagram-checkbox-label:hover {
+  border-color: #6366f1;
+  background: #fafaff;
+}
+
+.diagram-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+
+/* Card type indicators */
+.card-item.qa_bidirectional {
+  border-left: 3px solid #3b82f6;
+}
+
+.card-item.diagram {
+  border-left: 3px solid #6366f1;
+}
