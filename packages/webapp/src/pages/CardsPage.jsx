@@ -29,8 +29,8 @@ export default function CardsPage({
   const questionRef = useRef(null)
   const answerRef = useRef(null)
 
-  // Get selected folder from URL
-  const selectedFolderId = searchParams.get('folder') || null
+  // Get selected folder from URL (default to 'unfiled' if no param)
+  const selectedFolderId = searchParams.get('folder') ?? 'unfiled'
 
   // DnD sensors
   const sensors = useSensors(
@@ -43,7 +43,7 @@ export default function CardsPage({
 
   // Filter cards based on selected folder
   const filteredCards = useMemo(() => {
-    if (!selectedFolderId) return cards
+    if (selectedFolderId === 'all') return cards
     if (selectedFolderId === 'unfiled') {
       return cards.filter(c => !c.folder_id)
     }
@@ -58,7 +58,7 @@ export default function CardsPage({
 
   // Get the current folder name for the header
   const currentFolderName = useMemo(() => {
-    if (!selectedFolderId) return null
+    if (selectedFolderId === 'all') return null
     if (selectedFolderId === 'unfiled') return 'Unfiled'
     const folder = folders.find(f => f.id === selectedFolderId)
     return folder?.name || null
@@ -115,11 +115,7 @@ export default function CardsPage({
   )
 
   const handleSelectFolder = (folderId) => {
-    if (folderId === null) {
-      setSearchParams({})
-    } else {
-      setSearchParams({ folder: folderId })
-    }
+    setSearchParams({ folder: folderId })
   }
 
   // DnD handlers
@@ -203,7 +199,7 @@ export default function CardsPage({
         <CardGrid
           cards={filteredCards}
           onCardClick={setSelectedCard}
-          showFolderBadge={!selectedFolderId || selectedFolderId === 'unfiled'}
+          showFolderBadge={selectedFolderId === 'all' || selectedFolderId === 'unfiled'}
         />
 
         {/* Drag overlay for visual feedback */}

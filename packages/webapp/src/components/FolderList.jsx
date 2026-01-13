@@ -46,7 +46,7 @@ export default function FolderList({
     await onDeleteFolder(folderId)
     setConfirmDeleteId(null)
     if (selectedFolderId === folderId) {
-      onSelectFolder(null)
+      onSelectFolder('unfiled')
     }
   }
 
@@ -56,9 +56,9 @@ export default function FolderList({
     <div className="flex flex-wrap gap-2">
       {/* All Cards option */}
       <button
-        onClick={() => onSelectFolder(null)}
+        onClick={() => onSelectFolder('all')}
         className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-          selectedFolderId === null
+          selectedFolderId === 'all'
             ? 'bg-gray-800 text-white'
             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
         }`}
