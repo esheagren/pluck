@@ -171,15 +171,8 @@ export default function CardsPage({
       onDragEnd={handleDragEnd}
     >
       <div className="w-full flex flex-col items-center">
-        {/* Header */}
+        {/* Folder list / filter bar */}
         <div className="w-full max-w-5xl mb-4">
-          <div className="mb-4">
-            <span className="text-gray-500">
-              ({filteredCards.length} {filteredCards.length === 1 ? 'card' : 'cards'})
-            </span>
-          </div>
-
-          {/* Folder list / filter bar */}
           <div className="pb-4 border-b border-gray-200">
             <div className="flex items-center gap-2">
               <CreateFolderButton onCreateFolder={onCreateFolder} />
