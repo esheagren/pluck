@@ -9,7 +9,8 @@
     "clipboardWrite",
     "sidePanel",
     "alarms",
-    "identity"
+    "identity",
+    "scripting"
   ],
   "host_permissions": [
     "https://api.anthropic.com/*",
@@ -22,6 +23,7 @@
     "service_worker": "src/background.js",
     "type": "module"
   },
+  "_comment_content_scripts": "IMPORTANT: Do not remove content_scripts in favor of programmatic injection. The sidepanel polls for selection via chrome.tabs.sendMessage which requires the content script to already be injected. Programmatic injection (via chrome.scripting.executeScript in background.js) only runs when generating cards, not during selection polling. Removing this breaks selection detection.",
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

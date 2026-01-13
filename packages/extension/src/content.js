@@ -129,6 +129,12 @@
 
   // Listen for messages from the background script or popup
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'ping') {
+      // Used to check if content script is already injected
+      sendResponse({ pong: true });
+      return;
+    }
+
     if (request.action === 'getSelection') {
       const data = captureSelection();
       sendResponse(data);
