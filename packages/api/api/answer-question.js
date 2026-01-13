@@ -146,12 +146,30 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Invalid response format from AI' });
     }
 
+    // Filter and validate cards - ensure each has required fields
+    const validCards = parsed.cards
+      .filter(card => card && typeof card === 'object')
+      .map(card => ({
+        question: card.question || '',
+        answer: card.answer || '',
+        style: card.style || 'qa',
+        tags: card.tags || { content_type: 'fact', domain: 'general' },
+        // Only include these on first card if present
+        ...(card.originalQuestion && { originalQuestion: card.originalQuestion }),
+        ...(card.wasImproved !== undefined && { wasImproved: card.wasImproved })
+      }))
+      .filter(card => card.question && card.answer); // Must have question and answer
+
+    if (validCards.length === 0) {
+      return res.status(500).json({ error: 'No valid cards generated' });
+    }
+
     // Increment usage count by number of cards generated
-    await incrementCardCount(user.id, parsed.cards.length);
+    await incrementCardCount(user.id, validCards.length);
 
     // Return cards with usage info
     return res.status(200).json({
-      cards: parsed.cards,
+      cards: validCards,
       usage: {
         remaining: usage.remaining === Infinity ? 'unlimited' : usage.remaining - parsed.cards.length,
         limit: usage.limit,

@@ -146,6 +146,12 @@ function renderCards() {
   diagramGenerateFlags = {}; // Reset diagram flags
 
   cards.forEach((card, index) => {
+    // Skip null or invalid cards
+    if (!card || typeof card !== 'object') {
+      console.warn('Skipping invalid card at index', index);
+      return;
+    }
+
     const isSelected = selectedIndices.has(index);
     const edited = editedCards[index] || {};
 
