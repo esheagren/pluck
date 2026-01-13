@@ -149,6 +149,8 @@ function renderCards() {
       renderBidirectionalCard(cardEl, card, index, edited);
     } else if (card.style === 'diagram') {
       renderDiagramCard(cardEl, card, index, edited);
+    } else if (card.style === 'cloze_list') {
+      renderListCard(cardEl, card, index, edited);
     } else {
       renderStandardCard(cardEl, card, index, edited);
     }
@@ -257,6 +259,39 @@ function renderDiagramCard(cardEl, card, index, edited) {
 }
 
 /**
+ * Render a list card (shows all cloze prompts with one item blank + final all-blank)
+ */
+function renderListCard(cardEl, card, index, edited) {
+  const listName = card.list_name || 'List';
+  const prompts = card.prompts || [];
+  const itemCount = (card.items || []).length;
+
+  // Build HTML for each prompt preview
+  const promptsHtml = prompts.map((prompt, i) => {
+    const isAllBlank = i === prompts.length - 1; // Last one is "recall all"
+    const label = isAllBlank ? 'Recall all:' : `Item ${i + 1}:`;
+    return `
+      <div class="list-prompt-preview">
+        <span class="list-prompt-label">${label}</span>
+        <span class="list-prompt-question">${escapeHtml(prompt.question)}</span>
+        <span class="list-prompt-answer">${escapeHtml(prompt.answer)}</span>
+      </div>
+    `;
+  }).join('');
+
+  cardEl.innerHTML = `
+    <div class="card-checkbox"></div>
+    <div class="card-content">
+      <div class="card-style-label">📋 List (${itemCount} items → ${prompts.length} cards)</div>
+      <div class="list-name">${escapeHtml(listName)}</div>
+      <div class="list-prompts">
+        ${promptsHtml}
+      </div>
+    </div>
+  `;
+}
+
+/**
  * Setup edit handlers for standard cards
  */
 function setupStandardEditHandlers(cardEl, index) {
@@ -341,6 +376,18 @@ function getSelectedCards() {
         tags: card.tags,
         direction: 'reverse'
       });
+    } else if (card.style === 'cloze_list') {
+      // Expand cloze_list into individual cloze cards
+      const prompts = card.prompts || [];
+      for (const prompt of prompts) {
+        result.push({
+          question: prompt.question,
+          answer: prompt.answer,
+          style: 'cloze',
+          tags: card.tags,
+          list_name: card.list_name
+        });
+      }
     } else if (card.style === 'diagram') {
       // Include diagram info for potential image generation
       result.push({
@@ -483,32 +530,13 @@ async function sendToMochi() {
 }
 
 /**
- * Flatten cloze_list cards into individual cards
- * Handles the new prompt format where cloze_list contains multiple prompts
- * Note: qa_bidirectional and diagram cards are kept as single cards in UI
+ * Process raw cards from API - all special styles are kept as single cards in UI
+ * Note: cloze_list, qa_bidirectional, and diagram cards are kept intact for
+ * single-select UI but expand to multiple cards on save in getSelectedCards()
  */
 function flattenCards(rawCards) {
-  const flattened = [];
-
-  for (const card of rawCards) {
-    if (card.style === 'cloze_list' && card.prompts && Array.isArray(card.prompts)) {
-      // Expand cloze_list into individual cloze cards
-      for (const prompt of card.prompts) {
-        flattened.push({
-          style: 'cloze',
-          question: prompt.question,
-          answer: prompt.answer,
-          rationale: card.rationale,
-          tags: card.tags
-        });
-      }
-    } else {
-      // Regular cards including qa_bidirectional and diagram (kept as single cards)
-      flattened.push(card);
-    }
-  }
-
-  return flattened;
+  // All cards pass through unchanged - expansion happens at save time
+  return rawCards;
 }
 
 /**

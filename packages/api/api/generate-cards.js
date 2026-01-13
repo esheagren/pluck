@@ -37,9 +37,10 @@ function buildSystemPrompt(isPro) {
    Example:
    {"style":"cloze","question":"The mitochondria is the ___ of the cell","answer":"powerhouse","tags":{"content_type":"fact","domain":"biology"}}
 
-4. **cloze_list** - For CLOSED LISTS with fixed, known members. Creates one cloze per item. Counts as ONE card.
-   Example:
-   {"style":"cloze_list","list_name":"Primary colors","items":["red","blue","yellow"],"prompts":[{"question":"Primary colors: ___, blue, yellow","answer":"red"},{"question":"Primary colors: red, ___, yellow","answer":"blue"},{"question":"Primary colors: red, blue, ___","answer":"yellow"}],"tags":{"content_type":"list","domain":"art"}}
+4. **cloze_list** - For CLOSED LISTS with fixed, known members. Creates N+1 clozes: one per item PLUS a final "recall all" card. Counts as ONE card in UI but expands to N+1 on save.
+   For N items: first N prompts each occlude ONE item, final prompt occludes ALL items.
+   Example (3 items → 4 prompts):
+   {"style":"cloze_list","list_name":"Primary colors","items":["red","blue","yellow"],"prompts":[{"question":"Primary colors: ___, blue, yellow","answer":"red"},{"question":"Primary colors: red, ___, yellow","answer":"blue"},{"question":"Primary colors: red, blue, ___","answer":"yellow"},{"question":"Primary colors: ___, ___, ___","answer":"red, blue, yellow"}],"tags":{"content_type":"list","domain":"art"}}
 
 5. **explanation** - "Why" or "How" questions connecting facts to deeper meaning
    Example:
