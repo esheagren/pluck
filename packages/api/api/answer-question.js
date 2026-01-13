@@ -7,34 +7,41 @@ import { incrementCardCount } from '../lib/supabase-admin.js';
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 
-const SYSTEM_PROMPT = `You are a knowledge assistant that answers questions for flashcard creation.
+const SYSTEM_PROMPT = `You are a knowledge assistant that generates spaced repetition flashcards from user questions.
 
 Your task:
-1. If the question is vague, too broad, or could be improved for flashcard use, provide an improved version
-2. Provide a clear, concise answer suitable for a flashcard (1-3 sentences)
-3. Identify the content type and domain
+1. Generate 2-4 flashcards based on the user's question
+2. The FIRST card should directly answer what the user asked (optionally refined for clarity)
+3. Additional cards should explore RELATED aspects the user might find valuable:
+   - Underlying concepts or principles
+   - Common misconceptions
+   - Practical applications
+   - Related facts or comparisons
+4. If the user's question is vague, improve it for flashcard testability
 
-Guidelines for question improvement:
-- Add specificity if the question is too broad (e.g., "What is it?" → "What is [specific thing from context]?")
-- Add context if the question is ambiguous
-- Rephrase for testability (the answer should be verifiable)
-- Keep the user's intent intact
-- If the question is already clear and specific, don't change it
+Card Styles:
+- **qa** - Direct factual Q&A
+- **explanation** - "Why" or "How" questions for deeper understanding
+- **application** - Real-world usage or decision-making
 
-Guidelines for answers:
-- Be concise but complete (1-3 sentences ideal)
-- Include the key fact, concept, or explanation
-- Avoid unnecessary hedging or qualifications
-- Be factually accurate
+Guidelines:
+- First card: Direct answer to user's question (refined if needed)
+- Additional cards: Related knowledge the user would benefit from
+- Keep answers concise (1-3 sentences)
+- Include content_type and domain tags on all cards
 
 Output Format (JSON only, no markdown code blocks):
 {
-  "originalQuestion": "user's exact original question",
-  "improvedQuestion": "improved version (or same as original if no improvement needed)",
-  "wasImproved": true or false,
-  "answer": "the answer to the question",
-  "contentType": "fact|concept|procedure|definition",
-  "domain": "inferred domain like biology, programming, history, etc."
+  "cards": [
+    {
+      "question": "the question",
+      "answer": "the answer",
+      "style": "qa|explanation|application",
+      "originalQuestion": "user's original question (only on first card, only if refined)",
+      "wasImproved": true or false (only on first card),
+      "tags": { "content_type": "fact|concept|procedure|definition", "domain": "inferred domain" }
+    }
+  ]
 }`;
 
 export default async function handler(req, res) {
@@ -135,31 +142,18 @@ export default async function handler(req, res) {
 
     const parsed = JSON.parse(jsonStr);
 
-    if (!parsed.answer) {
+    if (!parsed.cards || !Array.isArray(parsed.cards) || parsed.cards.length === 0) {
       return res.status(500).json({ error: 'Invalid response format from AI' });
     }
 
-    // Increment usage count by 1 (single card)
-    await incrementCardCount(user.id, 1);
+    // Increment usage count by number of cards generated
+    await incrementCardCount(user.id, parsed.cards.length);
 
-    // Build card response
-    const card = {
-      originalQuestion: parsed.originalQuestion || question.trim(),
-      question: parsed.improvedQuestion || parsed.originalQuestion || question.trim(),
-      answer: parsed.answer,
-      wasImproved: parsed.wasImproved || false,
-      style: 'qa',
-      tags: {
-        content_type: parsed.contentType || 'fact',
-        domain: parsed.domain || 'general'
-      }
-    };
-
-    // Return card with usage info
+    // Return cards with usage info
     return res.status(200).json({
-      card,
+      cards: parsed.cards,
       usage: {
-        remaining: usage.remaining === Infinity ? 'unlimited' : usage.remaining - 1,
+        remaining: usage.remaining === Infinity ? 'unlimited' : usage.remaining - parsed.cards.length,
         limit: usage.limit,
         subscription: profile.subscription_status
       }

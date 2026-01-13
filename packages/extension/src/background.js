@@ -680,9 +680,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
 
         const data = await response.json();
-        // Wrap the single card in an array for consistent handling in sidepanel
+        // API returns cards array directly
         sendResponse({
-          cards: [data.card],
+          cards: data.cards,
           isQuestionMode: true,
           usage: data.usage
         });
