@@ -15,7 +15,7 @@ function GripIcon() {
   )
 }
 
-export default function DraggableCard({ id, children, isSelected }) {
+export default function DraggableCard({ id, children, isSelected, isBeingDraggedAway }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: id,
   })
@@ -24,11 +24,16 @@ export default function DraggableCard({ id, children, isSelected }) {
     transform: CSS.Translate.toString(transform),
   }
 
+  // Hide card if it's selected and another selected card is being dragged (compress effect)
+  if (isBeingDraggedAway) {
+    return null
+  }
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`relative ${isDragging ? 'opacity-50' : ''} ${isSelected ? 'ring-2 ring-blue-500 rounded-xl' : ''}`}
+      className={`relative ${isDragging ? 'opacity-0' : ''} ${isSelected ? 'ring-2 ring-blue-500 rounded-xl' : ''}`}
     >
       {/* Drag handle - visible on hover OR when selected */}
       <div
@@ -44,10 +49,6 @@ export default function DraggableCard({ id, children, isSelected }) {
 
       {/* Card content */}
       {children}
-
-      {isDragging && (
-        <div className="absolute inset-0 bg-gray-100 rounded-xl border-2 border-dashed border-gray-300" />
-      )}
     </div>
   )
 }

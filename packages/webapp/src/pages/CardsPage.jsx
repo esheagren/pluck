@@ -316,6 +316,7 @@ export default function CardsPage({
           showFolderBadge={selectedFolderId === 'all' || selectedFolderId === 'unfiled'}
           selectedCardIds={selectedCardIds}
           onToggleSelect={toggleCardSelection}
+          activeId={activeId}
         />
 
         {/* Drag overlay for visual feedback */}
