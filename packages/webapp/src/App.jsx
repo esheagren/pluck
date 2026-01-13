@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { useCards } from './hooks/useCards'
+import { useFolders } from './hooks/useFolders'
 import Layout from './components/Layout'
 import ReviewPage from './pages/ReviewPage'
 import CardsPage from './pages/CardsPage'
@@ -25,7 +26,8 @@ function LoadingScreen() {
 export default function App() {
   const location = useLocation()
   const { user, loading: authLoading, billingInfo, signIn, signOut, handleUpgrade, handleManageSubscription } = useAuth()
-  const { cards, loading: cardsLoading, updateCard, deleteCard } = useCards(user?.id)
+  const { cards, loading: cardsLoading, updateCard, deleteCard, moveCardToFolder } = useCards(user?.id)
+  const { folders, loading: foldersLoading, createFolder, updateFolder, deleteFolder } = useFolders(user?.id)
 
   // Info and Privacy pages are always accessible
   if (location.pathname === '/info') {
@@ -48,7 +50,7 @@ export default function App() {
   // Authenticated - show main app
   return (
     <Routes>
-      <Route element={<Layout />}>
+      <Route element={<Layout folders={folders} />}>
         <Route
           path="/"
           element={
@@ -68,6 +70,12 @@ export default function App() {
               loading={cardsLoading}
               onUpdateCard={updateCard}
               onDeleteCard={deleteCard}
+              onMoveCardToFolder={moveCardToFolder}
+              folders={folders}
+              foldersLoading={foldersLoading}
+              onCreateFolder={createFolder}
+              onUpdateFolder={updateFolder}
+              onDeleteFolder={deleteFolder}
             />
           }
         />

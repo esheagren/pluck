@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useSearchParams } from 'react-router-dom'
 
-export default function MobileNav() {
+export default function MobileNav({ folders = [] }) {
   const [isOpen, setIsOpen] = useState(false)
+  const [isFoldersExpanded, setIsFoldersExpanded] = useState(true)
   const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const currentFolderId = searchParams.get('folder')
 
   // Close drawer on route change
   useEffect(() => {
     setIsOpen(false)
-  }, [location.pathname])
+  }, [location.pathname, location.search])
 
   // Close on Escape key and lock body scroll
   useEffect(() => {
@@ -80,7 +83,7 @@ export default function MobileNav() {
         </div>
 
         {/* Primary Nav Links */}
-        <div className="flex-1 p-3 flex flex-col gap-1">
+        <div className="flex-1 p-3 flex flex-col gap-1 overflow-y-auto">
           <NavLink to="/" className={navLinkClass}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M9 18h6"></path>
@@ -90,15 +93,76 @@ export default function MobileNav() {
             <span>Review</span>
           </NavLink>
 
-          <NavLink to="/cards" className={navLinkClass}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="7" rx="1"></rect>
-              <rect x="14" y="3" width="7" height="7" rx="1"></rect>
-              <rect x="3" y="14" width="7" height="7" rx="1"></rect>
-              <rect x="14" y="14" width="7" height="7" rx="1"></rect>
-            </svg>
-            <span>Cards</span>
-          </NavLink>
+          {/* Cards with expandable folders */}
+          <div>
+            <div className="flex items-center">
+              <NavLink
+                to="/cards"
+                end
+                className={({ isActive }) =>
+                  `flex-1 flex items-center gap-3 px-3.5 py-3 rounded-lg text-sm font-medium transition-all ${
+                    isActive && !currentFolderId ? 'bg-gray-100 text-gray-800' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                  }`
+                }
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                  <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                  <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                  <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+                </svg>
+                <span>Cards</span>
+              </NavLink>
+              {folders.length > 0 && (
+                <button
+                  onClick={() => setIsFoldersExpanded(!isFoldersExpanded)}
+                  className="p-2 text-gray-400 hover:text-gray-600 rounded-lg transition-colors"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className={`transition-transform ${isFoldersExpanded ? 'rotate-180' : ''}`}
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Folder sub-items */}
+            {isFoldersExpanded && folders.length > 0 && (
+              <div className="ml-4 mt-1 flex flex-col gap-0.5">
+                {folders.map(folder => (
+                  <NavLink
+                    key={folder.id}
+                    to={`/cards?folder=${folder.id}`}
+                    className={() =>
+                      `flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+                        currentFolderId === folder.id
+                          ? 'bg-gray-100 text-gray-800 font-medium'
+                          : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                      }`
+                    }
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      style={{ color: folder.color }}
+                    >
+                      <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                    <span className="truncate">{folder.name}</span>
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Secondary Nav Links */}

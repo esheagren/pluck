@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import FolderBadge from './FolderBadge'
 
 export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDeleteCard }) {
   const [isEditing, setIsEditing] = useState(false)
@@ -83,7 +84,12 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
         onClick={() => !isFlipped && !isEditing && onFlip()}
       >
         {/* Front - Question */}
-        <div className={`card-face bg-white border border-gray-200 rounded-2xl flex items-center justify-center p-8 shadow-lg w-full min-h-[300px] ${isFlipped ? 'hidden' : ''}`}>
+        <div className={`card-face bg-white border border-gray-200 rounded-2xl flex items-center justify-center p-8 shadow-lg w-full min-h-[300px] relative ${isFlipped ? 'hidden' : ''}`}>
+          {card.folder && (
+            <div className="absolute top-3 left-3">
+              <FolderBadge folder={card.folder} />
+            </div>
+          )}
           <div className="text-lg leading-relaxed text-center text-gray-800">
             {card.question}
           </div>
@@ -91,6 +97,13 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
 
         {/* Back - Answer + Image + Source */}
         <div className={`card-face card-back bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl flex flex-col items-center justify-between p-8 shadow-lg w-full min-h-[300px] relative ${isFlipped ? '' : 'hidden'}`}>
+          {/* Folder badge */}
+          {card.folder && (
+            <div className="absolute top-3 left-3">
+              <FolderBadge folder={card.folder} />
+            </div>
+          )}
+
           {/* Action buttons */}
           {!isEditing && !isConfirmingDelete && (
             <div className="absolute top-3 right-3 flex gap-1">

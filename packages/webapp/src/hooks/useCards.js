@@ -20,7 +20,7 @@ export function useCards(userId) {
     try {
       const { data, error } = await supabase
         .from('cards')
-        .select('*')
+        .select('*, folder:folders(*)')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
@@ -94,12 +94,39 @@ export function useCards(userId) {
     }
   }, [])
 
+  const moveCardToFolder = useCallback(async (cardId, folderId, folder = null) => {
+    try {
+      const { data, error } = await supabase
+        .from('cards')
+        .update({ folder_id: folderId })
+        .eq('id', cardId)
+        .select('*, folder:folders(*)')
+        .single()
+
+      if (error) {
+        console.error('Error moving card to folder:', error)
+        return { error }
+      }
+
+      // Update local state
+      setCards(prev => prev.map(card =>
+        card.id === cardId ? { ...card, folder_id: folderId, folder: data.folder } : card
+      ))
+
+      return { data }
+    } catch (error) {
+      console.error('Error moving card to folder:', error)
+      return { error }
+    }
+  }, [])
+
   return {
     cards,
     loading,
     refetch: fetchCards,
     getShuffledCards,
     updateCard,
-    deleteCard
+    deleteCard,
+    moveCardToFolder
   }
 }
