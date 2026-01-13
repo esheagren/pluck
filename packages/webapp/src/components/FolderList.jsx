@@ -213,11 +213,34 @@ export default function FolderList({
   }
 
   return (
-    <div className="flex flex-wrap gap-2 items-center">
-      {/* All Cards option - fixed, not sortable */}
+    <div className="flex-1 flex items-center justify-between gap-2">
+      {/* Left side: Sortable folder tabs */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+          <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
+            {sortableIds.map(id => {
+              const isUnfiled = id === 'unfiled'
+              const folder = isUnfiled ? null : folders.find(f => f.id === id)
+
+              // Skip if folder doesn't exist (was deleted)
+              if (!isUnfiled && !folder) return null
+
+              return (
+                <SortableFolderTab key={id} id={id}>
+                  <DroppableFolder id={id} className="rounded-lg">
+                    {renderFolderTab(folder, isUnfiled)}
+                  </DroppableFolder>
+                </SortableFolderTab>
+              )
+            })}
+          </SortableContext>
+        </DndContext>
+      </div>
+
+      {/* Right side: All Cards option - fixed position */}
       <button
         onClick={() => onSelectFolder('all')}
-        className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+        className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
           selectedFolderId === 'all'
             ? 'bg-gray-800 text-white'
             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -226,27 +249,6 @@ export default function FolderList({
         All Cards
         <span className="ml-1.5 text-xs opacity-70">({cards.length})</span>
       </button>
-
-      {/* Sortable folder tabs with separate DndContext */}
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
-          {sortableIds.map(id => {
-            const isUnfiled = id === 'unfiled'
-            const folder = isUnfiled ? null : folders.find(f => f.id === id)
-
-            // Skip if folder doesn't exist (was deleted)
-            if (!isUnfiled && !folder) return null
-
-            return (
-              <SortableFolderTab key={id} id={id}>
-                <DroppableFolder id={id} className="rounded-lg">
-                  {renderFolderTab(folder, isUnfiled)}
-                </DroppableFolder>
-              </SortableFolderTab>
-            )
-          })}
-        </SortableContext>
-      </DndContext>
     </div>
   )
 }
