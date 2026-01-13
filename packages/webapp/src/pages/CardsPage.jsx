@@ -171,28 +171,27 @@ export default function CardsPage({
       onDragEnd={handleDragEnd}
     >
       <div className="w-full flex flex-col items-center">
-        {/* Header with Create Folder */}
+        {/* Header */}
         <div className="w-full max-w-5xl mb-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">
-              {currentFolderName || 'All Cards'}
-              <span className="ml-2 text-base font-normal text-gray-500">
-                ({filteredCards.length} {filteredCards.length === 1 ? 'card' : 'cards'})
-              </span>
-            </h2>
-            <CreateFolderButton onCreateFolder={onCreateFolder} />
+          <div className="mb-4">
+            <span className="text-gray-500">
+              ({filteredCards.length} {filteredCards.length === 1 ? 'card' : 'cards'})
+            </span>
           </div>
 
           {/* Folder list / filter bar */}
           <div className="pb-4 border-b border-gray-200">
-            <FolderList
-              folders={folders}
-              cards={cards}
-              selectedFolderId={selectedFolderId}
-              onSelectFolder={handleSelectFolder}
-              onDeleteFolder={onDeleteFolder}
-              onRenameFolder={onUpdateFolder}
-            />
+            <div className="flex items-center gap-2">
+              <CreateFolderButton onCreateFolder={onCreateFolder} />
+              <FolderList
+                folders={folders}
+                cards={cards}
+                selectedFolderId={selectedFolderId}
+                onSelectFolder={handleSelectFolder}
+                onDeleteFolder={onDeleteFolder}
+                onRenameFolder={onUpdateFolder}
+              />
+            </div>
           </div>
         </div>
 
