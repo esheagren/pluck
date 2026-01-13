@@ -37,7 +37,8 @@ export default function FolderList({
   onDeleteFolder,
   onRenameFolder,
   orderedItems = [],
-  onReorder
+  onReorder,
+  isDraggingCard = false
 }) {
   const [editingId, setEditingId] = useState(null)
   const [editName, setEditName] = useState('')
@@ -225,11 +226,17 @@ export default function FolderList({
               // Skip if folder doesn't exist (was deleted)
               if (!isUnfiled && !folder) return null
 
+              // Unfiled is not a drop target (cards are already unfiled)
+              // Other folders become drop targets, expanded when dragging
               return (
                 <SortableFolderTab key={id} id={id}>
-                  <DroppableFolder id={id} className="rounded-lg">
-                    {renderFolderTab(folder, isUnfiled)}
-                  </DroppableFolder>
+                  {isUnfiled ? (
+                    renderFolderTab(folder, isUnfiled)
+                  ) : (
+                    <DroppableFolder id={id} className="rounded-lg" expanded={isDraggingCard}>
+                      {renderFolderTab(folder, isUnfiled)}
+                    </DroppableFolder>
+                  )}
                 </SortableFolderTab>
               )
             })}

@@ -6,7 +6,6 @@ import CardGrid from '../components/CardGrid'
 import CreateFolderButton from '../components/CreateFolderButton'
 import FolderList from '../components/FolderList'
 import FolderBadge from '../components/FolderBadge'
-import DroppableFolder from '../components/DroppableFolder'
 
 const FOLDER_ORDER_KEY = 'pluckk-folder-order'
 
@@ -275,40 +274,11 @@ export default function CardsPage({
                 onRenameFolder={onUpdateFolder}
                 orderedItems={orderedItems}
                 onReorder={handleFolderReorder}
+                isDraggingCard={isDragging}
               />
             </div>
           </div>
         </div>
-
-        {/* Drop zone overlay - appears when dragging */}
-        {isDragging && (
-          <div className="w-full max-w-5xl mb-6 p-4 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50/80 backdrop-blur-sm">
-            <p className="text-sm text-gray-500 text-center mb-3">
-              Drop {selectedCount > 1 ? `${selectedCount} cards` : 'card'} into a folder:
-            </p>
-            <div className="flex flex-wrap gap-3 justify-center">
-              {orderedItems.map(id => {
-                const isUnfiled = id === 'unfiled'
-                const folder = isUnfiled ? null : folders.find(f => f.id === id)
-                const name = isUnfiled ? 'Unfiled' : folder?.name
-                const color = isUnfiled ? null : folder?.color
-
-                return (
-                  <DroppableFolder key={id} id={id} expanded>
-                    <div className="flex items-center gap-2">
-                      {color && (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color }}>
-                          <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                        </svg>
-                      )}
-                      <span className="font-medium text-gray-700">{name}</span>
-                    </div>
-                  </DroppableFolder>
-                )
-              })}
-            </div>
-          </div>
-        )}
 
         <CardGrid
           cards={filteredCards}
