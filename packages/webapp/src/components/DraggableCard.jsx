@@ -15,7 +15,7 @@ function GripIcon() {
   )
 }
 
-export default function DraggableCard({ id, children, isSelected, onToggleSelect }) {
+export default function DraggableCard({ id, children, isSelected }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: id,
   })
@@ -40,20 +40,7 @@ export default function DraggableCard({ id, children, isSelected, onToggleSelect
         <GripIcon />
       </div>
 
-      {/* Selection checkbox */}
-      <div
-        className="absolute top-3 right-3 z-10"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={(e) => onToggleSelect?.(id, e)}
-          className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500 cursor-pointer"
-        />
-      </div>
-
-      {/* Card content - click opens modal (no drag conflict) */}
+      {/* Card content */}
       {children}
 
       {isDragging && (

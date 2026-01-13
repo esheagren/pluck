@@ -164,9 +164,8 @@ export default function CardsPage({
     localStorage.setItem(FOLDER_ORDER_KEY, JSON.stringify(newOrder))
   }, [])
 
-  // Toggle card selection for multi-select
-  const toggleCardSelection = useCallback((cardId, event) => {
-    // If shift key is held and we have a previous selection, select range
+  // Toggle card selection for multi-select (Shift+click)
+  const toggleCardSelection = useCallback((cardId) => {
     setSelectedCardIds(prev => {
       const next = new Set(prev)
       if (next.has(cardId)) {
