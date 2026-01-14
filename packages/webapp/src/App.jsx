@@ -55,8 +55,7 @@ export default function App() {
           path="/"
           element={
             <ReviewPage
-              cards={cards}
-              loading={cardsLoading}
+              userId={user?.id}
               onUpdateCard={updateCard}
               onDeleteCard={deleteCard}
             />

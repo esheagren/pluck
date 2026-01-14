@@ -1,69 +1,83 @@
 import { useState, useEffect, useCallback } from 'react'
 import ReviewCard from '../components/ReviewCard'
+import { useReviewState } from '../hooks/useReviewState'
 
-export default function ReviewPage({ cards, loading, onUpdateCard, onDeleteCard }) {
-  const [reviewCards, setReviewCards] = useState([])
-  const [currentIndex, setCurrentIndex] = useState(0)
+export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
+  const {
+    currentCard,
+    loading,
+    isComplete,
+    totalCards,
+    reviewedCount,
+    getIntervalPreviews,
+    submitReview,
+    restart,
+    RATINGS,
+  } = useReviewState(userId)
+
   const [isFlipped, setIsFlipped] = useState(false)
-  const [reviewedCount, setReviewedCount] = useState(0)
+  const [submitting, setSubmitting] = useState(false)
 
-  // Initialize shuffled cards when cards change
+  // Reset flip state when card changes
   useEffect(() => {
-    if (cards.length > 0) {
-      // Shuffle cards
-      const shuffled = [...cards].sort(() => Math.random() - 0.5)
-      setReviewCards(shuffled)
-      setCurrentIndex(0)
-      setReviewedCount(0)
-      setIsFlipped(false)
-    }
-  }, [cards])
+    setIsFlipped(false)
+  }, [currentCard?.id])
 
   const flipCard = useCallback(() => {
     setIsFlipped(true)
   }, [])
 
-  const handleAnswer = useCallback((remembered) => {
-    if (!isFlipped) return
+  const handleRating = useCallback(async (rating) => {
+    if (!isFlipped || submitting) return
 
-    console.log(`Card ${reviewCards[currentIndex]?.id}: ${remembered ? 'remembered' : 'forgot'}`)
-
-    setReviewedCount(prev => prev + 1)
-    setCurrentIndex(prev => prev + 1)
+    setSubmitting(true)
+    await submitReview(rating)
+    setSubmitting(false)
     setIsFlipped(false)
-  }, [isFlipped, currentIndex, reviewCards])
+  }, [isFlipped, submitting, submitReview])
 
   const restartReview = useCallback(() => {
-    const shuffled = [...cards].sort(() => Math.random() - 0.5)
-    setReviewCards(shuffled)
-    setCurrentIndex(0)
-    setReviewedCount(0)
     setIsFlipped(false)
-  }, [cards])
+    restart()
+  }, [restart])
+
+  // Get interval previews for buttons
+  const intervals = getIntervalPreviews()
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeydown = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+      if (submitting) return
 
-      if (e.code === 'Space') {
+      // Space to reveal
+      if (e.code === 'Space' && !isFlipped) {
         e.preventDefault()
-        if (!isFlipped) {
-          flipCard()
-        } else {
-          handleAnswer(true)
-        }
+        flipCard()
+        return
       }
 
-      if (e.code === 'KeyF' && isFlipped) {
-        e.preventDefault()
-        handleAnswer(false)
+      // Rating shortcuts (only when flipped)
+      if (isFlipped) {
+        if (e.code === 'Digit1' || e.code === 'Numpad1') {
+          e.preventDefault()
+          handleRating(RATINGS.AGAIN)
+        } else if (e.code === 'Digit2' || e.code === 'Numpad2') {
+          e.preventDefault()
+          handleRating(RATINGS.HARD)
+        } else if (e.code === 'Digit3' || e.code === 'Numpad3') {
+          e.preventDefault()
+          handleRating(RATINGS.GOOD)
+        } else if (e.code === 'Digit4' || e.code === 'Numpad4') {
+          e.preventDefault()
+          handleRating(RATINGS.EASY)
+        }
       }
     }
 
     document.addEventListener('keydown', handleKeydown)
     return () => document.removeEventListener('keydown', handleKeydown)
-  }, [isFlipped, flipCard, handleAnswer])
+  }, [isFlipped, submitting, flipCard, handleRating, RATINGS])
 
   // Wrapper component for centering content vertically
   const CenteredWrapper = ({ children }) => (
@@ -71,6 +85,24 @@ export default function ReviewPage({ cards, loading, onUpdateCard, onDeleteCard 
       {children}
     </div>
   )
+
+  // User validation
+  if (!userId) {
+    return (
+      <CenteredWrapper>
+        <div className="flex flex-col items-center justify-center text-center gap-4">
+          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-2">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <h2 className="text-lg font-medium text-gray-800">Sign in required</h2>
+          <p className="text-gray-500 text-sm">Please sign in to review your cards.</p>
+        </div>
+      </CenteredWrapper>
+    )
+  }
 
   // Loading state
   if (loading) {
@@ -85,7 +117,7 @@ export default function ReviewPage({ cards, loading, onUpdateCard, onDeleteCard 
   }
 
   // Empty state
-  if (cards.length === 0) {
+  if (totalCards === 0) {
     return (
       <CenteredWrapper>
         <div className="flex flex-col items-center justify-center text-center gap-4">
@@ -96,15 +128,15 @@ export default function ReviewPage({ cards, loading, onUpdateCard, onDeleteCard 
               <line x1="15" y1="9" x2="9" y2="15"></line>
             </svg>
           </div>
-          <h2 className="text-lg font-medium text-gray-800">No cards to review</h2>
-          <p className="text-gray-500 text-sm">Use the Pluckk extension to create some flashcards first.</p>
+          <h2 className="text-lg font-medium text-gray-800">No cards due</h2>
+          <p className="text-gray-500 text-sm">All caught up! Check back later for more reviews.</p>
         </div>
       </CenteredWrapper>
     )
   }
 
   // Complete state
-  if (currentIndex >= reviewCards.length) {
+  if (isComplete) {
     return (
       <CenteredWrapper>
         <div className="flex flex-col items-center justify-center text-center gap-4">
@@ -115,7 +147,7 @@ export default function ReviewPage({ cards, loading, onUpdateCard, onDeleteCard 
             </svg>
           </div>
           <h2 className="text-lg font-medium text-gray-800">All done!</h2>
-          <p className="text-gray-500 text-sm">You've reviewed all your cards.</p>
+          <p className="text-gray-500 text-sm">You've reviewed {reviewedCount} card{reviewedCount !== 1 ? 's' : ''}.</p>
           <button
             onClick={restartReview}
             className="mt-2 px-7 py-3.5 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 transition-colors"
@@ -128,47 +160,80 @@ export default function ReviewPage({ cards, loading, onUpdateCard, onDeleteCard 
   }
 
   // Review state
-  const currentCard = reviewCards[currentIndex]
-
   return (
     <CenteredWrapper>
       <div className="flex flex-col items-center gap-8">
-      <ReviewCard
-        card={currentCard}
-        isFlipped={isFlipped}
-        onFlip={flipCard}
-        onUpdateCard={onUpdateCard}
-        onDeleteCard={onDeleteCard}
-      />
-
-      {/* Hint */}
-      {!isFlipped && (
-        <div className="text-gray-500 text-sm">
-          <span>Press </span>
-          <kbd className="inline-block px-2 py-1 text-xs bg-white border border-gray-200 rounded shadow-sm">Space</kbd>
-          <span> to reveal answer</span>
+        {/* Progress indicator */}
+        <div className="text-sm text-gray-400">
+          {reviewedCount + 1} / {totalCards}
         </div>
-      )}
 
-      {/* Actions */}
-      {isFlipped && (
-        <div className="flex gap-4">
-          <button
-            onClick={() => handleAnswer(false)}
-            className="flex items-center gap-2.5 px-7 py-3.5 bg-red-50 text-red-500 text-sm font-medium rounded-lg hover:bg-red-100 transition-colors min-w-[140px] justify-center"
-          >
-            <span>Forgot</span>
-            <kbd className="px-1.5 py-0.5 text-xs bg-red-100 rounded">F</kbd>
-          </button>
-          <button
-            onClick={() => handleAnswer(true)}
-            className="flex items-center gap-2.5 px-7 py-3.5 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 transition-colors min-w-[140px] justify-center"
-          >
-            <span>Got it</span>
-            <kbd className="px-1.5 py-0.5 text-xs bg-white/20 rounded">Space</kbd>
-          </button>
-        </div>
-      )}
+        <ReviewCard
+          card={currentCard}
+          isFlipped={isFlipped}
+          onFlip={flipCard}
+          onUpdateCard={onUpdateCard}
+          onDeleteCard={onDeleteCard}
+        />
+
+        {/* Hint */}
+        {!isFlipped && (
+          <div className="text-gray-500 text-sm">
+            <span>Press </span>
+            <kbd className="inline-block px-2 py-1 text-xs bg-white border border-gray-200 rounded shadow-sm">Space</kbd>
+            <span> to reveal answer</span>
+          </div>
+        )}
+
+        {/* Rating buttons */}
+        {isFlipped && intervals && (
+          <div className="flex gap-3">
+            <button
+              onClick={() => handleRating(RATINGS.AGAIN)}
+              disabled={submitting}
+              className="flex flex-col items-center px-5 py-3 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100 transition-colors min-w-[90px] disabled:opacity-50"
+            >
+              <span className="flex items-center gap-1.5">
+                Again
+                <kbd className="px-1.5 py-0.5 text-xs bg-red-100 rounded">1</kbd>
+              </span>
+              <span className="text-xs text-red-400 mt-1">{intervals.again}</span>
+            </button>
+            <button
+              onClick={() => handleRating(RATINGS.HARD)}
+              disabled={submitting}
+              className="flex flex-col items-center px-5 py-3 bg-orange-50 text-orange-600 text-sm font-medium rounded-lg hover:bg-orange-100 transition-colors min-w-[90px] disabled:opacity-50"
+            >
+              <span className="flex items-center gap-1.5">
+                Hard
+                <kbd className="px-1.5 py-0.5 text-xs bg-orange-100 rounded">2</kbd>
+              </span>
+              <span className="text-xs text-orange-400 mt-1">{intervals.hard}</span>
+            </button>
+            <button
+              onClick={() => handleRating(RATINGS.GOOD)}
+              disabled={submitting}
+              className="flex flex-col items-center px-5 py-3 bg-green-50 text-green-600 text-sm font-medium rounded-lg hover:bg-green-100 transition-colors min-w-[90px] disabled:opacity-50"
+            >
+              <span className="flex items-center gap-1.5">
+                Good
+                <kbd className="px-1.5 py-0.5 text-xs bg-green-100 rounded">3</kbd>
+              </span>
+              <span className="text-xs text-green-400 mt-1">{intervals.good}</span>
+            </button>
+            <button
+              onClick={() => handleRating(RATINGS.EASY)}
+              disabled={submitting}
+              className="flex flex-col items-center px-5 py-3 bg-blue-50 text-blue-600 text-sm font-medium rounded-lg hover:bg-blue-100 transition-colors min-w-[90px] disabled:opacity-50"
+            >
+              <span className="flex items-center gap-1.5">
+                Easy
+                <kbd className="px-1.5 py-0.5 text-xs bg-blue-100 rounded">4</kbd>
+              </span>
+              <span className="text-xs text-blue-400 mt-1">{intervals.easy}</span>
+            </button>
+          </div>
+        )}
       </div>
     </CenteredWrapper>
   )
