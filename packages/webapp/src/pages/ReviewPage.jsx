@@ -9,9 +9,11 @@ export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
     isComplete,
     totalCards,
     reviewedCount,
+    totalNewCards,
+    newCardsAvailableToday,
     getIntervalPreviews,
     submitReview,
-    restart,
+    startNewCardsSession,
     RATINGS,
   } = useReviewState(userId)
 
@@ -36,10 +38,10 @@ export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
     setIsFlipped(false)
   }, [isFlipped, submitting, submitReview])
 
-  const restartReview = useCallback(() => {
+  const handleStartNewCards = useCallback(() => {
     setIsFlipped(false)
-    restart()
-  }, [restart])
+    startNewCardsSession()
+  }, [startNewCardsSession])
 
   // Get interval previews for buttons
   const intervals = getIntervalPreviews()
@@ -116,20 +118,33 @@ export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
     )
   }
 
-  // Empty state
+  // Empty state - no cards in queue
   if (totalCards === 0) {
+    const hasNewCards = newCardsAvailableToday > 0
+
     return (
       <CenteredWrapper>
         <div className="flex flex-col items-center justify-center text-center gap-4">
-          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-2">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="9" y1="9" x2="15" y2="15"></line>
-              <line x1="15" y1="9" x2="9" y2="15"></line>
+          <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-2">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-green-500">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
             </svg>
           </div>
           <h2 className="text-lg font-medium text-gray-800">No cards due</h2>
-          <p className="text-gray-500 text-sm">All caught up! Check back later for more reviews.</p>
+          <p className="text-gray-500 text-sm">All caught up on reviews!</p>
+          {hasNewCards ? (
+            <button
+              onClick={handleStartNewCards}
+              className="mt-2 px-7 py-3.5 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 transition-colors"
+            >
+              Learn {newCardsAvailableToday} new card{newCardsAvailableToday !== 1 ? 's' : ''}
+            </button>
+          ) : (
+            <p className="text-gray-400 text-sm">
+              {totalNewCards === 0 ? 'No new cards to learn.' : "You've reached your new cards limit for today."}
+            </p>
+          )}
         </div>
       </CenteredWrapper>
     )
@@ -137,6 +152,10 @@ export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
 
   // Complete state
   if (isComplete) {
+    const hasNewCards = newCardsAvailableToday > 0
+    // newCardsAvailableToday already accounts for the daily limit in the hook
+    const newCardsToShow = newCardsAvailableToday
+
     return (
       <CenteredWrapper>
         <div className="flex flex-col items-center justify-center text-center gap-4">
@@ -148,12 +167,18 @@ export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
           </div>
           <h2 className="text-lg font-medium text-gray-800">All done!</h2>
           <p className="text-gray-500 text-sm">You've reviewed {reviewedCount} card{reviewedCount !== 1 ? 's' : ''}.</p>
-          <button
-            onClick={restartReview}
-            className="mt-2 px-7 py-3.5 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 transition-colors"
-          >
-            Review Again
-          </button>
+          {hasNewCards ? (
+            <button
+              onClick={handleStartNewCards}
+              className="mt-2 px-7 py-3.5 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 transition-colors"
+            >
+              Learn {newCardsToShow} new card{newCardsToShow !== 1 ? 's' : ''}
+            </button>
+          ) : (
+            <p className="text-gray-400 text-sm mt-2">
+              {totalNewCards === 0 ? 'No new cards available.' : "You've reached your new cards limit for today."}
+            </p>
+          )}
         </div>
       </CenteredWrapper>
     )

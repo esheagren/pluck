@@ -40,6 +40,8 @@ export function useReviewState(userId) {
   const [dueCards, setDueCards] = useState([])
   const [loading, setLoading] = useState(true)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [totalNewCards, setTotalNewCards] = useState(0)
+  const [newCardsAvailableToday, setNewCardsAvailableToday] = useState(0)
 
   /**
    * Fetch cards that are due for review.
@@ -115,9 +117,13 @@ export function useReviewState(userId) {
       const reviewCards = cardsWithState.filter(c => c.is_due && !c.is_new)
       const newCards = cardsWithState.filter(c => c.is_new)
 
+      // Store total new cards count
+      setTotalNewCards(newCards.length)
+
       // Apply new cards per day limit
       const newCardsLimit = getNewCardsPerDay()
       let limitedNewCards = newCards
+      let availableToday = newCards.length // Default to all new cards if unlimited
 
       // If limit is 0, that means unlimited; otherwise apply the limit
       if (newCardsLimit > 0) {
@@ -136,16 +142,23 @@ export function useReviewState(userId) {
           console.error('Error fetching review logs:', logsError)
           // Fail safe: if we can't count, show no new cards to prevent exceeding limit
           limitedNewCards = []
+          availableToday = 0
         } else {
           // Deduplicate by card_id in case same card was reviewed multiple times
           const uniqueCardIds = new Set(todayLogs?.map(log => log.card_id) || [])
           const newCardsReviewedToday = uniqueCardIds.size
           const remainingNewCards = Math.max(0, newCardsLimit - newCardsReviewedToday)
 
+          // Track how many new cards are available today (min of remaining allowance and available cards)
+          availableToday = Math.min(remainingNewCards, newCards.length)
+
           // Limit new cards to the remaining allowance
           limitedNewCards = newCards.slice(0, remainingNewCards)
         }
       }
+
+      // Store available new cards for today
+      setNewCardsAvailableToday(availableToday)
 
       // Combine review cards and limited new cards, then shuffle
       const allDue = [...reviewCards, ...limitedNewCards]
@@ -155,6 +168,101 @@ export function useReviewState(userId) {
       setCurrentIndex(0)
     } catch (error) {
       console.error('Error fetching due cards:', error)
+      setDueCards([])
+    } finally {
+      setLoading(false)
+    }
+  }, [userId])
+
+  /**
+   * Start a session with only new cards (no review cards).
+   * Respects the daily new cards limit.
+   */
+  const startNewCardsSession = useCallback(async () => {
+    if (!userId) {
+      setDueCards([])
+      setLoading(false)
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      // Fetch all user's cards
+      const { data: cards, error: cardsError } = await supabase
+        .from('cards')
+        .select('*, folder:folders(*)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+
+      if (cardsError) {
+        console.error('Error fetching cards:', cardsError)
+        setDueCards([])
+        setLoading(false)
+        return
+      }
+
+      // Get review states to identify new cards
+      const cardIds = cards.map(c => c.id)
+      let reviewStates = []
+
+      if (cardIds.length > 0) {
+        const { data, error: statesError } = await supabase
+          .from('card_review_state')
+          .select('card_id')
+          .eq('user_id', userId)
+          .in('card_id', cardIds)
+
+        if (!statesError) {
+          reviewStates = data || []
+        }
+      }
+
+      // Find cards without review state (new cards)
+      const reviewedCardIds = new Set(reviewStates.map(s => s.card_id))
+      const newCards = cards
+        .filter(c => !reviewedCardIds.has(c.id))
+        .map(c => ({ ...c, review_state: null, is_new: true }))
+
+      // Update total new cards count
+      setTotalNewCards(newCards.length)
+
+      // Apply daily limit
+      const newCardsLimit = getNewCardsPerDay()
+      let limitedNewCards = newCards
+      let availableToday = newCards.length
+
+      if (newCardsLimit > 0) {
+        const todayStart = new Date(new Date().toDateString())
+
+        const { data: todayLogs, error: logsError } = await supabase
+          .from('review_logs')
+          .select('card_id')
+          .eq('user_id', userId)
+          .gte('reviewed_at', todayStart.toISOString())
+          .eq('previous_status', STATUS.NEW)
+
+        if (logsError) {
+          limitedNewCards = []
+          availableToday = 0
+        } else {
+          const uniqueCardIds = new Set(todayLogs?.map(log => log.card_id) || [])
+          const newCardsReviewedToday = uniqueCardIds.size
+          const remainingNewCards = Math.max(0, newCardsLimit - newCardsReviewedToday)
+
+          availableToday = Math.min(remainingNewCards, newCards.length)
+          limitedNewCards = newCards.slice(0, remainingNewCards)
+        }
+      }
+
+      setNewCardsAvailableToday(availableToday)
+
+      // Shuffle and set
+      const shuffled = limitedNewCards.sort(() => Math.random() - 0.5)
+      setDueCards(shuffled)
+      setCurrentIndex(0)
+    } catch (error) {
+      console.error('Error fetching new cards:', error)
       setDueCards([])
     } finally {
       setLoading(false)
@@ -297,9 +405,13 @@ export function useReviewState(userId) {
     isComplete,
     totalCards: dueCards.length,
     reviewedCount: currentIndex,
+    totalNewCards,
+    newCardsAvailableToday,
+    newCardsPerDay: getNewCardsPerDay(),
     getIntervalPreviews,
     submitReview,
     restart,
+    startNewCardsSession,
     refetch: fetchDueCards,
     RATINGS, // Export for convenience
   }
