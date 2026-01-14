@@ -38,9 +38,9 @@ export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
     setIsFlipped(false)
   }, [isFlipped, submitting, submitReview])
 
-  const handleStartNewCards = useCallback(() => {
+  const handleStartNewCards = useCallback((ignoreLimit = false) => {
     setIsFlipped(false)
-    startNewCardsSession()
+    startNewCardsSession(ignoreLimit)
   }, [startNewCardsSession])
 
   // Get interval previews for buttons
@@ -135,15 +135,23 @@ export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
           <p className="text-gray-500 text-sm">All caught up on reviews!</p>
           {hasNewCards ? (
             <button
-              onClick={handleStartNewCards}
+              onClick={() => handleStartNewCards(false)}
               className="mt-2 px-7 py-3.5 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 transition-colors"
             >
               Learn {newCardsAvailableToday} new card{newCardsAvailableToday !== 1 ? 's' : ''}
             </button>
+          ) : totalNewCards > 0 ? (
+            <>
+              <p className="text-gray-400 text-sm">You've reached your new cards limit for today.</p>
+              <button
+                onClick={() => handleStartNewCards(true)}
+                className="mt-2 px-5 py-2.5 bg-white text-gray-600 text-sm font-medium rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                Learn {totalNewCards} more anyway
+              </button>
+            </>
           ) : (
-            <p className="text-gray-400 text-sm">
-              {totalNewCards === 0 ? 'No new cards to learn.' : "You've reached your new cards limit for today."}
-            </p>
+            <p className="text-gray-400 text-sm">No new cards to learn.</p>
           )}
         </div>
       </CenteredWrapper>
@@ -169,15 +177,23 @@ export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
           <p className="text-gray-500 text-sm">You've reviewed {reviewedCount} card{reviewedCount !== 1 ? 's' : ''}.</p>
           {hasNewCards ? (
             <button
-              onClick={handleStartNewCards}
+              onClick={() => handleStartNewCards(false)}
               className="mt-2 px-7 py-3.5 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 transition-colors"
             >
               Learn {newCardsToShow} new card{newCardsToShow !== 1 ? 's' : ''}
             </button>
+          ) : totalNewCards > 0 ? (
+            <>
+              <p className="text-gray-400 text-sm mt-2">You've reached your new cards limit for today.</p>
+              <button
+                onClick={() => handleStartNewCards(true)}
+                className="mt-2 px-5 py-2.5 bg-white text-gray-600 text-sm font-medium rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                Learn {totalNewCards} more anyway
+              </button>
+            </>
           ) : (
-            <p className="text-gray-400 text-sm mt-2">
-              {totalNewCards === 0 ? 'No new cards available.' : "You've reached your new cards limit for today."}
-            </p>
+            <p className="text-gray-400 text-sm mt-2">No new cards available.</p>
           )}
         </div>
       </CenteredWrapper>

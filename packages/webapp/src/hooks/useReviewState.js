@@ -176,9 +176,9 @@ export function useReviewState(userId) {
 
   /**
    * Start a session with only new cards (no review cards).
-   * Respects the daily new cards limit.
+   * @param {boolean} ignoreLimit - If true, bypasses the daily new cards limit
    */
-  const startNewCardsSession = useCallback(async () => {
+  const startNewCardsSession = useCallback(async (ignoreLimit = false) => {
     if (!userId) {
       setDueCards([])
       setLoading(false)
@@ -227,12 +227,12 @@ export function useReviewState(userId) {
       // Update total new cards count
       setTotalNewCards(newCards.length)
 
-      // Apply daily limit
+      // Apply daily limit (unless ignoreLimit is true)
       const newCardsLimit = getNewCardsPerDay()
       let limitedNewCards = newCards
       let availableToday = newCards.length
 
-      if (newCardsLimit > 0) {
+      if (!ignoreLimit && newCardsLimit > 0) {
         const todayStart = new Date(new Date().toDateString())
 
         const { data: todayLogs, error: logsError } = await supabase
@@ -255,7 +255,7 @@ export function useReviewState(userId) {
         }
       }
 
-      setNewCardsAvailableToday(availableToday)
+      setNewCardsAvailableToday(ignoreLimit ? newCards.length : availableToday)
 
       // Shuffle and set
       const shuffled = limitedNewCards.sort(() => Math.random() - 0.5)
