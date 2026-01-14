@@ -42,56 +42,43 @@ export function calculateNextReview(currentState, rating, config = DEFAULT_CONFI
   }
 
   // Calculate new interval based on rating
-  switch (rating) {
-    case RATINGS.AGAIN:
-      // Reset to learning interval (10 minutes)
-      newInterval = config.learningInterval;
-      newStatus = currentStatus === STATUS.NEW ? STATUS.LEARNING : STATUS.RELEARNING;
-      // Ease penalty applies even for new cards on "again"
+  if (isNewCard) {
+    // New cards use fixed intervals from config
+    newInterval = config.newCardIntervals[rating];
+    newStatus = rating === RATINGS.AGAIN ? STATUS.LEARNING : STATUS.REVIEW;
+    // Ease penalty applies on "again"
+    if (rating === RATINGS.AGAIN) {
       newEase = Math.max(config.minimumEase, currentEase + config.easeBonus.again);
-      break;
+    }
+  } else {
+    // Existing cards use multipliers
+    switch (rating) {
+      case RATINGS.AGAIN:
+        newInterval = config.newCardIntervals.again; // 10 minutes
+        newStatus = STATUS.RELEARNING;
+        break;
 
-    case RATINGS.HARD:
-      if (isNewCard) {
-        // New card marked hard: give it a shorter graduating interval
-        newInterval = config.graduatingInterval * config.graduationMultiplier.hard;
-        newStatus = STATUS.REVIEW;
-      } else {
-        // Existing card: small increase
+      case RATINGS.HARD:
         newInterval = Math.max(
           currentInterval * config.intervalMultiplier.hard,
-          config.graduatingInterval
+          1 // minimum 1 day
         );
         newStatus = STATUS.REVIEW;
-      }
-      break;
+        break;
 
-    case RATINGS.GOOD:
-      if (isNewCard) {
-        // New card: graduate to first interval
-        newInterval = config.graduatingInterval;
-        newStatus = STATUS.REVIEW;
-      } else {
-        // Existing card: multiply by ease factor
+      case RATINGS.GOOD:
         newInterval = currentInterval * newEase;
         newStatus = STATUS.REVIEW;
-      }
-      break;
+        break;
 
-    case RATINGS.EASY:
-      if (isNewCard) {
-        // New card marked easy: give bonus interval
-        newInterval = config.graduatingInterval * config.intervalMultiplier.easy * config.graduationMultiplier.easy;
-        newStatus = STATUS.REVIEW;
-      } else {
-        // Existing card: multiply by ease and easy bonus
+      case RATINGS.EASY:
         newInterval = currentInterval * newEase * config.intervalMultiplier.easy;
         newStatus = STATUS.REVIEW;
-      }
-      break;
+        break;
 
-    default:
-      throw new Error(`Unknown rating: ${rating}`);
+      default:
+        throw new Error(`Unknown rating: ${rating}`);
+    }
   }
 
   // Cap interval at maximum

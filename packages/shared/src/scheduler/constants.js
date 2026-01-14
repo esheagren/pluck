@@ -24,18 +24,13 @@ export const DEFAULT_CONFIG = {
     easy: 1.3,  // Applied on top of ease factor
   },
 
-  // Graduation multipliers for new cards
-  graduationMultiplier: {
-    hard: 0.5,  // Hard on new card = graduatingInterval * 0.5
-    easy: 2.0,  // Easy on new card = graduatingInterval * easy * 2.0
+  // Intervals for new/first-time cards (in days)
+  newCardIntervals: {
+    again: 0.00694,  // 10 minutes
+    hard: 1,         // 1 day
+    good: 3,         // 3 days
+    easy: 7,         // 7 days
   },
-
-  // Learning phase - interval in days for "again" rating
-  // 0.00694 = 10 minutes (10 / 1440 minutes per day)
-  learningInterval: 0.00694,
-
-  // First interval after graduating from "new" status (in days)
-  graduatingInterval: 1.0,
 
   // Maximum interval cap (in days)
   maxIntervalDays: 365,
