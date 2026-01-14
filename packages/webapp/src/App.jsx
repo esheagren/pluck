@@ -50,7 +50,7 @@ export default function App() {
   // Authenticated - show main app
   return (
     <Routes>
-      <Route element={<Layout folders={folders} />}>
+      <Route element={<Layout />}>
         <Route
           path="/"
           element={

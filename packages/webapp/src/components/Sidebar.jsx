@@ -1,11 +1,6 @@
-import { useState } from 'react'
-import { NavLink, useSearchParams } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 
-export default function Sidebar({ folders = [] }) {
-  const [isFoldersExpanded, setIsFoldersExpanded] = useState(true)
-  const [searchParams] = useSearchParams()
-  const currentFolderId = searchParams.get('folder')
-
+export default function Sidebar() {
   return (
     <nav className="w-[220px] bg-white border-r border-gray-200 flex flex-col fixed top-0 left-0 bottom-0 max-md:hidden">
       {/* Header */}
@@ -34,76 +29,22 @@ export default function Sidebar({ folders = [] }) {
           <span>Review</span>
         </NavLink>
 
-        {/* Cards with expandable folders */}
-        <div>
-          <div className="flex items-center">
-            <NavLink
-              to="/cards"
-              end
-              className={({ isActive }) =>
-                `flex-1 flex items-center gap-3 px-3.5 py-3 rounded-lg text-sm font-medium transition-all ${
-                  isActive && !currentFolderId ? 'bg-gray-100 text-gray-800' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-                }`
-              }
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="7" height="7" rx="1"></rect>
-                <rect x="14" y="3" width="7" height="7" rx="1"></rect>
-                <rect x="3" y="14" width="7" height="7" rx="1"></rect>
-                <rect x="14" y="14" width="7" height="7" rx="1"></rect>
-              </svg>
-              <span>Cards</span>
-            </NavLink>
-            {folders.length > 0 && (
-              <button
-                onClick={() => setIsFoldersExpanded(!isFoldersExpanded)}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg transition-colors"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className={`transition-transform ${isFoldersExpanded ? 'rotate-180' : ''}`}
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-            )}
-          </div>
-
-          {/* Folder sub-items */}
-          {isFoldersExpanded && folders.length > 0 && (
-            <div className="ml-4 mt-1 flex flex-col gap-0.5">
-              {folders.map(folder => (
-                <NavLink
-                  key={folder.id}
-                  to={`/cards?folder=${folder.id}`}
-                  className={() =>
-                    `flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
-                      currentFolderId === folder.id
-                        ? 'bg-gray-100 text-gray-800 font-medium'
-                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-                    }`
-                  }
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    style={{ color: folder.color }}
-                  >
-                    <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                  </svg>
-                  <span className="truncate">{folder.name}</span>
-                </NavLink>
-              ))}
-            </div>
-          )}
-        </div>
+        <NavLink
+          to="/cards"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3.5 py-3 rounded-lg text-sm font-medium transition-all ${
+              isActive ? 'bg-gray-100 text-gray-800' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+            }`
+          }
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+          </svg>
+          <span>Cards</span>
+        </NavLink>
       </div>
 
       {/* Feedback & Settings at bottom */}

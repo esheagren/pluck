@@ -3,7 +3,7 @@ import Sidebar from './Sidebar'
 import MobileNav from './MobileNav'
 import SandAnimation from './SandAnimation'
 
-export default function Layout({ folders = [] }) {
+export default function Layout() {
   return (
     <div className="flex min-h-screen bg-gray-50 relative overflow-hidden">
       {/* Background animation */}
@@ -11,8 +11,8 @@ export default function Layout({ folders = [] }) {
         <SandAnimation filterPosition={0.875} speed={0.2} opacity={0.2} />
       </div>
 
-      <Sidebar folders={folders} />
-      <MobileNav folders={folders} />
+      <Sidebar />
+      <MobileNav />
       <main className="relative z-10 flex-1 ml-[220px] flex items-start justify-center p-10 max-md:ml-0">
         <Outlet />
       </main>
