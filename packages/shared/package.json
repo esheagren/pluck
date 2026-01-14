@@ -8,7 +8,8 @@
     ".": "./src/index.js",
     "./supabase": "./src/supabase/index.js",
     "./constants": "./src/constants/index.js",
-    "./utils": "./src/utils/index.js"
+    "./utils": "./src/utils/index.js",
+    "./scheduler": "./src/scheduler/index.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0"
