@@ -11,6 +11,7 @@ export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
     reviewedCount,
     totalNewCards,
     newCardsAvailableToday,
+    newCardsPerDay,
     getIntervalPreviews,
     submitReview,
     startNewCardsSession,
@@ -147,7 +148,7 @@ export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
                 onClick={() => handleStartNewCards(true)}
                 className="mt-2 px-5 py-2.5 bg-white text-gray-600 text-sm font-medium rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
               >
-                Learn {totalNewCards} more anyway
+                Learn {Math.min(newCardsPerDay || totalNewCards, totalNewCards)} more anyway
               </button>
             </>
           ) : (
@@ -189,7 +190,7 @@ export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
                 onClick={() => handleStartNewCards(true)}
                 className="mt-2 px-5 py-2.5 bg-white text-gray-600 text-sm font-medium rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
               >
-                Learn {totalNewCards} more anyway
+                Learn {Math.min(newCardsPerDay || totalNewCards, totalNewCards)} more anyway
               </button>
             </>
           ) : (

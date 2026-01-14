@@ -10,6 +10,7 @@ import FeedbackPage from './pages/FeedbackPage'
 import LandingPage from './pages/LandingPage'
 import InfoPage from './pages/InfoPage'
 import PrivacyPage from './pages/PrivacyPage'
+import ActivityPage from './pages/ActivityPage'
 
 // Loading Screen Component
 function LoadingScreen() {
@@ -90,6 +91,7 @@ export default function App() {
             />
           }
         />
+        <Route path="/activity" element={<ActivityPage />} />
         <Route path="/feedback" element={<FeedbackPage />} />
       </Route>
     </Routes>

@@ -232,7 +232,12 @@ export function useReviewState(userId) {
       let limitedNewCards = newCards
       let availableToday = newCards.length
 
-      if (!ignoreLimit && newCardsLimit > 0) {
+      if (ignoreLimit) {
+        // When ignoring the daily limit, still batch by user's preference
+        const batchSize = newCardsLimit > 0 ? newCardsLimit : newCards.length
+        limitedNewCards = newCards.slice(0, batchSize)
+        availableToday = newCards.length
+      } else if (newCardsLimit > 0) {
         const todayStart = new Date(new Date().toDateString())
 
         const { data: todayLogs, error: logsError } = await supabase
@@ -255,7 +260,7 @@ export function useReviewState(userId) {
         }
       }
 
-      setNewCardsAvailableToday(ignoreLimit ? newCards.length : availableToday)
+      setNewCardsAvailableToday(availableToday)
 
       // Shuffle and set
       const shuffled = limitedNewCards.sort(() => Math.random() - 0.5)
