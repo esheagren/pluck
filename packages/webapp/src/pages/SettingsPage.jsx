@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { BACKEND_URL, MOCHI_API_URL } from '@pluckk/shared/constants'
 import { getAccessToken } from '@pluckk/shared/supabase'
 
+const DEFAULT_NEW_CARDS_PER_DAY = 10
+const NEW_CARDS_KEY = 'pluckk_new_cards_per_day'
+
 export default function SettingsPage({ user, billingInfo, onSignOut, onUpgrade, onManage }) {
   const [mochiApiKey, setMochiApiKey] = useState('')
   const [mochiDeckId, setMochiDeckId] = useState('')
@@ -11,6 +14,7 @@ export default function SettingsPage({ user, billingInfo, onSignOut, onUpgrade, 
   const [fetchingDecks, setFetchingDecks] = useState(false)
   const [status, setStatus] = useState({ type: '', message: '' })
   const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [newCardsPerDay, setNewCardsPerDay] = useState(DEFAULT_NEW_CARDS_PER_DAY)
 
   // Load settings on mount
   useEffect(() => {
@@ -19,6 +23,15 @@ export default function SettingsPage({ user, billingInfo, onSignOut, onUpgrade, 
 
   const loadSettings = async () => {
     try {
+      // Load new cards per day from localStorage
+      const savedNewCards = localStorage.getItem(NEW_CARDS_KEY)
+      if (savedNewCards) {
+        const parsed = parseInt(savedNewCards, 10)
+        if (!isNaN(parsed) && parsed >= 0) {
+          setNewCardsPerDay(parsed)
+        }
+      }
+
       const accessToken = await getAccessToken()
       if (!accessToken) return
 
@@ -81,6 +94,27 @@ export default function SettingsPage({ user, billingInfo, onSignOut, onUpgrade, 
       setStatus({ type: 'error', message: 'Failed to connect to Mochi' })
     } finally {
       setFetchingDecks(false)
+    }
+  }
+
+  const handleNewCardsChange = (value) => {
+    // Allow empty string for editing, but don't save until valid
+    if (value === '') {
+      setNewCardsPerDay('')
+      return
+    }
+    const num = parseInt(value, 10)
+    if (!isNaN(num) && num >= 0) {
+      setNewCardsPerDay(num)
+      localStorage.setItem(NEW_CARDS_KEY, num.toString())
+    }
+  }
+
+  // Handle blur to reset empty input to default
+  const handleNewCardsBlur = () => {
+    if (newCardsPerDay === '' || newCardsPerDay === null) {
+      setNewCardsPerDay(DEFAULT_NEW_CARDS_PER_DAY)
+      localStorage.setItem(NEW_CARDS_KEY, DEFAULT_NEW_CARDS_PER_DAY.toString())
     }
   }
 
@@ -174,6 +208,26 @@ export default function SettingsPage({ user, billingInfo, onSignOut, onUpgrade, 
               </button>
             </div>
           )}
+        </div>
+
+        {/* Study Settings */}
+        <div className="px-5 py-4">
+          <label className="text-xs text-gray-400 uppercase tracking-wide block mb-1">New Cards Per Day</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={newCardsPerDay}
+              onChange={(e) => handleNewCardsChange(e.target.value)}
+              onBlur={handleNewCardsBlur}
+              className="w-20 px-3 py-2 border border-gray-200 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-gray-200"
+            />
+            <span className="text-sm text-gray-500">cards</span>
+          </div>
+          <p className="text-xs text-gray-400 mt-1.5">
+            Maximum number of new cards to study each day. Set to 0 for unlimited.
+          </p>
         </div>
 
         {/* Advanced Settings Toggle */}

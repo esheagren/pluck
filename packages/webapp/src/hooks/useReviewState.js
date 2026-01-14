@@ -11,6 +11,27 @@ import {
 
 const supabase = getSupabaseClient()
 
+const DEFAULT_NEW_CARDS_PER_DAY = 10
+const NEW_CARDS_KEY = 'pluckk_new_cards_per_day'
+
+/**
+ * Get the new cards per day setting from localStorage.
+ */
+function getNewCardsPerDay() {
+  try {
+    const saved = localStorage.getItem(NEW_CARDS_KEY)
+    if (saved) {
+      const parsed = parseInt(saved, 10)
+      if (!isNaN(parsed) && parsed >= 0) {
+        return parsed
+      }
+    }
+  } catch (e) {
+    // localStorage may not be available
+  }
+  return DEFAULT_NEW_CARDS_PER_DAY
+}
+
 /**
  * Hook for managing spaced repetition review state.
  * Fetches due cards, handles rating submissions, and logs reviews.
@@ -78,22 +99,57 @@ export function useReviewState(userId) {
         stateMap.set(state.card_id, state)
       })
 
-      // Filter to due cards and merge with their state
+      // Merge cards with their state and categorize
       const now = new Date()
-      const due = cards
-        .map(card => {
-          const state = stateMap.get(card.id) || null
-          return {
-            ...card,
-            review_state: state,
-            // Card is due if: no state (new card) OR due_at is in the past
-            is_due: !state || new Date(state.due_at) <= now,
-          }
-        })
-        .filter(card => card.is_due)
+      const cardsWithState = cards.map(card => {
+        const state = stateMap.get(card.id) || null
+        return {
+          ...card,
+          review_state: state,
+          is_new: !state,
+          is_due: !state || new Date(state.due_at) <= now,
+        }
+      })
 
-      // Shuffle due cards for variety
-      const shuffled = due.sort(() => Math.random() - 0.5)
+      // Separate into review cards (due, have state) and new cards (no state)
+      const reviewCards = cardsWithState.filter(c => c.is_due && !c.is_new)
+      const newCards = cardsWithState.filter(c => c.is_new)
+
+      // Apply new cards per day limit
+      const newCardsLimit = getNewCardsPerDay()
+      let limitedNewCards = newCards
+
+      // If limit is 0, that means unlimited; otherwise apply the limit
+      if (newCardsLimit > 0) {
+        // Check how many new cards have already been reviewed today
+        // Use local midnight for consistent day boundaries
+        const todayStart = new Date(new Date().toDateString())
+
+        const { data: todayLogs, error: logsError } = await supabase
+          .from('review_logs')
+          .select('card_id')
+          .eq('user_id', userId)
+          .gte('reviewed_at', todayStart.toISOString())
+          .eq('previous_status', STATUS.NEW)
+
+        if (logsError) {
+          console.error('Error fetching review logs:', logsError)
+          // Fail safe: if we can't count, show no new cards to prevent exceeding limit
+          limitedNewCards = []
+        } else {
+          // Deduplicate by card_id in case same card was reviewed multiple times
+          const uniqueCardIds = new Set(todayLogs?.map(log => log.card_id) || [])
+          const newCardsReviewedToday = uniqueCardIds.size
+          const remainingNewCards = Math.max(0, newCardsLimit - newCardsReviewedToday)
+
+          // Limit new cards to the remaining allowance
+          limitedNewCards = newCards.slice(0, remainingNewCards)
+        }
+      }
+
+      // Combine review cards and limited new cards, then shuffle
+      const allDue = [...reviewCards, ...limitedNewCards]
+      const shuffled = allDue.sort(() => Math.random() - 0.5)
 
       setDueCards(shuffled)
       setCurrentIndex(0)
