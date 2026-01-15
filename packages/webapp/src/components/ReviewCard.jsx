@@ -14,10 +14,17 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
   const [deleting, setDeleting] = useState(false)
   const questionRef = useRef(null)
   const answerRef = useRef(null)
+  // Track if we just did an optimistic update to prevent sync effect from overwriting
+  const justSavedRef = useRef(false)
 
   // Update display values when card prop changes (new card)
-  // Skip if actively editing to avoid overwriting user's unsaved changes
+  // Skip if actively editing or if we just saved (optimistic update in progress)
   useEffect(() => {
+    if (justSavedRef.current) {
+      // Clear the flag - we've skipped one sync cycle
+      justSavedRef.current = false
+      return
+    }
     if (!isEditing) {
       setDisplayQuestion(card.question)
       setDisplayAnswer(card.answer)
@@ -58,6 +65,8 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
     // Optimistically update display values immediately for visual feedback
     if (questionChanged) setDisplayQuestion(editQuestion)
     if (answerChanged) setDisplayAnswer(editAnswer)
+    // Prevent the sync effect from overwriting our optimistic update
+    justSavedRef.current = true
     setIsEditing(false)
 
     // Then save to database in background
