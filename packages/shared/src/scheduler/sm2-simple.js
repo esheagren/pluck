@@ -31,27 +31,37 @@ export function calculateNextReview(currentState, rating, config = DEFAULT_CONFI
   let newInterval;
   let newEase = currentEase;
   let newStatus;
-  const isNewCard = currentStatus === STATUS.NEW || currentInterval === 0;
 
-  // Only adjust ease for graduated cards (not new cards per SM-2 spec)
-  if (!isNewCard) {
+  const isNewCard = currentStatus === STATUS.NEW || currentInterval === 0;
+  const isLearningPhase = currentStatus === STATUS.LEARNING || currentStatus === STATUS.RELEARNING;
+
+  if (isNewCard) {
+    // NEW cards: use fixed newCardIntervals
+    newInterval = config.newCardIntervals[rating];
+    newStatus = rating === RATINGS.AGAIN ? STATUS.LEARNING : STATUS.REVIEW;
+    if (rating === RATINGS.AGAIN) {
+      newEase = Math.max(config.minimumEase, currentEase + config.easeBonus.again);
+    }
+  } else if (isLearningPhase) {
+    // LEARNING/RELEARNING cards: use fixed graduation intervals
+    // Graduate to REVIEW on hard/good/easy, stay in learning on again
+    newInterval = config.graduationIntervals[rating];
+    if (newInterval === undefined) {
+      throw new Error(`Unknown rating: ${rating}`);
+    }
+    // No ease adjustment during learning phase
+    if (rating === RATINGS.AGAIN) {
+      newStatus = currentStatus; // Stay in learning/relearning
+    } else {
+      newStatus = STATUS.REVIEW; // Graduate to review
+    }
+  } else {
+    // REVIEW cards: use multiplier-based growth
     newEase = Math.max(
       config.minimumEase,
       currentEase + (config.easeBonus[rating] || 0)
     );
-  }
 
-  // Calculate new interval based on rating
-  if (isNewCard) {
-    // New cards use fixed intervals from config
-    newInterval = config.newCardIntervals[rating];
-    newStatus = rating === RATINGS.AGAIN ? STATUS.LEARNING : STATUS.REVIEW;
-    // Ease penalty applies on "again"
-    if (rating === RATINGS.AGAIN) {
-      newEase = Math.max(config.minimumEase, currentEase + config.easeBonus.again);
-    }
-  } else {
-    // Existing cards use multipliers
     switch (rating) {
       case RATINGS.AGAIN:
         newInterval = config.newCardIntervals.again; // 10 minutes

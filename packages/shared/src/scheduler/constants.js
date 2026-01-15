@@ -32,6 +32,15 @@ export const DEFAULT_CONFIG = {
     easy: 7,         // 7 days
   },
 
+  // Graduation intervals for learning/relearning cards (in days)
+  // Used when card is in LEARNING or RELEARNING status
+  graduationIntervals: {
+    again: 0.00694,  // 10 minutes (stay in learning)
+    hard: 1,         // 1 day
+    good: 2,         // 2 days
+    easy: 4,         // 4 days
+  },
+
   // Maximum interval cap (in days)
   maxIntervalDays: 365,
 };
