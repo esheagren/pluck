@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { useCards } from './hooks/useCards'
 import { useFolders } from './hooks/useFolders'
@@ -6,6 +6,7 @@ import Layout from './components/Layout'
 import ReviewPage from './pages/ReviewPage'
 import CardsPage from './pages/CardsPage'
 import ProfilePage from './pages/ProfilePage'
+import SettingsPage from './pages/SettingsPage'
 import PublicProfilePage from './pages/PublicProfilePage'
 import FeedbackPage from './pages/FeedbackPage'
 import LandingPage from './pages/LandingPage'
@@ -90,8 +91,12 @@ export default function App() {
         />
         <Route
           path="/profile"
+          element={<ProfilePage user={user} />}
+        />
+        <Route
+          path="/settings"
           element={
-            <ProfilePage
+            <SettingsPage
               user={user}
               billingInfo={billingInfo}
               onSignOut={signOut}
@@ -100,7 +105,6 @@ export default function App() {
             />
           }
         />
-        <Route path="/settings" element={<Navigate to="/profile" replace />} />
         <Route path="/activity" element={<ActivityPage />} />
         <Route path="/feedback" element={<FeedbackPage />} />
       </Route>

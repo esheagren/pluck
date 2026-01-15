@@ -16,14 +16,12 @@ export default function SettingsPage({ user, billingInfo, onSignOut, onUpgrade, 
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [newCardsPerDay, setNewCardsPerDay] = useState(DEFAULT_NEW_CARDS_PER_DAY)
 
-  // Load settings on mount
   useEffect(() => {
     loadSettings()
   }, [])
 
   const loadSettings = async () => {
     try {
-      // Load new cards per day from localStorage
       const savedNewCards = localStorage.getItem(NEW_CARDS_KEY)
       if (savedNewCards) {
         const parsed = parseInt(savedNewCards, 10)
@@ -44,7 +42,6 @@ export default function SettingsPage({ user, billingInfo, onSignOut, onUpgrade, 
         setMochiApiKey(data.settings?.mochiApiKey || '')
         setMochiDeckId(data.settings?.mochiDeckId || '')
 
-        // If we have an API key, fetch decks
         if (data.settings?.mochiApiKey) {
           fetchDecks(data.settings.mochiApiKey, data.settings.mochiDeckId)
         }
@@ -77,7 +74,6 @@ export default function SettingsPage({ user, billingInfo, onSignOut, onUpgrade, 
         const deckList = data.docs || []
         setDecks(deckList)
 
-        // If we had a selected deck, keep it selected
         if (selectedDeckId && deckList.some(d => d.id === selectedDeckId)) {
           setMochiDeckId(selectedDeckId)
         } else if (deckList.length > 0 && !selectedDeckId) {
@@ -98,7 +94,6 @@ export default function SettingsPage({ user, billingInfo, onSignOut, onUpgrade, 
   }
 
   const handleNewCardsChange = (value) => {
-    // Allow empty string for editing, but don't save until valid
     if (value === '') {
       setNewCardsPerDay('')
       return
@@ -110,7 +105,6 @@ export default function SettingsPage({ user, billingInfo, onSignOut, onUpgrade, 
     }
   }
 
-  // Handle blur to reset empty input to default
   const handleNewCardsBlur = () => {
     if (newCardsPerDay === '' || newCardsPerDay === null) {
       setNewCardsPerDay(DEFAULT_NEW_CARDS_PER_DAY)
@@ -169,8 +163,7 @@ export default function SettingsPage({ user, billingInfo, onSignOut, onUpgrade, 
     <div className="w-full max-w-lg mx-auto">
       <h2 className="text-xl font-semibold text-gray-800 mb-6">Settings</h2>
 
-      {/* Account Section */}
-      <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 mb-6">
+      <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
         {/* Email */}
         <div className="px-5 py-4">
           <label className="text-xs text-gray-400 uppercase tracking-wide block mb-1">Email</label>
