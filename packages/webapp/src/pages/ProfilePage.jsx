@@ -252,7 +252,16 @@ export default function ProfilePage({ user }) {
             <div className="spinner w-6 h-6 border-2 border-gray-200 border-t-gray-800 rounded-full"></div>
           </div>
         ) : (
-          <ActivityGrid activityData={activityData} />
+          <div className="space-y-6">
+            <div>
+              <h4 className="text-sm font-medium text-gray-600 mb-2">Reviews</h4>
+              <ActivityGrid activityData={activityData} metric="reviews" />
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-gray-600 mb-2">Cards Added</h4>
+              <ActivityGrid activityData={activityData} metric="cardsCreated" />
+            </div>
+          </div>
         )}
       </div>
     </div>

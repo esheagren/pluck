@@ -28,41 +28,35 @@ function formatDisplayDate(dateStr) {
   })
 }
 
-// Helper to get total activity count from either old or new data format
-function getTotalCount(dayData) {
+// Helper to get count for a specific metric or total
+function getCountForMetric(dayData, metric) {
   if (dayData === undefined || dayData === null) return 0
+
   // New format: { reviews: N, cardsCreated: M }
   if (typeof dayData === 'object') {
+    if (metric === 'reviews') return dayData.reviews || 0
+    if (metric === 'cardsCreated') return dayData.cardsCreated || 0
+    // No metric specified - return total
     return (dayData.reviews || 0) + (dayData.cardsCreated || 0)
   }
+
   // Old format: just a number (reviews only)
+  if (metric === 'cardsCreated') return 0
   return dayData
 }
 
-// Helper to get individual counts
-function getActivityCounts(dayData) {
-  if (dayData === undefined || dayData === null) {
-    return { reviews: 0, cardsCreated: 0 }
-  }
-  if (typeof dayData === 'object') {
-    return {
-      reviews: dayData.reviews || 0,
-      cardsCreated: dayData.cardsCreated || 0
-    }
-  }
-  // Old format: just reviews
-  return { reviews: dayData, cardsCreated: 0 }
-}
-
-export default function ActivityGrid({ activityData = {} }) {
+// metric: 'reviews' | 'cardsCreated' | undefined (undefined = combined)
+export default function ActivityGrid({ activityData = {}, metric }) {
   const [tooltip, setTooltip] = useState(null)
 
   const { grid, monthLabels, maxCount } = useMemo(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // Find the earliest date with activity
-    const activityDates = Object.keys(activityData).sort()
+    // Find the earliest date with activity for this metric
+    const activityDates = Object.keys(activityData)
+      .filter(date => getCountForMetric(activityData[date], metric) > 0)
+      .sort()
     let startDate
 
     if (activityDates.length > 0) {
@@ -103,15 +97,14 @@ export default function ActivityGrid({ activityData = {} }) {
       for (let day = 0; day < 7; day++) {
         const dateStr = formatDate(currentDate)
         const dayData = activityData[dateStr]
-        const totalCount = getTotalCount(dayData)
+        const count = getCountForMetric(dayData, metric)
         const isFuture = currentDate > today
 
-        if (totalCount > maxVal) maxVal = totalCount
+        if (count > maxVal) maxVal = count
 
         week.push({
           date: dateStr,
-          count: totalCount,
-          data: dayData,
+          count,
           isFuture
         })
 
@@ -122,12 +115,25 @@ export default function ActivityGrid({ activityData = {} }) {
     }
 
     return { grid: weeks, monthLabels: labels, maxCount: maxVal }
-  }, [activityData])
+  }, [activityData, metric])
 
   // Calculate cell dimensions
   const cellSize = 10
   const cellGap = 3
   const cellStep = cellSize + cellGap // 13px per week column
+
+  // Tooltip label based on metric
+  const getTooltipLabel = (count) => {
+    if (count === 0) return 'No activity'
+    if (metric === 'reviews') {
+      return `${count} ${count === 1 ? 'review' : 'reviews'}`
+    }
+    if (metric === 'cardsCreated') {
+      return `${count} ${count === 1 ? 'card' : 'cards'} added`
+    }
+    // Combined
+    return `${count} ${count === 1 ? 'action' : 'actions'}`
+  }
 
   return (
     <div className="w-full overflow-x-auto">
@@ -149,7 +155,7 @@ export default function ActivityGrid({ activityData = {} }) {
         <div className="flex gap-[3px]">
             {grid.map((week, weekIndex) => (
               <div key={weekIndex} className="flex flex-col gap-[3px]">
-                {week.map((day, dayIndex) => (
+                {week.map((day) => (
                   <div
                     key={day.date}
                     className={`w-[10px] h-[10px] rounded-sm ${
@@ -160,12 +166,9 @@ export default function ActivityGrid({ activityData = {} }) {
                     onMouseEnter={(e) => {
                       if (!day.isFuture) {
                         const rect = e.target.getBoundingClientRect()
-                        const counts = getActivityCounts(day.data)
                         setTooltip({
                           date: day.date,
-                          reviews: counts.reviews,
-                          cardsCreated: counts.cardsCreated,
-                          total: day.count,
+                          count: day.count,
                           x: rect.left + rect.width / 2,
                           y: rect.top - 8
                         })
@@ -196,16 +199,7 @@ export default function ActivityGrid({ activityData = {} }) {
           className="fixed z-50 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full"
           style={{ left: tooltip.x, top: tooltip.y }}
         >
-          <div className="font-medium">
-            {tooltip.reviews > 0 && (
-              <span>{tooltip.reviews} {tooltip.reviews === 1 ? 'review' : 'reviews'}</span>
-            )}
-            {tooltip.reviews > 0 && tooltip.cardsCreated > 0 && <span>, </span>}
-            {tooltip.cardsCreated > 0 && (
-              <span>{tooltip.cardsCreated} {tooltip.cardsCreated === 1 ? 'card' : 'cards'} added</span>
-            )}
-            {tooltip.total === 0 && <span>No activity</span>}
-          </div>
+          <div className="font-medium">{getTooltipLabel(tooltip.count)}</div>
           <div className="text-gray-300">{formatDisplayDate(tooltip.date)}</div>
         </div>
       )}
