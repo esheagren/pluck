@@ -246,20 +246,32 @@ export default function ProfilePage({ user }) {
 
       {/* Activity Section */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Activity</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">Activity</h3>
+          {/* Legend */}
+          <div className="flex items-center gap-1 text-xs text-gray-400">
+            <span>Less</span>
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-100" />
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-300" />
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-500" />
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-700" />
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-900" />
+            <span>More</span>
+          </div>
+        </div>
         {activityLoading ? (
           <div className="flex justify-center py-8">
             <div className="spinner w-6 h-6 border-2 border-gray-200 border-t-gray-800 rounded-full"></div>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div>
               <h4 className="text-sm font-medium text-gray-600 mb-2">Reviews</h4>
-              <ActivityGrid activityData={activityData} metric="reviews" />
+              <ActivityGrid activityData={activityData} metric="reviews" showLegend={false} />
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-600 mb-2">Cards Added</h4>
-              <ActivityGrid activityData={activityData} metric="cardsCreated" />
+              <ActivityGrid activityData={activityData} metric="cardsCreated" showLegend={false} />
             </div>
           </div>
         )}

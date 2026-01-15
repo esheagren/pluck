@@ -46,7 +46,8 @@ function getCountForMetric(dayData, metric) {
 }
 
 // metric: 'reviews' | 'cardsCreated' | undefined (undefined = combined)
-export default function ActivityGrid({ activityData = {}, metric }) {
+// showLegend: whether to show the Less/More legend (default true)
+export default function ActivityGrid({ activityData = {}, metric, showLegend = true }) {
   const [tooltip, setTooltip] = useState(null)
 
   const { grid, monthLabels, maxCount } = useMemo(() => {
@@ -182,15 +183,17 @@ export default function ActivityGrid({ activityData = {}, metric }) {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center justify-end gap-1 mt-3 text-xs text-gray-400">
-          <span>Less</span>
-          <div className="w-[10px] h-[10px] rounded-sm bg-gray-100" />
-          <div className="w-[10px] h-[10px] rounded-sm bg-gray-300" />
-          <div className="w-[10px] h-[10px] rounded-sm bg-gray-500" />
-          <div className="w-[10px] h-[10px] rounded-sm bg-gray-700" />
-          <div className="w-[10px] h-[10px] rounded-sm bg-gray-900" />
-          <span>More</span>
-        </div>
+        {showLegend && (
+          <div className="flex items-center justify-end gap-1 mt-3 text-xs text-gray-400">
+            <span>Less</span>
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-100" />
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-300" />
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-500" />
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-700" />
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-900" />
+            <span>More</span>
+          </div>
+        )}
       </div>
 
       {/* Tooltip */}
