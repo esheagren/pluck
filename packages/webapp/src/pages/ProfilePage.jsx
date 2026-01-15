@@ -7,7 +7,7 @@ import { useActivityStats } from '../hooks/useActivityStats'
 
 export default function ProfilePage({ user }) {
   const { profile, loading: profileLoading, saving: profileSaving, updateProfile, checkUsername } = useProfile()
-  const { activityData, loading: activityLoading } = useActivityStats()
+  const { activityData, loading: activityLoading } = useActivityStats(user?.id)
 
   // Profile editing state
   const [isEditing, setIsEditing] = useState(false)
