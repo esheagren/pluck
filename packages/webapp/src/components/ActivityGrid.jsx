@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 
-const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 function getColorForCount(count, maxCount) {
@@ -36,10 +35,20 @@ export default function ActivityGrid({ activityData = {} }) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // Find the Sunday that starts the grid (53 weeks ago, adjusted to start on Sunday)
-    const startDate = new Date(today)
-    startDate.setDate(startDate.getDate() - 364)
-    // Adjust to previous Sunday
+    // Find the earliest date with activity
+    const activityDates = Object.keys(activityData).sort()
+    let startDate
+
+    if (activityDates.length > 0) {
+      // Start from the first activity date
+      const [year, month, day] = activityDates[0].split('-')
+      startDate = new Date(year, month - 1, day)
+    } else {
+      // No activity yet - show just the current month
+      startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+    }
+
+    // Adjust to previous Sunday to align the grid
     const dayOfWeek = startDate.getDay()
     startDate.setDate(startDate.getDate() - dayOfWeek)
 
@@ -91,13 +100,12 @@ export default function ActivityGrid({ activityData = {} }) {
   const cellSize = 10
   const cellGap = 3
   const cellStep = cellSize + cellGap // 13px per week column
-  const dayLabelWidth = 28 // Width for day labels column
 
   return (
     <div className="w-full overflow-x-auto">
       <div className="inline-block min-w-max">
         {/* Month labels */}
-        <div className="relative h-4 mb-1" style={{ marginLeft: dayLabelWidth }}>
+        <div className="relative h-4 mb-1">
           {monthLabels.map((label, i) => (
             <div
               key={i}
@@ -110,18 +118,7 @@ export default function ActivityGrid({ activityData = {} }) {
         </div>
 
         {/* Grid */}
-        <div className="flex">
-          {/* Day labels */}
-          <div className="flex flex-col gap-[3px] text-xs text-gray-400" style={{ width: dayLabelWidth }}>
-            {DAYS_OF_WEEK.map((day, i) => (
-              <div key={day} className="h-[10px] leading-[10px]" style={{ visibility: i % 2 === 1 ? 'visible' : 'hidden' }}>
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Weeks */}
-          <div className="flex gap-[3px]">
+        <div className="flex gap-[3px]">
             {grid.map((week, weekIndex) => (
               <div key={weekIndex} className="flex flex-col gap-[3px]">
                 {week.map((day, dayIndex) => (
@@ -148,7 +145,6 @@ export default function ActivityGrid({ activityData = {} }) {
                 ))}
               </div>
             ))}
-          </div>
         </div>
 
         {/* Legend */}
