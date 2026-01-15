@@ -540,10 +540,11 @@ export function useReviewState(userId) {
         // Don't fail the whole operation for logging errors
       }
 
-      // If this was a new card, decrement the available counts
+      // If this was a new card, decrement today's available count
+      // Note: totalNewCards stays unchanged - it represents database state
+      // newCardsAvailableToday tracks the session allowance remaining
       if (currentCard.is_new) {
         setNewCardsAvailableToday(prev => Math.max(0, prev - 1))
-        setTotalNewCards(prev => Math.max(0, prev - 1))
       }
 
       // Handle card progression
