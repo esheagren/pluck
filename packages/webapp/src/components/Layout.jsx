@@ -5,9 +5,9 @@ import SandAnimation from './SandAnimation'
 
 export default function Layout() {
   return (
-    <div className="flex min-h-screen bg-gray-50 relative overflow-hidden">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-dark-bg relative overflow-hidden">
       {/* Background animation */}
-      <div className="fixed inset-0 pointer-events-none">
+      <div className="fixed inset-0 pointer-events-none dark:opacity-30">
         <SandAnimation filterPosition={0.875} speed={0.2} opacity={0.2} />
       </div>
 
@@ -17,7 +17,7 @@ export default function Layout() {
         <Outlet />
       </main>
       <footer className="fixed bottom-4 right-6 text-xs">
-        <a href="/privacy" className="text-gray-400 hover:text-gray-600 hover:underline">
+        <a href="/privacy" className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:underline">
           Privacy Policy
         </a>
       </footer>

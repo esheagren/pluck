@@ -27,7 +27,9 @@ export default function MobileNav() {
 
   const navLinkClass = ({ isActive }) =>
     `flex items-center gap-3 px-3.5 py-3 rounded-lg text-sm font-medium transition-all ${
-      isActive ? 'bg-gray-100 text-gray-800' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+      isActive
+        ? 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'
+        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-800 dark:hover:text-gray-200'
     }`
 
   return (
@@ -35,7 +37,7 @@ export default function MobileNav() {
       {/* Floating Hamburger Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="md:hidden fixed top-4 left-4 w-11 h-11 rounded-full bg-white/90 backdrop-blur-sm shadow-md hover:bg-gray-100 flex items-center justify-center transition-colors z-40"
+        className="md:hidden fixed top-4 left-4 w-11 h-11 rounded-full bg-white/90 dark:bg-dark-surface/90 backdrop-blur-sm shadow-md hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center transition-colors z-40 text-gray-700 dark:text-gray-300"
         aria-label="Open menu"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -56,20 +58,20 @@ export default function MobileNav() {
 
       {/* Slide-out Drawer */}
       <nav
-        className={`md:hidden fixed top-0 left-0 bottom-0 w-[85%] max-w-[320px] bg-white z-50 flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
+        className={`md:hidden fixed top-0 left-0 bottom-0 w-[85%] max-w-[320px] bg-white dark:bg-dark-surface z-50 flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         aria-label="Mobile navigation"
       >
         {/* Drawer Header */}
-        <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-gray-200 dark:border-dark-border flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src="/logo.png" alt="Pluckk" className="w-7 h-7" />
-            <h1 className="text-lg font-semibold text-gray-800 tracking-tight">Pluckk</h1>
+            <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-100 tracking-tight">Pluckk</h1>
           </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+            className="w-9 h-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center transition-colors text-gray-700 dark:text-gray-300"
             aria-label="Close menu"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -102,7 +104,7 @@ export default function MobileNav() {
         </div>
 
         {/* Secondary Nav Links */}
-        <div className="p-3 border-t border-gray-200 flex flex-col gap-1">
+        <div className="p-3 border-t border-gray-200 dark:border-dark-border flex flex-col gap-1">
           <NavLink to="/feedback" className={navLinkClass}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 11l18-5v12L3 13v-2z"></path>

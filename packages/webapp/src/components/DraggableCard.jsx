@@ -4,7 +4,7 @@ import { CSS } from '@dnd-kit/utilities'
 // 6-dot grip icon for drag handle
 function GripIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" className="text-gray-400">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" className="text-gray-400 dark:text-gray-500">
       <circle cx="3" cy="2" r="1.5" />
       <circle cx="9" cy="2" r="1.5" />
       <circle cx="3" cy="6" r="1.5" />
@@ -39,7 +39,7 @@ export default function DraggableCard({ id, children, isSelected, isBeingDragged
       <div
         {...listeners}
         {...attributes}
-        className={`absolute top-3 left-3 p-1.5 cursor-grab hover:bg-gray-100 active:cursor-grabbing rounded z-10 transition-opacity ${
+        className={`absolute top-3 left-3 p-1.5 cursor-grab hover:bg-gray-100 dark:hover:bg-gray-800 active:cursor-grabbing rounded z-10 transition-opacity ${
           isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
         }`}
         onClick={(e) => e.stopPropagation()}

@@ -96,18 +96,18 @@ export default function FolderList({
           onKeyDown={(e) => handleKeyDown(e, folder.id)}
           onBlur={() => handleSaveEdit(folder.id)}
           autoFocus
-          className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400"
+          className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 bg-white dark:bg-dark-surface dark:text-gray-200"
         />
       )
     }
 
     if (!isUnfiled && confirmDeleteId === folder.id) {
       return (
-        <div className="flex items-center gap-1 px-3 py-2 bg-red-50 rounded-lg">
-          <span className="text-sm text-red-600">Delete?</span>
+        <div className="flex items-center gap-1 px-3 py-2 bg-red-50 dark:bg-red-900/30 rounded-lg">
+          <span className="text-sm text-red-600 dark:text-red-400">Delete?</span>
           <button
             onClick={() => handleDelete(folder.id)}
-            className="p-1 text-red-600 hover:text-red-700"
+            className="p-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="20 6 9 17 4 12" />
@@ -115,7 +115,7 @@ export default function FolderList({
           </button>
           <button
             onClick={() => setConfirmDeleteId(null)}
-            className="p-1 text-gray-500 hover:text-gray-700"
+            className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -132,8 +132,8 @@ export default function FolderList({
           onClick={() => onSelectFolder(id)}
           className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
             selectedFolderId === id
-              ? 'bg-gray-800 text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
           }`}
         >
           {color && (
@@ -153,13 +153,13 @@ export default function FolderList({
 
         {/* Edit/Delete buttons on hover (only for user folders) */}
         {!isUnfiled && (
-          <div className="absolute -top-1 -right-1 hidden group-hover:flex gap-0.5 bg-white rounded-lg shadow-sm border border-gray-200 z-10">
+          <div className="absolute -top-1 -right-1 hidden group-hover:flex gap-0.5 bg-white dark:bg-dark-surface rounded-lg shadow-sm border border-gray-200 dark:border-dark-border z-10">
             <button
               onClick={(e) => {
                 e.stopPropagation()
                 handleStartEdit(folder)
               }}
-              className="p-1 text-gray-400 hover:text-gray-600"
+              className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
               title="Rename"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -172,7 +172,7 @@ export default function FolderList({
                 e.stopPropagation()
                 setConfirmDeleteId(folder.id)
               }}
-              className="p-1 text-gray-400 hover:text-red-500"
+              className="p-1 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400"
               title="Delete"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -223,8 +223,8 @@ export default function FolderList({
         onClick={() => onSelectFolder('all')}
         className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
           selectedFolderId === 'all'
-            ? 'bg-gray-800 text-white'
-            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900'
+            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
         }`}
       >
         All Cards

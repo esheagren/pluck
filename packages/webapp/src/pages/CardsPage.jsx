@@ -306,8 +306,8 @@ export default function CardsPage({
   if (loading || foldersLoading) {
     return (
       <div className="flex flex-col items-center justify-center text-center gap-4">
-        <div className="spinner w-8 h-8 border-3 border-gray-200 border-t-gray-800 rounded-full"></div>
-        <p className="text-gray-500 text-sm">Loading cards...</p>
+        <div className="spinner w-8 h-8 border-3 border-gray-200 dark:border-gray-700 border-t-gray-800 dark:border-t-gray-200 rounded-full"></div>
+        <p className="text-gray-500 dark:text-gray-400 text-sm">Loading cards...</p>
       </div>
     )
   }
@@ -315,15 +315,15 @@ export default function CardsPage({
   if (cards.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center gap-4">
-        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-2">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
+        <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-2">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400 dark:text-gray-500">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
             <line x1="9" y1="9" x2="15" y2="15"></line>
             <line x1="15" y1="9" x2="9" y2="15"></line>
           </svg>
         </div>
-        <h2 className="text-lg font-medium text-gray-800">No cards yet</h2>
-        <p className="text-gray-500 text-sm">Use the Pluckk extension to create some flashcards.</p>
+        <h2 className="text-lg font-medium text-gray-800 dark:text-gray-100">No cards yet</h2>
+        <p className="text-gray-500 dark:text-gray-400 text-sm">Use the Pluckk extension to create some flashcards.</p>
       </div>
     )
   }
@@ -338,7 +338,7 @@ export default function CardsPage({
       <div className="w-full flex flex-col items-center">
         {/* Folder list / filter bar */}
         <div className="w-full max-w-5xl mb-4">
-          <div className="pb-4 border-b border-gray-200">
+          <div className="pb-4 border-b border-gray-200 dark:border-dark-border">
             <div className="flex items-center gap-2">
               <CreateFolderButton onCreateFolder={onCreateFolder} />
               <FolderList
@@ -368,19 +368,19 @@ export default function CardsPage({
         {/* Drag overlay for visual feedback */}
         <DragOverlay>
           {activeCard ? (
-            <div className="bg-white border-2 border-blue-500 rounded-xl p-4 shadow-xl w-[280px]">
+            <div className="bg-white dark:bg-dark-surface border-2 border-blue-500 rounded-xl p-4 shadow-xl w-[280px]">
               {selectedCount > 1 ? (
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
                     {selectedCount}
                   </div>
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Moving {selectedCount} cards
                   </span>
                 </div>
               ) : (
                 <>
-                  <div className="text-sm text-gray-800 line-clamp-2 mb-2">
+                  <div className="text-sm text-gray-800 dark:text-gray-200 line-clamp-2 mb-2">
                     {activeCard.question}
                   </div>
                   {activeCard.folder && (
@@ -399,7 +399,7 @@ export default function CardsPage({
             onClick={() => setSelectedCard(null)}
           >
             <div
-              className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl"
+              className="bg-white dark:bg-dark-surface rounded-2xl max-w-lg w-full p-6 shadow-xl"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Folder badge */}
@@ -410,7 +410,7 @@ export default function CardsPage({
               )}
 
               <div className="mb-4">
-                <label className="text-xs text-gray-400 uppercase tracking-wide mb-2 block">Question</label>
+                <label className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2 block">Question</label>
                 <textarea
                   ref={questionRef}
                   value={editQuestion}
@@ -423,11 +423,11 @@ export default function CardsPage({
                     e.target.style.height = 'auto'
                     e.target.style.height = e.target.scrollHeight + 'px'
                   }}
-                  className="w-full p-3 border border-gray-200 rounded-lg text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-gray-200 overflow-hidden min-h-[60px]"
+                  className="w-full p-3 border border-gray-200 dark:border-dark-border rounded-lg text-gray-800 dark:text-gray-200 bg-white dark:bg-dark-bg resize-none focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 overflow-hidden min-h-[60px]"
                 />
               </div>
-              <div className="border-t border-gray-100 pt-4">
-                <label className="text-xs text-gray-400 uppercase tracking-wide mb-2 block">Answer</label>
+              <div className="border-t border-gray-100 dark:border-dark-border pt-4">
+                <label className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2 block">Answer</label>
                 <textarea
                   ref={answerRef}
                   value={editAnswer}
@@ -440,7 +440,7 @@ export default function CardsPage({
                     e.target.style.height = 'auto'
                     e.target.style.height = e.target.scrollHeight + 'px'
                   }}
-                  className="w-full p-3 border border-gray-200 rounded-lg text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-gray-200 overflow-hidden min-h-[60px]"
+                  className="w-full p-3 border border-gray-200 dark:border-dark-border rounded-lg text-gray-800 dark:text-gray-200 bg-white dark:bg-dark-bg resize-none focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 overflow-hidden min-h-[60px]"
                 />
               </div>
               <div className="mt-6 flex gap-3">
@@ -448,7 +448,7 @@ export default function CardsPage({
                   <>
                     <button
                       onClick={() => setIsConfirmingDelete(true)}
-                      className="p-3 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-3 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                       title="Delete card"
                     >
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -458,14 +458,14 @@ export default function CardsPage({
                     </button>
                     <button
                       onClick={() => setSelectedCard(null)}
-                      className="flex-1 py-3 bg-gray-100 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                      className="flex-1 py-3 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSave}
                       disabled={!hasChanges || saving}
-                      className="flex-1 py-3 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 py-3 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-900 dark:hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {saving ? 'Saving...' : 'Save'}
                     </button>
@@ -474,7 +474,7 @@ export default function CardsPage({
                   <>
                     <button
                       onClick={() => setIsConfirmingDelete(false)}
-                      className="flex-1 py-3 bg-gray-100 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                      className="flex-1 py-3 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                     >
                       Cancel
                     </button>

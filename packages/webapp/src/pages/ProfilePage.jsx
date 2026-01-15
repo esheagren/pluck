@@ -90,8 +90,8 @@ export default function ProfilePage({ user }) {
   if (profileLoading) {
     return (
       <div className="flex flex-col items-center justify-center text-center gap-4">
-        <div className="spinner w-8 h-8 border-3 border-gray-200 border-t-gray-800 rounded-full"></div>
-        <p className="text-gray-500 text-sm">Loading profile...</p>
+        <div className="spinner w-8 h-8 border-3 border-gray-200 dark:border-gray-700 border-t-gray-800 dark:border-t-gray-200 rounded-full"></div>
+        <p className="text-gray-500 dark:text-gray-400 text-sm">Loading profile...</p>
       </div>
     )
   }
@@ -99,13 +99,13 @@ export default function ProfilePage({ user }) {
   return (
     <div className="w-full max-w-lg mx-auto space-y-6">
       {/* Profile Section */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <div className="bg-white dark:bg-dark-surface rounded-xl border border-gray-200 dark:border-dark-border p-5">
         <div className="flex items-start justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-800">Profile</h2>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Profile</h2>
           {!isEditing && (
             <button
               onClick={handleEditStart}
-              className="text-sm text-gray-500 hover:text-gray-800"
+              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
             >
               Edit
             </button>
@@ -123,7 +123,7 @@ export default function ProfilePage({ user }) {
                 email={user?.email}
                 size="lg"
               />
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
                 Avatar customization coming soon
               </div>
             </div>
@@ -138,7 +138,7 @@ export default function ProfilePage({ user }) {
 
             {/* Display Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Display Name
               </label>
               <input
@@ -147,13 +147,13 @@ export default function ProfilePage({ user }) {
                 onChange={(e) => setEditDisplayName(e.target.value)}
                 placeholder="Your display name"
                 maxLength={100}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600 bg-white dark:bg-dark-bg dark:text-gray-200"
               />
             </div>
 
             {/* Bio */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Bio
               </label>
               <textarea
@@ -162,16 +162,16 @@ export default function ProfilePage({ user }) {
                 placeholder="Tell others about yourself"
                 maxLength={500}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 resize-none"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600 resize-none bg-white dark:bg-dark-bg dark:text-gray-200"
               />
-              <p className="text-xs text-gray-400 mt-1">{editBio.length}/500</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{editBio.length}/500</p>
             </div>
 
             {/* Public Profile Toggle */}
             <div className="flex items-center justify-between py-2">
               <div>
-                <div className="text-sm font-medium text-gray-700">Make profile public</div>
-                <div className="text-xs text-gray-500">
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Make profile public</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
                   Allow others to see your activity and public cards
                 </div>
               </div>
@@ -182,14 +182,14 @@ export default function ProfilePage({ user }) {
                   onChange={(e) => setEditProfileIsPublic(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-800"></div>
+                <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-gray-300 dark:peer-focus:ring-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-800 dark:peer-checked:bg-gray-200"></div>
               </label>
             </div>
 
             {profile?.username && editProfileIsPublic && (
-              <div className="text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-lg">
+              <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-dark-bg px-3 py-2 rounded-lg">
                 Your profile will be visible at{' '}
-                <span className="font-mono text-gray-700">pluckk.app/u/{profile.username}</span>
+                <span className="font-mono text-gray-700 dark:text-gray-300">pluckk.app/u/{profile.username}</span>
               </div>
             )}
 
@@ -197,21 +197,21 @@ export default function ProfilePage({ user }) {
             <div className="flex gap-3 pt-2">
               <button
                 onClick={handleEditCancel}
-                className="flex-1 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 py-2 border border-gray-300 dark:border-dark-border text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleProfileSave}
                 disabled={profileSaving}
-                className="flex-1 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 transition-colors disabled:opacity-50"
+                className="flex-1 py-2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-900 dark:hover:bg-white transition-colors disabled:opacity-50"
               >
                 {profileSaving ? 'Saving...' : 'Save'}
               </button>
             </div>
 
             {profileStatus.message && (
-              <p className={`text-sm text-center ${profileStatus.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-sm text-center ${profileStatus.type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                 {profileStatus.message}
               </p>
             )}
@@ -227,22 +227,22 @@ export default function ProfilePage({ user }) {
             />
             <div className="flex-1 min-w-0">
               {profile?.displayName && (
-                <h3 className="text-lg font-semibold text-gray-900 truncate">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
                   {profile.displayName}
                 </h3>
               )}
               {profile?.username && (
-                <p className={`text-gray-500 ${profile.displayName ? 'text-sm' : 'text-base font-medium'}`}>
+                <p className={`text-gray-500 dark:text-gray-400 ${profile.displayName ? 'text-sm' : 'text-base font-medium'}`}>
                   @{profile.username}
                 </p>
               )}
               {!profile?.displayName && !profile?.username && (
-                <p className="text-gray-500">No username set</p>
+                <p className="text-gray-500 dark:text-gray-400">No username set</p>
               )}
               {profile?.bio && (
-                <p className="mt-2 text-sm text-gray-600">{profile.bio}</p>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{profile.bio}</p>
               )}
-              <p className="mt-2 text-xs text-gray-400">
+              <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
                 {profile?.profileIsPublic ? 'Public profile' : 'Private profile'}
               </p>
             </div>
@@ -251,32 +251,32 @@ export default function ProfilePage({ user }) {
       </div>
 
       {/* Activity Section */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <div className="bg-white dark:bg-dark-surface rounded-xl border border-gray-200 dark:border-dark-border p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-800">Activity</h3>
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Activity</h3>
           {/* Legend */}
-          <div className="flex items-center gap-1 text-xs text-gray-400">
+          <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
             <span>Less</span>
-            <div className="w-[10px] h-[10px] rounded-sm bg-gray-100" />
-            <div className="w-[10px] h-[10px] rounded-sm bg-gray-300" />
-            <div className="w-[10px] h-[10px] rounded-sm bg-gray-500" />
-            <div className="w-[10px] h-[10px] rounded-sm bg-gray-700" />
-            <div className="w-[10px] h-[10px] rounded-sm bg-gray-900" />
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-100 dark:bg-gray-800" />
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-300 dark:bg-gray-600" />
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-500 dark:bg-gray-500" />
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-700 dark:bg-gray-400" />
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-900 dark:bg-gray-200" />
             <span>More</span>
           </div>
         </div>
         {activityLoading ? (
           <div className="flex justify-center py-8">
-            <div className="spinner w-6 h-6 border-2 border-gray-200 border-t-gray-800 rounded-full"></div>
+            <div className="spinner w-6 h-6 border-2 border-gray-200 dark:border-gray-700 border-t-gray-800 dark:border-t-gray-200 rounded-full"></div>
           </div>
         ) : (
           <div className="space-y-5">
             <div>
-              <h4 className="text-sm font-medium text-gray-600 mb-2">Reviews</h4>
+              <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Reviews</h4>
               <ActivityGrid activityData={activityData} metric="reviews" showLegend={false} startDate={earliestActivityDate} />
             </div>
             <div>
-              <h4 className="text-sm font-medium text-gray-600 mb-2">Cards Added</h4>
+              <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Cards Added</h4>
               <ActivityGrid activityData={activityData} metric="cardsCreated" showLegend={false} startDate={earliestActivityDate} />
             </div>
           </div>

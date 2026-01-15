@@ -38,17 +38,17 @@ export default function ProfileHeader({
         <div className="flex items-start justify-between gap-2">
           <div>
             {displayName && (
-              <h2 className="text-xl font-semibold text-gray-900 truncate">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 truncate">
                 {displayName}
               </h2>
             )}
             {username && (
-              <p className={`text-gray-500 ${displayName ? 'text-sm' : 'text-lg font-medium'}`}>
+              <p className={`text-gray-500 dark:text-gray-400 ${displayName ? 'text-sm' : 'text-lg font-medium'}`}>
                 @{username}
               </p>
             )}
             {!displayName && !username && email && (
-              <p className="text-lg font-medium text-gray-700 truncate">
+              <p className="text-lg font-medium text-gray-700 dark:text-gray-300 truncate">
                 {email}
               </p>
             )}
@@ -57,7 +57,7 @@ export default function ProfileHeader({
           {isEditable && onEditClick && (
             <button
               onClick={onEditClick}
-              className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
               Edit
             </button>
@@ -65,13 +65,13 @@ export default function ProfileHeader({
         </div>
 
         {bio && (
-          <p className="mt-2 text-sm text-gray-600 line-clamp-3">
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
             {bio}
           </p>
         )}
 
         {formattedJoinDate && (
-          <p className="mt-2 text-xs text-gray-400">
+          <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
             Member since {formattedJoinDate}
           </p>
         )}

@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Dark mode base styles */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #0f0f0f;
+}
+
 /* Optimize mobile scroll - prevents initial scroll delay */
 html, body {
   touch-action: pan-y manipulation;

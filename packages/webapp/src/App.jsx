@@ -16,10 +16,10 @@ import PrivacyPage from './pages/PrivacyPage'
 // Loading Screen Component
 function LoadingScreen() {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="min-h-screen bg-gray-50 dark:bg-dark-bg flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
-        <div className="spinner w-8 h-8 border-3 border-gray-200 border-t-gray-800 rounded-full"></div>
-        <p className="text-gray-500 text-sm">Loading...</p>
+        <div className="spinner w-8 h-8 border-3 border-gray-200 dark:border-gray-700 border-t-gray-800 dark:border-t-gray-200 rounded-full"></div>
+        <p className="text-gray-500 dark:text-gray-400 text-sm">Loading...</p>
       </div>
     </div>
   )

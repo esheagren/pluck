@@ -3,14 +3,14 @@ import { useMemo, useState } from 'react'
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 function getColorForCount(count, maxCount) {
-  if (count === 0) return 'bg-gray-100'
-  if (maxCount === 0) return 'bg-gray-100'
+  if (count === 0) return 'bg-gray-100 dark:bg-gray-800'
+  if (maxCount === 0) return 'bg-gray-100 dark:bg-gray-800'
 
   const ratio = count / maxCount
-  if (ratio <= 0.25) return 'bg-gray-300'
-  if (ratio <= 0.5) return 'bg-gray-500'
-  if (ratio <= 0.75) return 'bg-gray-700'
-  return 'bg-gray-900'
+  if (ratio <= 0.25) return 'bg-gray-300 dark:bg-gray-600'
+  if (ratio <= 0.5) return 'bg-gray-500 dark:bg-gray-500'
+  if (ratio <= 0.75) return 'bg-gray-700 dark:bg-gray-400'
+  return 'bg-gray-900 dark:bg-gray-200'
 }
 
 function formatDate(date) {
@@ -156,7 +156,7 @@ export default function ActivityGrid({ activityData = {}, metric, showLegend = t
           {monthLabels.map((label, i) => (
             <div
               key={i}
-              className="absolute text-xs text-gray-400"
+              className="absolute text-xs text-gray-400 dark:text-gray-500"
               style={{ left: label.weekIndex * cellStep }}
             >
               {label.month}
@@ -175,7 +175,7 @@ export default function ActivityGrid({ activityData = {}, metric, showLegend = t
                       day.isFuture
                         ? 'bg-transparent'
                         : getColorForCount(day.count, maxCount)
-                    } cursor-pointer transition-all hover:ring-1 hover:ring-gray-400`}
+                    } cursor-pointer transition-all hover:ring-1 hover:ring-gray-400 dark:hover:ring-gray-500`}
                     onMouseEnter={(e) => {
                       if (!day.isFuture) {
                         const rect = e.target.getBoundingClientRect()
@@ -196,13 +196,13 @@ export default function ActivityGrid({ activityData = {}, metric, showLegend = t
 
         {/* Legend */}
         {showLegend && (
-          <div className="flex items-center justify-end gap-1 mt-3 text-xs text-gray-400">
+          <div className="flex items-center justify-end gap-1 mt-3 text-xs text-gray-400 dark:text-gray-500">
             <span>Less</span>
-            <div className="w-[10px] h-[10px] rounded-sm bg-gray-100" />
-            <div className="w-[10px] h-[10px] rounded-sm bg-gray-300" />
-            <div className="w-[10px] h-[10px] rounded-sm bg-gray-500" />
-            <div className="w-[10px] h-[10px] rounded-sm bg-gray-700" />
-            <div className="w-[10px] h-[10px] rounded-sm bg-gray-900" />
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-100 dark:bg-gray-800" />
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-300 dark:bg-gray-600" />
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-500 dark:bg-gray-500" />
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-700 dark:bg-gray-400" />
+            <div className="w-[10px] h-[10px] rounded-sm bg-gray-900 dark:bg-gray-200" />
             <span>More</span>
           </div>
         )}
@@ -211,11 +211,11 @@ export default function ActivityGrid({ activityData = {}, metric, showLegend = t
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="fixed z-50 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full"
+          className="fixed z-50 px-2 py-1 text-xs text-white bg-gray-800 dark:bg-gray-200 dark:text-gray-900 rounded shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full"
           style={{ left: tooltip.x, top: tooltip.y }}
         >
           <div className="font-medium">{getTooltipLabel(tooltip.count)}</div>
-          <div className="text-gray-300">{formatDisplayDate(tooltip.date)}</div>
+          <div className="text-gray-300 dark:text-gray-600">{formatDisplayDate(tooltip.date)}</div>
         </div>
       )}
     </div>

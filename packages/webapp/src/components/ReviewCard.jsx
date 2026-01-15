@@ -139,7 +139,7 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
         onClick={() => !isFlipped && !isEditing && onFlip()}
       >
         {/* Front - Question */}
-        <div className={`card-face bg-white border border-gray-200 rounded-2xl flex items-center justify-center p-8 shadow-lg w-full min-h-[300px] relative ${isFlipped ? 'hidden' : ''}`}>
+        <div className={`card-face bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-2xl flex items-center justify-center p-8 shadow-lg w-full min-h-[300px] relative ${isFlipped ? 'hidden' : ''}`}>
           {card.folder && (
             <div className="absolute top-3 left-3">
               <FolderBadge folder={card.folder} />
@@ -147,18 +147,18 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
           )}
           {card.is_new && (
             <div className="absolute top-3 right-3">
-              <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-full">
+              <span className="px-2 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded-full">
                 New
               </span>
             </div>
           )}
-          <div className="text-lg leading-relaxed text-center text-gray-800">
+          <div className="text-lg leading-relaxed text-center text-gray-800 dark:text-gray-100">
             {displayQuestion}
           </div>
         </div>
 
         {/* Back - Answer + Image + Source */}
-        <div className={`card-face card-back bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl flex flex-col items-center justify-between p-8 shadow-lg w-full min-h-[300px] relative ${isFlipped ? '' : 'hidden'}`}>
+        <div className={`card-face card-back bg-gradient-to-br from-gray-50 to-white dark:from-dark-surface dark:to-dark-bg border border-gray-200 dark:border-dark-border rounded-2xl flex flex-col items-center justify-between p-8 shadow-lg w-full min-h-[300px] relative ${isFlipped ? '' : 'hidden'}`}>
           {/* Folder badge */}
           {card.folder && (
             <div className="absolute top-3 left-3">
@@ -174,7 +174,7 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
                   e.stopPropagation()
                   setIsConfirmingDelete(true)
                 }}
-                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                 title="Delete card"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -187,7 +187,7 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
                   e.stopPropagation()
                   setIsEditing(true)
                 }}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                 title="Edit card"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -200,14 +200,14 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
 
           {/* Delete confirmation */}
           {isConfirmingDelete && (
-            <div className="absolute top-3 right-3 flex items-center gap-2 bg-white px-2 py-1 rounded-lg shadow-sm border border-gray-200">
-              <span className="text-xs text-gray-500">Delete?</span>
+            <div className="absolute top-3 right-3 flex items-center gap-2 bg-white dark:bg-dark-surface px-2 py-1 rounded-lg shadow-sm border border-gray-200 dark:border-dark-border">
+              <span className="text-xs text-gray-500 dark:text-gray-400">Delete?</span>
               <button
                 onClick={(e) => {
                   e.stopPropagation()
                   setIsConfirmingDelete(false)
                 }}
-                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
                 title="Cancel"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -221,7 +221,7 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
                   handleDelete()
                 }}
                 disabled={deleting}
-                className="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                className="p-1.5 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors disabled:opacity-50"
                 title="Confirm delete"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -239,7 +239,7 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
                   e.stopPropagation()
                   handleCancel()
                 }}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                 title="Cancel (Esc)"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -253,7 +253,7 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
                   handleSave()
                 }}
                 disabled={saving}
-                className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                className="p-2 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors disabled:opacity-50"
                 title="Save (⌘+Enter)"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -277,12 +277,12 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
                 onKeyDown={handleKeyDown}
                 onBlur={handleBlur}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full text-sm text-gray-500 text-center mt-4 mb-3 pb-3 border-b border-gray-200 bg-transparent resize-none overflow-hidden focus:outline-none focus:ring-0"
+                className="w-full text-sm text-gray-500 dark:text-gray-400 text-center mt-4 mb-3 pb-3 border-b border-gray-200 dark:border-dark-border bg-transparent resize-none overflow-hidden focus:outline-none focus:ring-0"
                 style={{ minHeight: '1.5em' }}
                 placeholder="Question"
               />
             ) : (
-              <div className="text-sm text-gray-500 text-center mt-4 mb-3 pb-3 border-b border-gray-200 w-full">
+              <div className="text-sm text-gray-500 dark:text-gray-400 text-center mt-4 mb-3 pb-3 border-b border-gray-200 dark:border-dark-border w-full">
                 {displayQuestion}
               </div>
             )}
@@ -299,12 +299,12 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
                 onKeyDown={handleKeyDown}
                 onBlur={handleBlur}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full text-lg leading-relaxed text-center text-gray-800 bg-transparent border-none resize-none overflow-hidden focus:outline-none focus:ring-0"
+                className="w-full text-lg leading-relaxed text-center text-gray-800 dark:text-gray-100 bg-transparent border-none resize-none overflow-hidden focus:outline-none focus:ring-0"
                 style={{ minHeight: '1.5em' }}
                 placeholder="Answer"
               />
             ) : (
-              <div className="text-lg leading-relaxed text-center text-gray-800">
+              <div className="text-lg leading-relaxed text-center text-gray-800 dark:text-gray-100">
                 {displayAnswer}
               </div>
             )}
@@ -326,7 +326,7 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="mt-4 text-xs text-blue-500 hover:text-blue-600 hover:underline"
+              className="mt-4 text-xs text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 hover:underline"
             >
               Source
             </a>
