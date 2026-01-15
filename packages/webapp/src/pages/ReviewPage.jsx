@@ -2,6 +2,16 @@ import { useState, useEffect, useCallback } from 'react'
 import ReviewCard from '../components/ReviewCard'
 import { useReviewState } from '../hooks/useReviewState'
 
+// Wrapper component for centering content vertically
+// IMPORTANT: Defined outside component to prevent remounting children on every render
+function CenteredWrapper({ children }) {
+  return (
+    <div className="min-h-[calc(100vh-120px)] flex items-center justify-center">
+      {children}
+    </div>
+  )
+}
+
 export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
   const {
     currentCard,
@@ -89,13 +99,6 @@ export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
     document.addEventListener('keydown', handleKeydown)
     return () => document.removeEventListener('keydown', handleKeydown)
   }, [isFlipped, submitting, flipCard, handleRating, skipCard, RATINGS])
-
-  // Wrapper component for centering content vertically
-  const CenteredWrapper = ({ children }) => (
-    <div className="min-h-[calc(100vh-120px)] flex items-center justify-center">
-      {children}
-    </div>
-  )
 
   // User validation
   if (!userId) {
