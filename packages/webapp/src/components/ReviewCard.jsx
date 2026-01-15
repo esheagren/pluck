@@ -90,6 +90,13 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
               <FolderBadge folder={card.folder} />
             </div>
           )}
+          {card.is_new && (
+            <div className="absolute top-3 right-3">
+              <span className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-full">
+                New
+              </span>
+            </div>
+          )}
           <div className="text-lg leading-relaxed text-center text-gray-800">
             {card.question}
           </div>
