@@ -67,12 +67,18 @@ export function calculateNextReview(currentState, rating, config = DEFAULT_CONFI
         break;
 
       case RATINGS.GOOD:
-        newInterval = currentInterval * newEase;
+        newInterval = Math.max(
+          currentInterval * newEase,
+          1 // minimum 1 day
+        );
         newStatus = STATUS.REVIEW;
         break;
 
       case RATINGS.EASY:
-        newInterval = currentInterval * newEase * config.intervalMultiplier.easy;
+        newInterval = Math.max(
+          currentInterval * newEase * config.intervalMultiplier.easy,
+          1 // minimum 1 day
+        );
         newStatus = STATUS.REVIEW;
         break;
 
