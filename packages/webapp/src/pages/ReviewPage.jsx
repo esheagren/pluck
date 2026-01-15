@@ -220,12 +220,7 @@ export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
     <CenteredWrapper>
       <div className="flex flex-col items-center gap-8">
         {/* Progress indicator */}
-        <div className="flex flex-col items-center gap-2 w-full">
-          <ReviewProgressBar currentIndex={currentIndex} dueCards={dueCards} />
-          <div className="text-sm text-gray-400">
-            {reviewedCount + 1} / {totalCards}
-          </div>
-        </div>
+        <ReviewProgressBar currentIndex={currentIndex} dueCards={dueCards} />
 
         <ReviewCard
           card={currentCard}
