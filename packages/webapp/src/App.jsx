@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { useCards } from './hooks/useCards'
 import { useFolders } from './hooks/useFolders'
@@ -12,7 +12,6 @@ import FeedbackPage from './pages/FeedbackPage'
 import LandingPage from './pages/LandingPage'
 import InfoPage from './pages/InfoPage'
 import PrivacyPage from './pages/PrivacyPage'
-import ActivityPage from './pages/ActivityPage'
 
 // Loading Screen Component
 function LoadingScreen() {
@@ -105,7 +104,7 @@ export default function App() {
             />
           }
         />
-        <Route path="/activity" element={<ActivityPage />} />
+        <Route path="/activity" element={<Navigate to="/profile" replace />} />
         <Route path="/feedback" element={<FeedbackPage />} />
       </Route>
     </Routes>
