@@ -31,27 +31,64 @@ export function useActivityStats(userId) {
       startDate.setDate(startDate.getDate() - 365)
       const startDateStr = formatDateLocal(startDate)
 
-      const { data, error } = await supabase
-        .from('user_daily_review_summary')
-        .select('review_date, total_reviews')
-        .eq('user_id', userId)
-        .gte('review_date', startDateStr)
-        .order('review_date', { ascending: true })
+      // Fetch both reviews and cards created in parallel
+      const [reviewsResult, cardsResult] = await Promise.all([
+        supabase
+          .from('user_daily_review_summary')
+          .select('review_date, total_reviews')
+          .eq('user_id', userId)
+          .gte('review_date', startDateStr)
+          .order('review_date', { ascending: true }),
+        supabase
+          .from('user_daily_card_summary')
+          .select('created_date, cards_created')
+          .eq('user_id', userId)
+          .gte('created_date', startDateStr)
+          .order('created_date', { ascending: true })
+      ])
 
-      if (error) {
-        console.error('Error fetching activity stats:', error)
-        setError(error)
+      if (reviewsResult.error) {
+        console.error('Error fetching review stats:', reviewsResult.error)
+        setError(reviewsResult.error)
         setActivityData({})
-      } else {
-        // Convert to a map of { 'YYYY-MM-DD': count }
-        const dataMap = {}
-        if (data) {
-          data.forEach(row => {
-            dataMap[row.review_date] = row.total_reviews
-          })
-        }
-        setActivityData(dataMap)
+        return
       }
+
+      // Note: card summary view might not exist yet, so we handle that gracefully
+      // PostgreSQL error code 42P01 = relation does not exist
+      if (cardsResult.error && cardsResult.error.code !== '42P01') {
+        console.error('Error fetching card stats:', cardsResult.error)
+      }
+
+      // Combine both datasets into a single map
+      // { 'YYYY-MM-DD': { reviews: N, cardsCreated: M } }
+      const dataMap = {}
+
+      // Add review data
+      if (reviewsResult.data) {
+        reviewsResult.data.forEach(row => {
+          dataMap[row.review_date] = {
+            reviews: row.total_reviews,
+            cardsCreated: 0
+          }
+        })
+      }
+
+      // Add card creation data
+      if (cardsResult.data) {
+        cardsResult.data.forEach(row => {
+          if (dataMap[row.created_date]) {
+            dataMap[row.created_date].cardsCreated = row.cards_created
+          } else {
+            dataMap[row.created_date] = {
+              reviews: 0,
+              cardsCreated: row.cards_created
+            }
+          }
+        })
+      }
+
+      setActivityData(dataMap)
     } catch (err) {
       console.error('Error fetching activity stats:', err)
       setError(err)
