@@ -540,15 +540,37 @@ export function useReviewState(userId) {
         // Don't fail the whole operation for logging errors
       }
 
-      // Move to next card
-      const newIndex = currentIndex + 1
-      setCurrentIndex(newIndex)
-
-      // Update session - clear if complete, otherwise save progress
-      if (newIndex >= dueCards.length) {
-        clearSession()
+      // Handle card progression
+      if (rating === RATINGS.AGAIN) {
+        // Re-queue "Again" cards at the end of the session
+        // Update the card's local state so it shows correct intervals when it comes back
+        const updatedCard = {
+          ...currentCard,
+          review_state: {
+            ...currentCard.review_state,
+            ...newState,
+            id: stateId,
+          },
+        }
+        const newDueCards = [
+          ...dueCards.slice(0, currentIndex),
+          ...dueCards.slice(currentIndex + 1),
+          updatedCard,
+        ]
+        setDueCards(newDueCards)
+        // Index stays the same (next card slides into current position)
+        saveSession(newDueCards.map(c => c.id), currentIndex)
       } else {
-        saveSession(dueCards.map(c => c.id), newIndex)
+        // Move to next card
+        const newIndex = currentIndex + 1
+        setCurrentIndex(newIndex)
+
+        // Update session - clear if complete, otherwise save progress
+        if (newIndex >= dueCards.length) {
+          clearSession()
+        } else {
+          saveSession(dueCards.map(c => c.id), newIndex)
+        }
       }
 
       return { success: true, newState }
