@@ -47,26 +47,33 @@ function getCountForMetric(dayData, metric) {
 
 // metric: 'reviews' | 'cardsCreated' | undefined (undefined = combined)
 // showLegend: whether to show the Less/More legend (default true)
-export default function ActivityGrid({ activityData = {}, metric, showLegend = true }) {
+// startDate: optional override for the grid start date (for aligning multiple grids)
+export default function ActivityGrid({ activityData = {}, metric, showLegend = true, startDate: startDateOverride }) {
   const [tooltip, setTooltip] = useState(null)
 
   const { grid, monthLabels, maxCount } = useMemo(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // Find the earliest date with activity for this metric
-    const activityDates = Object.keys(activityData)
-      .filter(date => getCountForMetric(activityData[date], metric) > 0)
-      .sort()
     let startDate
 
-    if (activityDates.length > 0) {
-      // Start from the first activity date
-      const [year, month, day] = activityDates[0].split('-')
-      startDate = new Date(year, month - 1, day)
+    if (startDateOverride) {
+      // Use the provided start date override
+      startDate = new Date(startDateOverride)
     } else {
-      // No activity yet - show just the current month
-      startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+      // Find the earliest date with activity for this metric
+      const activityDates = Object.keys(activityData)
+        .filter(date => getCountForMetric(activityData[date], metric) > 0)
+        .sort()
+
+      if (activityDates.length > 0) {
+        // Start from the first activity date
+        const [year, month, day] = activityDates[0].split('-')
+        startDate = new Date(year, month - 1, day)
+      } else {
+        // No activity yet - show just the current month
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+      }
     }
 
     // Adjust to previous Sunday to align the grid
@@ -116,7 +123,7 @@ export default function ActivityGrid({ activityData = {}, metric, showLegend = t
     }
 
     return { grid: weeks, monthLabels: labels, maxCount: maxVal }
-  }, [activityData, metric])
+  }, [activityData, metric, startDateOverride])
 
   // Calculate cell dimensions
   const cellSize = 10

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useProfile } from '../hooks/useProfile'
 import UserAvatar from '../components/UserAvatar'
 import UsernameInput from '../components/UsernameInput'
@@ -8,6 +8,12 @@ import { useActivityStats } from '../hooks/useActivityStats'
 export default function ProfilePage({ user }) {
   const { profile, loading: profileLoading, saving: profileSaving, updateProfile, checkUsername } = useProfile()
   const { activityData, loading: activityLoading } = useActivityStats(user?.id)
+
+  // Calculate earliest activity date across both metrics for aligned grids
+  const earliestActivityDate = useMemo(() => {
+    const dates = Object.keys(activityData).sort()
+    return dates.length > 0 ? dates[0] : null
+  }, [activityData])
 
   // Profile editing state
   const [isEditing, setIsEditing] = useState(false)
@@ -267,11 +273,11 @@ export default function ProfilePage({ user }) {
           <div className="space-y-5">
             <div>
               <h4 className="text-sm font-medium text-gray-600 mb-2">Reviews</h4>
-              <ActivityGrid activityData={activityData} metric="reviews" showLegend={false} />
+              <ActivityGrid activityData={activityData} metric="reviews" showLegend={false} startDate={earliestActivityDate} />
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-600 mb-2">Cards Added</h4>
-              <ActivityGrid activityData={activityData} metric="cardsCreated" showLegend={false} />
+              <ActivityGrid activityData={activityData} metric="cardsCreated" showLegend={false} startDate={earliestActivityDate} />
             </div>
           </div>
         )}
