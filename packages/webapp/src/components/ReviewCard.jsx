@@ -5,40 +5,75 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
   const [isEditing, setIsEditing] = useState(false)
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
   const [isImageExpanded, setIsImageExpanded] = useState(false)
+  const [editQuestion, setEditQuestion] = useState('')
   const [editAnswer, setEditAnswer] = useState('')
+  // Track displayed values (may differ from card prop after edit)
+  const [displayQuestion, setDisplayQuestion] = useState(card.question)
+  const [displayAnswer, setDisplayAnswer] = useState(card.answer)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const questionRef = useRef(null)
   const answerRef = useRef(null)
+
+  // Update display values when card prop changes (new card)
+  // Skip if actively editing to avoid overwriting user's unsaved changes
+  useEffect(() => {
+    if (!isEditing) {
+      setDisplayQuestion(card.question)
+      setDisplayAnswer(card.answer)
+    }
+  }, [card.id, card.question, card.answer, isEditing])
 
   useEffect(() => {
     if (isEditing) {
-      setEditAnswer(card.answer)
-      // Focus and resize after state updates
-      setTimeout(() => {
+      setEditQuestion(displayQuestion)
+      setEditAnswer(displayAnswer)
+      // Focus question field and resize both after state updates
+      const timeoutId = setTimeout(() => {
+        if (questionRef.current) {
+          questionRef.current.focus()
+          questionRef.current.style.height = 'auto'
+          questionRef.current.style.height = questionRef.current.scrollHeight + 'px'
+        }
         if (answerRef.current) {
-          answerRef.current.focus()
           answerRef.current.style.height = 'auto'
           answerRef.current.style.height = answerRef.current.scrollHeight + 'px'
         }
       }, 0)
+      return () => clearTimeout(timeoutId)
     }
-  }, [isEditing, card.answer])
+    // Only trigger when entering edit mode, not when display values change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing])
 
   const handleSave = async () => {
-    if (!onUpdateCard || editAnswer === card.answer) {
+    const questionChanged = editQuestion !== displayQuestion
+    const answerChanged = editAnswer !== displayAnswer
+
+    if (!onUpdateCard || (!questionChanged && !answerChanged)) {
       setIsEditing(false)
       return
     }
+
     setSaving(true)
-    const { error } = await onUpdateCard(card.id, { answer: editAnswer })
+    const updates = {}
+    if (questionChanged) updates.question = editQuestion
+    if (answerChanged) updates.answer = editAnswer
+
+    const { error } = await onUpdateCard(card.id, updates)
     setSaving(false)
+
     if (!error) {
+      // Update local display values to reflect the saved changes
+      if (questionChanged) setDisplayQuestion(editQuestion)
+      if (answerChanged) setDisplayAnswer(editAnswer)
       setIsEditing(false)
     }
   }
 
   const handleCancel = () => {
-    setEditAnswer(card.answer)
+    setEditQuestion(displayQuestion)
+    setEditAnswer(displayAnswer)
     setIsEditing(false)
   }
 
@@ -98,7 +133,7 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
             </div>
           )}
           <div className="text-lg leading-relaxed text-center text-gray-800">
-            {card.question}
+            {displayQuestion}
           </div>
         </div>
 
@@ -209,10 +244,28 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
           )}
 
           <div className="flex-1 flex flex-col items-center justify-center w-full">
-            {/* Question reminder */}
-            <div className="text-sm text-gray-500 text-center mt-4 mb-3 pb-3 border-b border-gray-200 w-full">
-              {card.question}
-            </div>
+            {/* Question - editable when in edit mode */}
+            {isEditing ? (
+              <textarea
+                ref={questionRef}
+                value={editQuestion}
+                onChange={(e) => {
+                  setEditQuestion(e.target.value)
+                  e.target.style.height = 'auto'
+                  e.target.style.height = e.target.scrollHeight + 'px'
+                }}
+                onKeyDown={handleKeyDown}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full text-sm text-gray-500 text-center mt-4 mb-3 pb-3 border-b border-gray-200 bg-transparent resize-none focus:outline-none focus:ring-0"
+                style={{ minHeight: '1.5em' }}
+                placeholder="Question"
+              />
+            ) : (
+              <div className="text-sm text-gray-500 text-center mt-4 mb-3 pb-3 border-b border-gray-200 w-full">
+                {displayQuestion}
+              </div>
+            )}
+            {/* Answer - editable when in edit mode */}
             {isEditing ? (
               <textarea
                 ref={answerRef}
@@ -226,10 +279,11 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
                 onClick={(e) => e.stopPropagation()}
                 className="w-full text-lg leading-relaxed text-center text-gray-800 bg-transparent border-none resize-none focus:outline-none focus:ring-0"
                 style={{ minHeight: '1.5em' }}
+                placeholder="Answer"
               />
             ) : (
               <div className="text-lg leading-relaxed text-center text-gray-800">
-                {card.answer}
+                {displayAnswer}
               </div>
             )}
             {card.image_url && (
