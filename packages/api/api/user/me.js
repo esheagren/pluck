@@ -1,9 +1,24 @@
 // GET/PATCH /api/user/me
-// Returns current user info, usage stats, and settings
-// PATCH updates user settings (Mochi config)
+// Returns current user info, usage stats, settings, and profile
+// PATCH updates user settings (Mochi config) and profile fields
 
 import { authenticateRequest, checkUsageLimit } from '../../lib/auth.js';
 import { supabaseAdmin } from '../../lib/supabase-admin.js';
+
+// Validate username format (matches database function)
+function isValidUsernameFormat(username) {
+  if (!username || typeof username !== 'string') return false;
+  if (username.length < 3 || username.length > 30) return false;
+  // Must start with letter, only lowercase letters/numbers/underscores
+  return /^[a-z][a-z0-9_]*$/.test(username);
+}
+
+// Basic HTML tag sanitization to prevent XSS
+function sanitizeText(text) {
+  if (!text) return null;
+  // Remove all HTML tags
+  return text.replace(/<[^>]*>/g, '').trim();
+}
 
 export default async function handler(req, res) {
   // Handle CORS preflight
@@ -19,14 +34,20 @@ export default async function handler(req, res) {
 
   const { user, profile } = authResult;
 
-  // GET - Return user info and settings
+  // GET - Return user info, profile, and settings
   if (req.method === 'GET') {
     const usage = checkUsageLimit(profile);
 
     return res.status(200).json({
       user: {
         id: user.id,
-        email: user.email
+        email: user.email,
+        username: profile.username || null,
+        displayName: profile.display_name || null,
+        bio: profile.bio || null,
+        avatarUrl: profile.avatar_url || null,
+        profileIsPublic: profile.profile_is_public !== false,
+        createdAt: profile.created_at
       },
       subscription: {
         status: profile.subscription_status,
@@ -44,11 +65,13 @@ export default async function handler(req, res) {
     });
   }
 
-  // PATCH - Update user settings
+  // PATCH - Update user settings and profile
   if (req.method === 'PATCH') {
-    const { mochiApiKey, mochiDeckId } = req.body;
+    const { mochiApiKey, mochiDeckId, username, displayName, bio, profileIsPublic } = req.body;
 
     const updates = {};
+
+    // Mochi settings
     if (mochiApiKey !== undefined) {
       updates.mochi_api_key = mochiApiKey || null;
     }
@@ -56,9 +79,67 @@ export default async function handler(req, res) {
       updates.mochi_deck_id = mochiDeckId || null;
     }
 
+    // Profile fields
+    if (username !== undefined) {
+      const normalizedUsername = username ? username.toLowerCase().trim() : null;
+
+      if (normalizedUsername) {
+        // Validate format
+        if (!isValidUsernameFormat(normalizedUsername)) {
+          return res.status(400).json({
+            error: 'Invalid username format',
+            details: 'Username must be 3-30 characters, start with a letter, and contain only lowercase letters, numbers, and underscores'
+          });
+        }
+
+        // Check if reserved
+        const { data: reserved } = await supabaseAdmin
+          .from('reserved_usernames')
+          .select('username')
+          .eq('username', normalizedUsername)
+          .single();
+
+        if (reserved) {
+          return res.status(400).json({ error: 'This username is reserved' });
+        }
+
+        // Check if taken by another user
+        const { data: existing } = await supabaseAdmin
+          .from('users')
+          .select('id')
+          .ilike('username', normalizedUsername)
+          .neq('id', user.id)
+          .single();
+
+        if (existing) {
+          return res.status(409).json({ error: 'Username already taken' });
+        }
+
+        updates.username = normalizedUsername;
+      } else {
+        updates.username = null;
+      }
+    }
+
+    if (displayName !== undefined) {
+      const sanitized = sanitizeText(displayName);
+      updates.display_name = sanitized ? sanitized.slice(0, 100) : null;
+    }
+
+    if (bio !== undefined) {
+      const sanitized = sanitizeText(bio);
+      updates.bio = sanitized ? sanitized.slice(0, 500) : null;
+    }
+
+    if (profileIsPublic !== undefined) {
+      updates.profile_is_public = Boolean(profileIsPublic);
+    }
+
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({ error: 'No settings to update' });
     }
+
+    updates.updated_at = new Date().toISOString();
 
     const { error } = await supabaseAdmin
       .from('users')
@@ -67,10 +148,13 @@ export default async function handler(req, res) {
 
     if (error) {
       console.error('Error updating user settings:', error);
+      if (error.code === '23505' && error.message.includes('username')) {
+        return res.status(409).json({ error: 'Username already taken' });
+      }
       return res.status(500).json({ error: 'Failed to update settings' });
     }
 
-    return res.status(200).json({ success: true, updated: updates });
+    return res.status(200).json({ success: true, updated: Object.keys(updates) });
   }
 
   return res.status(405).json({ error: 'Method not allowed' });

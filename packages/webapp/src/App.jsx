@@ -1,11 +1,12 @@
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { useCards } from './hooks/useCards'
 import { useFolders } from './hooks/useFolders'
 import Layout from './components/Layout'
 import ReviewPage from './pages/ReviewPage'
 import CardsPage from './pages/CardsPage'
-import SettingsPage from './pages/SettingsPage'
+import ProfilePage from './pages/ProfilePage'
+import PublicProfilePage from './pages/PublicProfilePage'
 import FeedbackPage from './pages/FeedbackPage'
 import LandingPage from './pages/LandingPage'
 import InfoPage from './pages/InfoPage'
@@ -30,12 +31,20 @@ export default function App() {
   const { cards, loading: cardsLoading, updateCard, deleteCard, moveCardToFolder } = useCards(user?.id)
   const { folders, loading: foldersLoading, createFolder, updateFolder, deleteFolder } = useFolders(user?.id)
 
-  // Info and Privacy pages are always accessible
+  // Public pages (no auth required)
   if (location.pathname === '/info') {
     return <InfoPage />
   }
   if (location.pathname === '/privacy') {
     return <PrivacyPage />
+  }
+  // Public profile pages
+  if (location.pathname.startsWith('/u/')) {
+    return (
+      <Routes>
+        <Route path="/u/:username" element={<PublicProfilePage />} />
+      </Routes>
+    )
   }
 
   // Show loading while checking auth
@@ -80,9 +89,9 @@ export default function App() {
           }
         />
         <Route
-          path="/settings"
+          path="/profile"
           element={
-            <SettingsPage
+            <ProfilePage
               user={user}
               billingInfo={billingInfo}
               onSignOut={signOut}
@@ -91,6 +100,7 @@ export default function App() {
             />
           }
         />
+        <Route path="/settings" element={<Navigate to="/profile" replace />} />
         <Route path="/activity" element={<ActivityPage />} />
         <Route path="/feedback" element={<FeedbackPage />} />
       </Route>
