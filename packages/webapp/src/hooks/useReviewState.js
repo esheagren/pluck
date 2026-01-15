@@ -540,6 +540,12 @@ export function useReviewState(userId) {
         // Don't fail the whole operation for logging errors
       }
 
+      // If this was a new card, decrement the available counts
+      if (currentCard.is_new) {
+        setNewCardsAvailableToday(prev => Math.max(0, prev - 1))
+        setTotalNewCards(prev => Math.max(0, prev - 1))
+      }
+
       // Handle card progression
       if (rating === RATINGS.AGAIN) {
         // Re-queue "Again" cards at the end of the session
