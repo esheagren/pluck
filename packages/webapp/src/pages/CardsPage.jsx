@@ -32,6 +32,7 @@ export default function CardsPage({
   const [folderOrder, setFolderOrder] = useState([])
   const [selectedCardIds, setSelectedCardIds] = useState(new Set())
   const [isDragging, setIsDragging] = useState(false)
+  const lastMoveActionRef = useRef(null) // { cardMoves: [{ cardId, fromFolderId }] }
   const questionRef = useRef(null)
   const answerRef = useRef(null)
 
@@ -58,6 +59,44 @@ export default function CardsPage({
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [selectedCardIds.size])
+
+  // Cmd+Z / Ctrl+Z to undo last card move
+  useEffect(() => {
+    const handleUndo = async (e) => {
+      // Don't intercept undo if user is typing in an input/textarea
+      const activeElement = document.activeElement
+      if (activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA') {
+        return
+      }
+
+      const lastMoveAction = lastMoveActionRef.current
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && lastMoveAction && onMoveCardToFolder) {
+        e.preventDefault()
+
+        try {
+          // Move each card back to its original folder
+          const undoPromises = lastMoveAction.cardMoves.map(({ cardId, fromFolderId }) =>
+            onMoveCardToFolder(cardId, fromFolderId)
+          )
+          const results = await Promise.allSettled(undoPromises)
+
+          // Check if any failed
+          const failures = results.filter(r => r.status === 'rejected')
+          if (failures.length > 0) {
+            console.error('Some undo operations failed:', failures)
+            return
+          }
+
+          // Clear only on complete success
+          lastMoveActionRef.current = null
+        } catch (error) {
+          console.error('Undo failed:', error)
+        }
+      }
+    }
+    window.addEventListener('keydown', handleUndo)
+    return () => window.removeEventListener('keydown', handleUndo)
+  }, [onMoveCardToFolder])
 
   // Compute ordered items: merge saved order with current folders
   const orderedItems = useMemo(() => {
@@ -130,6 +169,7 @@ export default function CardsPage({
     setDeleting(false)
     setSelectedCard(null)
     setIsConfirmingDelete(false)
+    lastMoveActionRef.current = null // Clear undo history
   }
 
   // Auto-resize textareas when content is set
@@ -156,6 +196,7 @@ export default function CardsPage({
 
     if (!error) {
       setSelectedCard(null)
+      lastMoveActionRef.current = null // Clear undo history
     }
   }
 
@@ -238,14 +279,24 @@ export default function CardsPage({
       ? [...selectedCardIds]
       : [active.id]
 
-    // Move all cards (filter out ones already in target folder)
-    const movePromises = cardsToMove
-      .filter(cardId => {
+    // Filter out cards already in target folder and record their original folders for undo
+    const cardMoves = cardsToMove
+      .map(cardId => {
         const card = cards.find(c => c.id === cardId)
-        return card && card.folder_id !== targetFolderId
+        if (!card || card.folder_id === targetFolderId) return null
+        return { cardId, fromFolderId: card.folder_id || null }
       })
-      .map(cardId => onMoveCardToFolder(cardId, targetFolderId))
+      .filter(Boolean)
 
+    if (cardMoves.length === 0) return
+
+    // Record move action for undo
+    lastMoveActionRef.current = { cardMoves }
+
+    // Move all cards
+    const movePromises = cardMoves.map(({ cardId }) =>
+      onMoveCardToFolder(cardId, targetFolderId)
+    )
     await Promise.all(movePromises)
 
     // Clear selection after move
