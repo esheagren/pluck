@@ -544,8 +544,10 @@ export function useReviewState(userId) {
       if (rating === RATINGS.AGAIN) {
         // Re-queue "Again" cards at the end of the session
         // Update the card's local state so it shows correct intervals when it comes back
+        // Mark as _againCard so progress bar can show it in red
         const updatedCard = {
           ...currentCard,
+          _againCard: true,
           review_state: {
             ...currentCard.review_state,
             ...newState,
