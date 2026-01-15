@@ -14,6 +14,7 @@ export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
     newCardsPerDay,
     getIntervalPreviews,
     submitReview,
+    skipCard,
     startNewCardsSession,
     RATINGS,
   } = useReviewState(userId)
@@ -60,6 +61,13 @@ export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
         return
       }
 
+      // Tab to skip (move to end of deck)
+      if (e.code === 'Tab') {
+        e.preventDefault()
+        skipCard()
+        return
+      }
+
       // Rating shortcuts (only when flipped)
       if (isFlipped) {
         if (e.code === 'Digit1' || e.code === 'Numpad1') {
@@ -80,7 +88,7 @@ export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
 
     document.addEventListener('keydown', handleKeydown)
     return () => document.removeEventListener('keydown', handleKeydown)
-  }, [isFlipped, submitting, flipCard, handleRating, RATINGS])
+  }, [isFlipped, submitting, flipCard, handleRating, skipCard, RATINGS])
 
   // Wrapper component for centering content vertically
   const CenteredWrapper = ({ children }) => (

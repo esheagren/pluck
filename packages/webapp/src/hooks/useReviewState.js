@@ -559,6 +559,24 @@ export function useReviewState(userId) {
   }, [dueCards, currentIndex, userId])
 
   /**
+   * Skip the current card, moving it to the end of the queue.
+   */
+  const skipCard = useCallback(() => {
+    if (currentIndex >= dueCards.length) return
+
+    const currentCard = dueCards[currentIndex]
+    const newDueCards = [
+      ...dueCards.slice(0, currentIndex),
+      ...dueCards.slice(currentIndex + 1),
+      currentCard,
+    ]
+
+    setDueCards(newDueCards)
+    // Save updated session (index stays the same, but card order changed)
+    saveSession(newDueCards.map(c => c.id), currentIndex)
+  }, [dueCards, currentIndex])
+
+  /**
    * Get the current card being reviewed.
    */
   const currentCard = dueCards[currentIndex] || null
@@ -589,6 +607,7 @@ export function useReviewState(userId) {
     newCardsPerDay: getNewCardsPerDay(),
     getIntervalPreviews,
     submitReview,
+    skipCard,
     restart,
     startNewCardsSession,
     refetch: fetchDueCards,
