@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import ReviewCard from '../components/ReviewCard'
+import ReviewProgressBar from '../components/ReviewProgressBar'
 import { useReviewState } from '../hooks/useReviewState'
 
 // Wrapper component for centering content vertically
@@ -22,6 +23,8 @@ export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
     totalNewCards,
     newCardsAvailableToday,
     newCardsPerDay,
+    dueCards,
+    currentIndex,
     getIntervalPreviews,
     submitReview,
     skipCard,
@@ -217,8 +220,11 @@ export default function ReviewPage({ userId, onUpdateCard, onDeleteCard }) {
     <CenteredWrapper>
       <div className="flex flex-col items-center gap-8">
         {/* Progress indicator */}
-        <div className="text-sm text-gray-400">
-          {reviewedCount + 1} / {totalCards}
+        <div className="flex flex-col items-center gap-2 w-full">
+          <ReviewProgressBar currentIndex={currentIndex} dueCards={dueCards} />
+          <div className="text-sm text-gray-400">
+            {reviewedCount + 1} / {totalCards}
+          </div>
         </div>
 
         <ReviewCard
