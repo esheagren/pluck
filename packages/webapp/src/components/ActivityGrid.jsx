@@ -88,17 +88,22 @@ export default function ActivityGrid({ activityData = {}, metric, showLegend = t
 
     // Track which months we've seen for labels
     let lastMonth = -1
+    let lastLabelWeekIndex = -4 // Start negative so first label always shows
 
     while (currentDate <= today) {
       const week = []
       const weekStartMonth = currentDate.getMonth()
 
-      // Add month label if this is a new month
-      if (weekStartMonth !== lastMonth) {
+      // Add month label if this is a new month and there's enough space from the previous label
+      // Minimum 3 weeks apart to prevent overlap (labels are ~25-30px, cellStep is 13px)
+      if (weekStartMonth !== lastMonth && weeks.length - lastLabelWeekIndex >= 3) {
         labels.push({
           month: MONTHS[weekStartMonth],
           weekIndex: weeks.length
         })
+        lastMonth = weekStartMonth
+        lastLabelWeekIndex = weeks.length
+      } else if (weekStartMonth !== lastMonth) {
         lastMonth = weekStartMonth
       }
 
