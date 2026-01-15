@@ -13,6 +13,58 @@ const supabase = getSupabaseClient()
 
 const DEFAULT_NEW_CARDS_PER_DAY = 10
 const NEW_CARDS_KEY = 'pluckk_new_cards_per_day'
+const SESSION_KEY = 'pluckk_review_session'
+
+/**
+ * Save the current review session to sessionStorage.
+ */
+function saveSession(cardIds, currentIndex) {
+  try {
+    const session = {
+      cardIds,
+      currentIndex,
+      timestamp: Date.now(),
+    }
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  } catch (e) {
+    // sessionStorage may not be available
+  }
+}
+
+/**
+ * Load a saved review session from sessionStorage.
+ * Returns null if no valid session exists.
+ */
+function loadSession() {
+  try {
+    const saved = sessionStorage.getItem(SESSION_KEY)
+    if (!saved) return null
+
+    const session = JSON.parse(saved)
+
+    // Invalidate sessions older than 24 hours
+    const maxAge = 24 * 60 * 60 * 1000
+    if (Date.now() - session.timestamp > maxAge) {
+      sessionStorage.removeItem(SESSION_KEY)
+      return null
+    }
+
+    return session
+  } catch (e) {
+    return null
+  }
+}
+
+/**
+ * Clear the saved review session.
+ */
+function clearSession() {
+  try {
+    sessionStorage.removeItem(SESSION_KEY)
+  } catch (e) {
+    // sessionStorage may not be available
+  }
+}
 
 /**
  * Get the new cards per day setting from localStorage.
@@ -44,15 +96,95 @@ export function useReviewState(userId) {
   const [newCardsAvailableToday, setNewCardsAvailableToday] = useState(0)
 
   /**
+   * Try to restore a saved session by fetching fresh data for saved card IDs.
+   * Returns the restored cards and index, or null if restoration failed.
+   */
+  const tryRestoreSession = useCallback(async (session) => {
+    if (!session || !session.cardIds || session.cardIds.length === 0) {
+      return null
+    }
+
+    try {
+      // Fetch fresh card data for the saved IDs
+      const { data: cards, error: cardsError } = await supabase
+        .from('cards')
+        .select('*, folder:folders(*)')
+        .eq('user_id', userId)
+        .in('id', session.cardIds)
+
+      if (cardsError || !cards) {
+        return null
+      }
+
+      // Get review states for these cards
+      const { data: reviewStates } = await supabase
+        .from('card_review_state')
+        .select('*')
+        .eq('user_id', userId)
+        .in('card_id', session.cardIds)
+
+      const stateMap = new Map()
+      ;(reviewStates || []).forEach(state => {
+        stateMap.set(state.card_id, state)
+      })
+
+      // Create a map for quick lookup
+      const cardMap = new Map()
+      cards.forEach(card => {
+        const state = stateMap.get(card.id) || null
+        cardMap.set(card.id, {
+          ...card,
+          review_state: state,
+          is_new: !state,
+        })
+      })
+
+      // Restore cards in original order, filtering out deleted ones
+      const restoredCards = []
+      for (const id of session.cardIds) {
+        const card = cardMap.get(id)
+        if (card) {
+          restoredCards.push(card)
+        }
+      }
+
+      // If no cards remain, return null to start fresh
+      if (restoredCards.length === 0) {
+        return null
+      }
+
+      // Adjust index if cards before current position were removed
+      const removedBeforeIndex = session.cardIds
+        .slice(0, session.currentIndex)
+        .filter(id => !cardMap.has(id)).length
+      const adjustedIndex = Math.max(0, session.currentIndex - removedBeforeIndex)
+
+      // If adjusted index is past the end, session is complete
+      if (adjustedIndex >= restoredCards.length) {
+        return null
+      }
+
+      return {
+        cards: restoredCards,
+        index: adjustedIndex,
+      }
+    } catch (e) {
+      console.error('Error restoring session:', e)
+      return null
+    }
+  }, [userId])
+
+  /**
    * Fetch cards that are due for review.
    * Includes new cards (no review state) and cards with due_at <= now.
+   * Will restore from a saved session if one exists.
    *
    * Note: We don't use the database get_due_cards() RPC function because it only
    * returns cards that already have a card_review_state row. Cards that have never
    * been reviewed need to be included as "new" cards. For better performance with
    * large card counts, consider auto-creating review_state rows on card creation.
    */
-  const fetchDueCards = useCallback(async () => {
+  const fetchDueCards = useCallback(async (forceRefresh = false) => {
     if (!userId) {
       setDueCards([])
       setLoading(false)
@@ -62,6 +194,26 @@ export function useReviewState(userId) {
     setLoading(true)
 
     try {
+      // Try to restore from saved session (unless forcing refresh)
+      if (!forceRefresh) {
+        const session = loadSession()
+        if (session) {
+          const restored = await tryRestoreSession(session)
+          if (restored) {
+            setDueCards(restored.cards)
+            setCurrentIndex(restored.index)
+            // Update new cards counts
+            const newCardsInQueue = restored.cards.filter(c => c.is_new).length
+            setTotalNewCards(newCardsInQueue)
+            setNewCardsAvailableToday(newCardsInQueue)
+            setLoading(false)
+            return
+          }
+        }
+      }
+
+      // Clear any stale session since we're fetching fresh
+      clearSession()
       // Fetch all user's cards - required to include cards without review state
       const { data: cards, error: cardsError } = await supabase
         .from('cards')
@@ -166,13 +318,18 @@ export function useReviewState(userId) {
 
       setDueCards(shuffled)
       setCurrentIndex(0)
+
+      // Save the new session
+      if (shuffled.length > 0) {
+        saveSession(shuffled.map(c => c.id), 0)
+      }
     } catch (error) {
       console.error('Error fetching due cards:', error)
       setDueCards([])
     } finally {
       setLoading(false)
     }
-  }, [userId])
+  }, [userId, tryRestoreSession])
 
   /**
    * Start a session with only new cards (no review cards).
@@ -262,10 +419,18 @@ export function useReviewState(userId) {
 
       setNewCardsAvailableToday(availableToday)
 
+      // Clear any existing session and start fresh
+      clearSession()
+
       // Shuffle and set
       const shuffled = limitedNewCards.sort(() => Math.random() - 0.5)
       setDueCards(shuffled)
       setCurrentIndex(0)
+
+      // Save the new session
+      if (shuffled.length > 0) {
+        saveSession(shuffled.map(c => c.id), 0)
+      }
     } catch (error) {
       console.error('Error fetching new cards:', error)
       setDueCards([])
@@ -376,7 +541,15 @@ export function useReviewState(userId) {
       }
 
       // Move to next card
-      setCurrentIndex(prev => prev + 1)
+      const newIndex = currentIndex + 1
+      setCurrentIndex(newIndex)
+
+      // Update session - clear if complete, otherwise save progress
+      if (newIndex >= dueCards.length) {
+        clearSession()
+      } else {
+        saveSession(dueCards.map(c => c.id), newIndex)
+      }
 
       return { success: true, newState }
     } catch (error) {
@@ -396,10 +569,11 @@ export function useReviewState(userId) {
   const isComplete = currentIndex >= dueCards.length
 
   /**
-   * Restart the review session.
+   * Restart the review session (clears saved progress).
    */
   const restart = useCallback(() => {
-    fetchDueCards()
+    clearSession()
+    fetchDueCards(true) // Force refresh
   }, [fetchDueCards])
 
   return {
