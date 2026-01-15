@@ -87,22 +87,22 @@ export default function ActivityGrid({ activityData = {} }) {
     return { grid: weeks, monthLabels: labels, maxCount: maxVal }
   }, [activityData])
 
+  // Calculate cell dimensions
+  const cellSize = 10
+  const cellGap = 3
+  const cellStep = cellSize + cellGap // 13px per week column
+  const dayLabelWidth = 28 // Width for day labels column
+
   return (
     <div className="w-full overflow-x-auto">
       <div className="inline-block min-w-max">
         {/* Month labels */}
-        <div className="flex mb-1 ml-8">
+        <div className="relative h-4 mb-1" style={{ marginLeft: dayLabelWidth }}>
           {monthLabels.map((label, i) => (
             <div
               key={i}
-              className="text-xs text-gray-400"
-              style={{
-                position: 'relative',
-                left: `${label.weekIndex * 13}px`,
-                marginRight: i < monthLabels.length - 1
-                  ? `${(monthLabels[i + 1]?.weekIndex - label.weekIndex - 1) * 13 - 24}px`
-                  : 0
-              }}
+              className="absolute text-xs text-gray-400"
+              style={{ left: label.weekIndex * cellStep }}
             >
               {label.month}
             </div>
@@ -112,7 +112,7 @@ export default function ActivityGrid({ activityData = {} }) {
         {/* Grid */}
         <div className="flex">
           {/* Day labels */}
-          <div className="flex flex-col gap-[3px] mr-2 text-xs text-gray-400">
+          <div className="flex flex-col gap-[3px] text-xs text-gray-400" style={{ width: dayLabelWidth }}>
             {DAYS_OF_WEEK.map((day, i) => (
               <div key={day} className="h-[10px] leading-[10px]" style={{ visibility: i % 2 === 1 ? 'visible' : 'hidden' }}>
                 {day}
