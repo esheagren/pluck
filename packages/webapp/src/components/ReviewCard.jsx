@@ -55,6 +55,12 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
       return
     }
 
+    // Optimistically update display values immediately for visual feedback
+    if (questionChanged) setDisplayQuestion(editQuestion)
+    if (answerChanged) setDisplayAnswer(editAnswer)
+    setIsEditing(false)
+
+    // Then save to database in background
     setSaving(true)
     const updates = {}
     if (questionChanged) updates.question = editQuestion
@@ -63,11 +69,10 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
     const { error } = await onUpdateCard(card.id, updates)
     setSaving(false)
 
-    if (!error) {
-      // Update local display values to reflect the saved changes
-      if (questionChanged) setDisplayQuestion(editQuestion)
-      if (answerChanged) setDisplayAnswer(editAnswer)
-      setIsEditing(false)
+    // If save failed, revert to original values
+    if (error) {
+      if (questionChanged) setDisplayQuestion(card.question)
+      if (answerChanged) setDisplayAnswer(card.answer)
     }
   }
 
@@ -75,6 +80,23 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
     setEditQuestion(displayQuestion)
     setEditAnswer(displayAnswer)
     setIsEditing(false)
+  }
+
+  // Handle blur - save only if clicking outside both textareas
+  const handleBlur = (e) => {
+    // Check if focus is moving to the other textarea or the save/cancel buttons
+    const relatedTarget = e.relatedTarget
+    if (relatedTarget) {
+      // If clicking on the other textarea or action buttons, don't save yet
+      if (
+        relatedTarget === questionRef.current ||
+        relatedTarget === answerRef.current ||
+        relatedTarget.closest('.absolute.top-3.right-3')
+      ) {
+        return
+      }
+    }
+    handleSave()
   }
 
   const handleDelete = async () => {
@@ -255,8 +277,9 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
                   e.target.style.height = e.target.scrollHeight + 'px'
                 }}
                 onKeyDown={handleKeyDown}
+                onBlur={handleBlur}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full text-sm text-gray-500 text-center mt-4 mb-3 pb-3 border-b border-gray-200 bg-transparent resize-none focus:outline-none focus:ring-0"
+                className="w-full text-sm text-gray-500 text-center mt-4 mb-3 pb-3 border-b border-gray-200 bg-transparent resize-none overflow-hidden focus:outline-none focus:ring-0"
                 style={{ minHeight: '1.5em' }}
                 placeholder="Question"
               />
@@ -276,8 +299,9 @@ export default function ReviewCard({ card, isFlipped, onFlip, onUpdateCard, onDe
                   e.target.style.height = e.target.scrollHeight + 'px'
                 }}
                 onKeyDown={handleKeyDown}
+                onBlur={handleBlur}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full text-lg leading-relaxed text-center text-gray-800 bg-transparent border-none resize-none focus:outline-none focus:ring-0"
+                className="w-full text-lg leading-relaxed text-center text-gray-800 bg-transparent border-none resize-none overflow-hidden focus:outline-none focus:ring-0"
                 style={{ minHeight: '1.5em' }}
                 placeholder="Answer"
               />
