@@ -1,10 +1,19 @@
-import { useMemo, type JSX } from 'react';
+import { useMemo, useState, type JSX } from 'react';
 import type { ReviewProgressBarProps } from '../types';
+
+interface SegmentTooltip {
+  label: string;
+  count: number;
+  x: number;
+  y: number;
+}
 
 export default function ReviewProgressBar({
   currentIndex,
   dueCards,
 }: ReviewProgressBarProps): JSX.Element | null {
+  const [tooltip, setTooltip] = useState<SegmentTooltip | null>(null);
+
   const segments = useMemo(() => {
     const totalCards = dueCards.length;
     if (totalCards === 0) {
@@ -42,36 +51,64 @@ export default function ReviewProgressBar({
   const newEnd = reviewEnd + newPct;
   const againEnd = newEnd + againPct;
 
+  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>, label: string, count: number) => {
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    setTooltip({
+      label,
+      count,
+      x: rect.left + rect.width / 2,
+      y: rect.top - 8,
+    });
+  };
+
+  const handleMouseLeave = () => setTooltip(null);
+
   return (
-    <div className="w-full max-w-[500px] h-1.5 bg-gray-100 rounded-full overflow-hidden relative">
-      {reviewPct > 0 && (
+    <>
+      <div className="w-full max-w-[500px] h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden relative">
+        {reviewPct > 0 && (
+          <div
+            className="absolute top-0 bottom-0 left-0 bg-gray-300 dark:bg-gray-600 transition-all duration-300 ease-out cursor-pointer"
+            style={{ width: `${reviewPct}%` }}
+            onMouseEnter={(e) => handleMouseEnter(e, 'Review', reviewCount)}
+            onMouseLeave={handleMouseLeave}
+          />
+        )}
+        {newPct > 0 && (
+          <div
+            className="absolute top-0 bottom-0 bg-blue-400 dark:bg-blue-500 transition-all duration-300 ease-out cursor-pointer"
+            style={{ left: `${reviewEnd}%`, width: `${newPct}%` }}
+            onMouseEnter={(e) => handleMouseEnter(e, 'New', newCount)}
+            onMouseLeave={handleMouseLeave}
+          />
+        )}
+        {againPct > 0 && (
+          <div
+            className="absolute top-0 bottom-0 bg-red-400 dark:bg-red-500 transition-all duration-300 ease-out cursor-pointer"
+            style={{ left: `${newEnd}%`, width: `${againPct}%` }}
+            onMouseEnter={(e) => handleMouseEnter(e, 'Again', againCount)}
+            onMouseLeave={handleMouseLeave}
+          />
+        )}
+        {completedPct > 0 && (
+          <div
+            className="absolute top-0 bottom-0 bg-green-400 dark:bg-green-500 transition-all duration-300 ease-out cursor-pointer"
+            style={{ left: `${againEnd}%`, width: `${completedPct}%` }}
+            onMouseEnter={(e) => handleMouseEnter(e, 'Done', completedCount)}
+            onMouseLeave={handleMouseLeave}
+          />
+        )}
+      </div>
+
+      {/* Tooltip */}
+      {tooltip && (
         <div
-          className="absolute top-0 bottom-0 left-0 bg-gray-300 transition-all duration-300 ease-out"
-          style={{ width: `${reviewPct}%` }}
-          title={`Review: ${reviewCount}`}
-        />
+          className="fixed z-50 px-2 py-1 text-xs text-white bg-gray-800 dark:bg-gray-200 dark:text-gray-900 rounded shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full"
+          style={{ left: tooltip.x, top: tooltip.y }}
+        >
+          <span className="font-medium">{tooltip.label}:</span> {tooltip.count}
+        </div>
       )}
-      {newPct > 0 && (
-        <div
-          className="absolute top-0 bottom-0 bg-blue-400 transition-all duration-300 ease-out"
-          style={{ left: `${reviewEnd}%`, width: `${newPct}%` }}
-          title={`New: ${newCount}`}
-        />
-      )}
-      {againPct > 0 && (
-        <div
-          className="absolute top-0 bottom-0 bg-red-400 transition-all duration-300 ease-out"
-          style={{ left: `${newEnd}%`, width: `${againPct}%` }}
-          title={`Again: ${againCount}`}
-        />
-      )}
-      {completedPct > 0 && (
-        <div
-          className="absolute top-0 bottom-0 bg-green-400 transition-all duration-300 ease-out"
-          style={{ left: `${againEnd}%`, width: `${completedPct}%` }}
-          title={`Done: ${completedCount}`}
-        />
-      )}
-    </div>
+    </>
   );
 }
