@@ -306,7 +306,7 @@ export default function ReviewPage({
               >
                 <span className={`transition-opacity ${showShortcuts ? 'opacity-0' : ''}`}>Again</span>
                 <span className={`text-xs opacity-60 transition-opacity ${showShortcuts ? '!opacity-0' : ''}`}>{intervals.again}</span>
-                <span className={`absolute inset-0 flex items-center justify-center text-lg font-bold transition-opacity pointer-events-none ${showShortcuts ? 'opacity-100' : 'opacity-0'}`}>1</span>
+                <span className={`absolute inset-0 flex flex-col items-center justify-center transition-opacity pointer-events-none ${showShortcuts ? 'opacity-100' : 'opacity-0'}`}><span className="text-[10px] opacity-70">Press</span><span className="text-base font-bold -mt-0.5">1</span></span>
               </button>
               <button
                 onClick={() => handleRating(RATINGS.HARD)}
@@ -315,7 +315,7 @@ export default function ReviewPage({
               >
                 <span className={`transition-opacity ${showShortcuts ? 'opacity-0' : ''}`}>Hard</span>
                 <span className={`text-xs opacity-60 transition-opacity ${showShortcuts ? '!opacity-0' : ''}`}>{intervals.hard}</span>
-                <span className={`absolute inset-0 flex items-center justify-center text-lg font-bold transition-opacity pointer-events-none ${showShortcuts ? 'opacity-100' : 'opacity-0'}`}>2</span>
+                <span className={`absolute inset-0 flex flex-col items-center justify-center transition-opacity pointer-events-none ${showShortcuts ? 'opacity-100' : 'opacity-0'}`}><span className="text-[10px] opacity-70">Press</span><span className="text-base font-bold -mt-0.5">2</span></span>
               </button>
               <button
                 onClick={() => handleRating(RATINGS.GOOD)}
@@ -324,7 +324,7 @@ export default function ReviewPage({
               >
                 <span className={`transition-opacity ${showShortcuts ? 'opacity-0' : ''}`}>Good</span>
                 <span className={`text-xs opacity-60 transition-opacity ${showShortcuts ? '!opacity-0' : ''}`}>{intervals.good}</span>
-                <span className={`absolute inset-0 flex items-center justify-center text-lg font-bold transition-opacity pointer-events-none ${showShortcuts ? 'opacity-100' : 'opacity-0'}`}>3</span>
+                <span className={`absolute inset-0 flex flex-col items-center justify-center transition-opacity pointer-events-none ${showShortcuts ? 'opacity-100' : 'opacity-0'}`}><span className="text-[10px] opacity-70">Press</span><span className="text-base font-bold -mt-0.5">3</span></span>
               </button>
               <button
                 onClick={() => handleRating(RATINGS.EASY)}
@@ -333,7 +333,7 @@ export default function ReviewPage({
               >
                 <span className={`transition-opacity ${showShortcuts ? 'opacity-0' : ''}`}>Easy</span>
                 <span className={`text-xs opacity-60 transition-opacity ${showShortcuts ? '!opacity-0' : ''}`}>{intervals.easy}</span>
-                <span className={`absolute inset-0 flex items-center justify-center text-lg font-bold transition-opacity pointer-events-none ${showShortcuts ? 'opacity-100' : 'opacity-0'}`}>4</span>
+                <span className={`absolute inset-0 flex flex-col items-center justify-center transition-opacity pointer-events-none ${showShortcuts ? 'opacity-100' : 'opacity-0'}`}><span className="text-[10px] opacity-70">Press</span><span className="text-base font-bold -mt-0.5">4</span></span>
               </button>
             </div>
             {/* Info icon - hover reveals shortcuts on buttons */}
