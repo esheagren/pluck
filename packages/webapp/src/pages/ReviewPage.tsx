@@ -42,6 +42,7 @@ export default function ReviewPage({
 
   const [isFlipped, setIsFlipped] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   // Reset flip state when card changes
   useEffect(() => {
@@ -296,69 +297,65 @@ export default function ReviewPage({
 
         {/* Rating buttons */}
         {isFlipped && intervals && (
-          <div className="flex items-center gap-2">
-            {/* Info tooltip for keyboard shortcuts */}
-            <div className="relative group">
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex gap-2">
               <button
-                type="button"
-                className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
-                aria-label="Keyboard shortcuts"
+                onClick={() => handleRating(RATINGS.AGAIN)}
+                disabled={submitting}
+                className="relative flex flex-col items-center px-4 py-2 text-red-500 dark:text-red-400 text-sm font-medium rounded-md border border-red-500/30 dark:border-red-400/30 hover:bg-red-500/10 transition-colors disabled:opacity-50"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  className="w-4 h-4"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <span className={`transition-opacity ${showShortcuts ? 'opacity-0' : ''}`}>Again</span>
+                <span className={`text-xs opacity-60 transition-opacity ${showShortcuts ? '!opacity-0' : ''}`}>{intervals.again}</span>
+                <span className={`absolute inset-0 flex items-center justify-center text-lg font-bold transition-opacity pointer-events-none ${showShortcuts ? 'opacity-100' : 'opacity-0'}`}>1</span>
               </button>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap">
-                <div className="text-gray-600 dark:text-gray-300">
-                  Press <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-dark-hover rounded font-mono">1</kbd>{' '}
-                  <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-dark-hover rounded font-mono">2</kbd>{' '}
-                  <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-dark-hover rounded font-mono">3</kbd>{' '}
-                  <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-dark-hover rounded font-mono">4</kbd> to rate
-                </div>
-                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-gray-200 dark:border-t-dark-border"></div>
-                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-white dark:border-t-dark-surface"></div>
-              </div>
+              <button
+                onClick={() => handleRating(RATINGS.HARD)}
+                disabled={submitting}
+                className="relative flex flex-col items-center px-4 py-2 text-yellow-500 dark:text-yellow-400 text-sm font-medium rounded-md border border-yellow-500/30 dark:border-yellow-400/30 hover:bg-yellow-500/10 transition-colors disabled:opacity-50"
+              >
+                <span className={`transition-opacity ${showShortcuts ? 'opacity-0' : ''}`}>Hard</span>
+                <span className={`text-xs opacity-60 transition-opacity ${showShortcuts ? '!opacity-0' : ''}`}>{intervals.hard}</span>
+                <span className={`absolute inset-0 flex items-center justify-center text-lg font-bold transition-opacity pointer-events-none ${showShortcuts ? 'opacity-100' : 'opacity-0'}`}>2</span>
+              </button>
+              <button
+                onClick={() => handleRating(RATINGS.GOOD)}
+                disabled={submitting}
+                className="relative flex flex-col items-center px-4 py-2 text-green-500 dark:text-green-400 text-sm font-medium rounded-md border border-green-500/30 dark:border-green-400/30 hover:bg-green-500/10 transition-colors disabled:opacity-50"
+              >
+                <span className={`transition-opacity ${showShortcuts ? 'opacity-0' : ''}`}>Good</span>
+                <span className={`text-xs opacity-60 transition-opacity ${showShortcuts ? '!opacity-0' : ''}`}>{intervals.good}</span>
+                <span className={`absolute inset-0 flex items-center justify-center text-lg font-bold transition-opacity pointer-events-none ${showShortcuts ? 'opacity-100' : 'opacity-0'}`}>3</span>
+              </button>
+              <button
+                onClick={() => handleRating(RATINGS.EASY)}
+                disabled={submitting}
+                className="relative flex flex-col items-center px-4 py-2 text-blue-500 dark:text-blue-400 text-sm font-medium rounded-md border border-blue-500/30 dark:border-blue-400/30 hover:bg-blue-500/10 transition-colors disabled:opacity-50"
+              >
+                <span className={`transition-opacity ${showShortcuts ? 'opacity-0' : ''}`}>Easy</span>
+                <span className={`text-xs opacity-60 transition-opacity ${showShortcuts ? '!opacity-0' : ''}`}>{intervals.easy}</span>
+                <span className={`absolute inset-0 flex items-center justify-center text-lg font-bold transition-opacity pointer-events-none ${showShortcuts ? 'opacity-100' : 'opacity-0'}`}>4</span>
+              </button>
             </div>
+            {/* Info icon - hover reveals shortcuts on buttons */}
             <button
-              onClick={() => handleRating(RATINGS.AGAIN)}
-              disabled={submitting}
-              className="flex flex-col items-center px-4 py-2 text-red-500 dark:text-red-400 text-sm font-medium rounded-md border border-red-500/30 dark:border-red-400/30 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+              type="button"
+              className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+              aria-label="Keyboard shortcuts"
+              onMouseEnter={() => setShowShortcuts(true)}
+              onMouseLeave={() => setShowShortcuts(false)}
             >
-              <span>Again</span>
-              <span className="text-xs opacity-60">{intervals.again}</span>
-            </button>
-            <button
-              onClick={() => handleRating(RATINGS.HARD)}
-              disabled={submitting}
-              className="flex flex-col items-center px-4 py-2 text-yellow-500 dark:text-yellow-400 text-sm font-medium rounded-md border border-yellow-500/30 dark:border-yellow-400/30 hover:bg-yellow-500/10 transition-colors disabled:opacity-50"
-            >
-              <span>Hard</span>
-              <span className="text-xs opacity-60">{intervals.hard}</span>
-            </button>
-            <button
-              onClick={() => handleRating(RATINGS.GOOD)}
-              disabled={submitting}
-              className="flex flex-col items-center px-4 py-2 text-green-500 dark:text-green-400 text-sm font-medium rounded-md border border-green-500/30 dark:border-green-400/30 hover:bg-green-500/10 transition-colors disabled:opacity-50"
-            >
-              <span>Good</span>
-              <span className="text-xs opacity-60">{intervals.good}</span>
-            </button>
-            <button
-              onClick={() => handleRating(RATINGS.EASY)}
-              disabled={submitting}
-              className="flex flex-col items-center px-4 py-2 text-blue-500 dark:text-blue-400 text-sm font-medium rounded-md border border-blue-500/30 dark:border-blue-400/30 hover:bg-blue-500/10 transition-colors disabled:opacity-50"
-            >
-              <span>Easy</span>
-              <span className="text-xs opacity-60">{intervals.easy}</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="w-4 h-4"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z"
+                  clipRule="evenodd"
+                />
+              </svg>
             </button>
           </div>
         )}
