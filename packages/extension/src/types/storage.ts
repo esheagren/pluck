@@ -62,6 +62,10 @@ export interface UserProfile {
     isPro: boolean;
     status?: string;
   };
+  settings?: {
+    mochiApiKey: string | null;
+    mochiDeckId: string | null;
+  };
 }
 
 // Type-safe storage getters

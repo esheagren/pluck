@@ -6,7 +6,7 @@ import {
   BACKEND_URL,
   DEFAULT_SYSTEM_PROMPT
 } from '@pluckk/shared/constants';
-import { getSession, getAccessToken } from './auth';
+import { getSession, getAccessToken, getUserProfile } from './auth';
 import type {
   SelectionData,
   GeneratedCard,
@@ -826,26 +826,10 @@ chrome.runtime.onMessage.addListener(
 
     if (request.action === 'getMochiStatus') {
       (async () => {
-        const accessToken = await getAccessToken();
-        if (!accessToken) {
-          sendResponse({ configured: false } as MochiStatusResponse);
-          return;
-        }
-
         try {
-          const response = await fetch(`${BACKEND_URL}/api/mochi-status`, {
-            headers: { 'Authorization': `Bearer ${accessToken}` }
-          });
-
-          if (response.ok) {
-            interface StatusResponse {
-              configured: boolean;
-            }
-            const data: StatusResponse = await response.json();
-            sendResponse({ configured: data.configured } as MochiStatusResponse);
-          } else {
-            sendResponse({ configured: false } as MochiStatusResponse);
-          }
+          const profile = await getUserProfile();
+          const configured = !!(profile?.settings?.mochiApiKey && profile?.settings?.mochiDeckId);
+          sendResponse({ configured } as MochiStatusResponse);
         } catch (error) {
           console.error('Failed to get Mochi status:', error);
           sendResponse({ configured: false } as MochiStatusResponse);
