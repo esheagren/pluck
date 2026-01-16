@@ -32,31 +32,36 @@ export default function ReviewProgressBar({
 
   const { completedPct, reviewPct, newPct, againPct } = segments;
 
-  // Order: Gray (review) -> Blue (new) -> Red (again) -> Green (completed)
+  // Use absolute positioning for perfect alignment
+  // Calculate cumulative positions for each segment
+  const reviewEnd = reviewPct;
+  const newEnd = reviewEnd + newPct;
+  const againEnd = newEnd + againPct;
+
   return (
-    <div className="w-full max-w-[500px] h-1.5 bg-gray-100 rounded-full overflow-hidden flex">
+    <div className="w-full max-w-[500px] h-1.5 bg-gray-100 rounded-full overflow-hidden relative">
       {reviewPct > 0 && (
         <div
-          className="h-full bg-gray-300 transition-all duration-300 ease-out"
+          className="absolute top-0 bottom-0 left-0 bg-gray-300 transition-all duration-300 ease-out"
           style={{ width: `${reviewPct}%` }}
         />
       )}
       {newPct > 0 && (
         <div
-          className="h-full bg-blue-400 transition-all duration-300 ease-out"
-          style={{ width: `${newPct}%` }}
+          className="absolute top-0 bottom-0 bg-blue-400 transition-all duration-300 ease-out"
+          style={{ left: `${reviewEnd}%`, width: `${newPct}%` }}
         />
       )}
       {againPct > 0 && (
         <div
-          className="h-full bg-red-400 transition-all duration-300 ease-out"
-          style={{ width: `${againPct}%` }}
+          className="absolute top-0 bottom-0 bg-red-400 transition-all duration-300 ease-out"
+          style={{ left: `${newEnd}%`, width: `${againPct}%` }}
         />
       )}
       {completedPct > 0 && (
         <div
-          className="h-full bg-green-400 transition-all duration-300 ease-out"
-          style={{ width: `${completedPct}%` }}
+          className="absolute top-0 bottom-0 bg-green-400 transition-all duration-300 ease-out"
+          style={{ left: `${againEnd}%`, width: `${completedPct}%` }}
         />
       )}
     </div>
