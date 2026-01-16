@@ -6,6 +6,7 @@ export default function SandAnimation({
   filterPosition = 0.65,
   speed = 1,
   opacity = 1,
+  darkMode = false,
 }: SandAnimationProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -22,6 +23,22 @@ export default function SandAnimation({
     // Reduce particles on mobile for better scroll performance
     const isMobile = window.innerWidth < 768;
 
+    // Light mode colors (dark gray particles)
+    const lightColors = [
+      `rgba(60, 60, 60, ${0.6 * opacity})`,
+      `rgba(70, 70, 70, ${0.5 * opacity})`,
+      `rgba(50, 50, 50, ${0.6 * opacity})`,
+      `rgba(80, 80, 80, ${0.45 * opacity})`,
+    ];
+
+    // Dark mode colors (cream/ochre particles)
+    const darkColors = [
+      `rgba(220, 215, 200, ${0.5 * opacity})`,  // dull white/cream
+      `rgba(200, 185, 160, ${0.45 * opacity})`, // warm cream
+      `rgba(180, 165, 140, ${0.5 * opacity})`,  // ochre/tan
+      `rgba(210, 200, 180, ${0.4 * opacity})`,  // light ochre
+    ];
+
     // Configuration
     const config = {
       particleCount: isMobile ? 300 : 800,
@@ -31,12 +48,7 @@ export default function SandAnimation({
       maxSpeed: 4 * speed,
       filterPosition: filterPosition, // configurable filter position
       passThrough: 0.03, // only 3% of particles pass through
-      colors: [
-        `rgba(60, 60, 60, ${0.6 * opacity})`,
-        `rgba(70, 70, 70, ${0.5 * opacity})`,
-        `rgba(50, 50, 50, ${0.6 * opacity})`,
-        `rgba(80, 80, 80, ${0.45 * opacity})`,
-      ],
+      colors: darkMode ? darkColors : lightColors,
     };
 
     // Resize handler
@@ -96,7 +108,7 @@ export default function SandAnimation({
       ctx.clearRect(0, 0, width, height);
 
       // Draw the filter line (very subtle vertical line)
-      ctx.strokeStyle = 'rgba(60, 60, 60, 0.1)';
+      ctx.strokeStyle = darkMode ? 'rgba(200, 190, 170, 0.1)' : 'rgba(60, 60, 60, 0.1)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(filterX, 0);
@@ -149,9 +161,15 @@ export default function SandAnimation({
 
       // Draw accumulation effect at filter line (subtle pile-up)
       const gradient = ctx.createLinearGradient(filterX - 40, 0, filterX, 0);
-      gradient.addColorStop(0, 'rgba(40, 40, 40, 0)');
-      gradient.addColorStop(0.7, 'rgba(40, 40, 40, 0.03)');
-      gradient.addColorStop(1, 'rgba(40, 40, 40, 0.08)');
+      if (darkMode) {
+        gradient.addColorStop(0, 'rgba(200, 190, 170, 0)');
+        gradient.addColorStop(0.7, 'rgba(200, 190, 170, 0.03)');
+        gradient.addColorStop(1, 'rgba(200, 190, 170, 0.08)');
+      } else {
+        gradient.addColorStop(0, 'rgba(40, 40, 40, 0)');
+        gradient.addColorStop(0.7, 'rgba(40, 40, 40, 0.03)');
+        gradient.addColorStop(1, 'rgba(40, 40, 40, 0.08)');
+      }
       ctx.fillStyle = gradient;
       ctx.fillRect(filterX - 40, 0, 40, height);
 
@@ -175,7 +193,7 @@ export default function SandAnimation({
       cancelAnimationFrame(animationId);
       resizeObserver.disconnect();
     };
-  }, [filterPosition, speed, opacity]);
+  }, [filterPosition, speed, opacity, darkMode]);
 
   return (
     <canvas

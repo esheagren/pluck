@@ -189,6 +189,7 @@ export interface SandAnimationProps {
   filterPosition?: number;
   speed?: number;
   opacity?: number;
+  darkMode?: boolean;
 }
 
 export interface Particle {
