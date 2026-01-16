@@ -296,7 +296,38 @@ export default function ReviewPage({
 
         {/* Rating buttons */}
         {isFlipped && intervals && (
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            {/* Info tooltip for keyboard shortcuts */}
+            <div className="relative group">
+              <button
+                type="button"
+                className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                aria-label="Keyboard shortcuts"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="w-4 h-4"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap">
+                <div className="text-gray-600 dark:text-gray-300">
+                  Press <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-dark-hover rounded font-mono">1</kbd>{' '}
+                  <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-dark-hover rounded font-mono">2</kbd>{' '}
+                  <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-dark-hover rounded font-mono">3</kbd>{' '}
+                  <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-dark-hover rounded font-mono">4</kbd> to rate
+                </div>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-gray-200 dark:border-t-dark-border"></div>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-white dark:border-t-dark-surface"></div>
+              </div>
+            </div>
             <button
               onClick={() => handleRating(RATINGS.AGAIN)}
               disabled={submitting}
