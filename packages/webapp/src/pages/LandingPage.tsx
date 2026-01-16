@@ -1,0 +1,614 @@
+import { useState, useEffect, type JSX } from 'react';
+import SandAnimation from '../components/SandAnimation';
+import type { LandingPageProps } from '../types';
+
+export default function LandingPage({ onSignIn }: LandingPageProps): JSX.Element {
+  const [showContent, setShowContent] = useState(false);
+
+  useEffect(() => {
+    // Delay content appearance for dramatic effect
+    const timer = setTimeout(() => setShowContent(true), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-stone-100 relative overflow-hidden">
+      {/* Sand animation - full screen */}
+      <div className="absolute inset-0">
+        <SandAnimation speed={0.6} />
+      </div>
+
+      {/* Hero content - positioned on the right side (the "filtered" zone) */}
+      <div className="relative z-10 min-h-screen flex items-center">
+        <div className="w-full max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="grid lg:grid-cols-12 gap-8 items-center min-h-screen py-16">
+            {/* Left side - mostly empty, where particles flow */}
+            <div className="lg:col-span-7 hidden lg:block" />
+
+            {/* Right side - the filtered zone with dramatic copy */}
+            <div
+              className={`lg:col-span-5 transition-all duration-1000 ${
+                showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+              }`}
+            >
+              {/* Dramatic statement */}
+              <div className="space-y-8">
+                <div className="space-y-4">
+                  <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-stone-800 leading-[1.1] tracking-tight">
+                    You forget
+                    <br />
+                    <span className="text-stone-400">almost everything</span>
+                    <br />
+                    you read.
+                  </h1>
+                </div>
+
+                <div className="h-px bg-stone-300 w-24" />
+
+                <p className="text-lg text-stone-500 leading-relaxed max-w-md">
+                  Articles, documentation, AI conversations--knowledge slips away within days. All
+                  that insight, gone.
+                </p>
+
+                <p className="text-2xl text-stone-800 leading-relaxed max-w-md font-semibold">
+                  Choose to remember.
+                </p>
+
+                {/* CTA */}
+                <div className="pt-4 space-y-4">
+                  <button
+                    onClick={onSignIn}
+                    className="group inline-flex items-center gap-3 px-8 py-4 bg-stone-900 text-white font-medium rounded-lg hover:bg-stone-800 transition-all hover:shadow-xl hover:shadow-stone-400/20"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                      <path
+                        fill="#4285F4"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      />
+                    </svg>
+                    Start remembering
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="group-hover:translate-x-0.5 transition-transform"
+                    >
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                  </button>
+
+                  <p className="text-sm text-stone-400">Free to start. No credit card required.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Scroll indicator */}
+      <div
+        className={`absolute bottom-8 left-1/2 -translate-x-1/2 transition-all duration-1000 delay-1000 ${
+          showContent ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
+        <div className="flex flex-col items-center gap-2 text-stone-400">
+          <span className="text-xs tracking-widest uppercase">Scroll</span>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="animate-bounce"
+          >
+            <path d="M12 5v14M5 12l7 7 7-7" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Second section - Why it matters */}
+      <section className="relative z-10 bg-white py-24">
+        <div className="w-full max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="max-w-3xl">
+            <p className="text-stone-400 text-sm tracking-widest uppercase mb-4">Why it matters</p>
+            <h2 className="text-3xl lg:text-4xl font-bold text-stone-800 leading-[1.2] mb-8">
+              In your career--and in life--it pays to actually know things.
+            </h2>
+            <div className="space-y-6 text-lg text-stone-600 leading-relaxed">
+              <p>
+                You're constantly learning. Reading documentation, researching solutions, having
+                conversations with AI. But how much of it sticks?
+              </p>
+              <p>
+                The best professionals aren't just good at finding information--they
+                <span className="font-semibold text-stone-800"> retain it</span>. They build a
+                foundation of knowledge that compounds over time.
+              </p>
+              <p className="text-stone-800 font-medium">Pluckk helps you become that person.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Science section - Forgetting curve */}
+      <section className="relative z-10 bg-stone-50 py-24 border-y border-stone-200">
+        <div className="w-full max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            {/* Left - Content */}
+            <div className="space-y-8">
+              <p className="text-stone-400 text-sm tracking-widest uppercase">The science</p>
+              <h2 className="text-3xl lg:text-4xl font-bold text-stone-800 leading-[1.2]">
+                Your brain is designed to forget.
+              </h2>
+
+              <div className="space-y-6 text-stone-600 leading-relaxed">
+                <p>
+                  In 1885, psychologist Hermann Ebbinghaus discovered the{' '}
+                  <span className="font-semibold text-stone-800">forgetting curve</span>--we lose 50%
+                  of new information within an hour, and up to 90% within a week.
+                </p>
+                <p>
+                  But he also found the solution:{' '}
+                  <span className="font-semibold text-stone-800">spaced repetition</span>. By
+                  reviewing information at strategic intervals, you can flatten the curve and move
+                  knowledge into long-term memory.
+                </p>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-6 pt-4">
+                <div>
+                  <p className="text-3xl font-bold text-stone-800">50%</p>
+                  <p className="text-sm text-stone-500">forgotten in 1 hour</p>
+                </div>
+                <div>
+                  <p className="text-3xl font-bold text-stone-800">70%</p>
+                  <p className="text-sm text-stone-500">forgotten in 24 hours</p>
+                </div>
+                <div>
+                  <p className="text-3xl font-bold text-stone-800">90%</p>
+                  <p className="text-sm text-stone-500">forgotten in 1 week</p>
+                </div>
+              </div>
+
+              {/* Testing effect callout */}
+              <div className="bg-white rounded-xl p-6 border border-stone-200">
+                <p className="font-semibold text-stone-800 mb-2">The testing effect</p>
+                <p className="text-stone-600 text-sm leading-relaxed">
+                  Research shows that actively recalling information--not just re-reading
+                  it--dramatically improves retention. Testing yourself is more effective than
+                  studying, especially for long-term memory.
+                </p>
+              </div>
+            </div>
+
+            {/* Right - Forgetting curve visualization */}
+            <div className="relative">
+              <div className="bg-white rounded-2xl p-8 border border-stone-200 shadow-sm">
+                <p className="text-sm font-medium text-stone-500 mb-6">
+                  Memory retention over time
+                </p>
+
+                {/* SVG Chart */}
+                <svg
+                  viewBox="0 0 400 250"
+                  className="w-full"
+                  aria-label="Forgetting curve vs spaced repetition chart"
+                >
+                  {/* Grid lines */}
+                  <line x1="50" y1="200" x2="380" y2="200" stroke="#e7e5e4" strokeWidth="1" />
+                  <line
+                    x1="50"
+                    y1="150"
+                    x2="380"
+                    y2="150"
+                    stroke="#e7e5e4"
+                    strokeWidth="1"
+                    strokeDasharray="4"
+                  />
+                  <line
+                    x1="50"
+                    y1="100"
+                    x2="380"
+                    y2="100"
+                    stroke="#e7e5e4"
+                    strokeWidth="1"
+                    strokeDasharray="4"
+                  />
+                  <line
+                    x1="50"
+                    y1="50"
+                    x2="380"
+                    y2="50"
+                    stroke="#e7e5e4"
+                    strokeWidth="1"
+                    strokeDasharray="4"
+                  />
+
+                  {/* Y-axis labels */}
+                  <text x="45" y="205" textAnchor="end" className="text-xs fill-stone-400">
+                    0%
+                  </text>
+                  <text x="45" y="155" textAnchor="end" className="text-xs fill-stone-400">
+                    50%
+                  </text>
+                  <text x="45" y="55" textAnchor="end" className="text-xs fill-stone-400">
+                    100%
+                  </text>
+
+                  {/* X-axis labels */}
+                  <text x="50" y="220" textAnchor="start" className="text-xs fill-stone-400">
+                    Learn
+                  </text>
+                  <text x="130" y="220" textAnchor="middle" className="text-xs fill-stone-400">
+                    1 day
+                  </text>
+                  <text x="215" y="220" textAnchor="middle" className="text-xs fill-stone-400">
+                    1 week
+                  </text>
+                  <text x="300" y="220" textAnchor="middle" className="text-xs fill-stone-400">
+                    1 month
+                  </text>
+
+                  {/* Forgetting curve (without review) - steep decline */}
+                  <path
+                    d="M 50 50 Q 80 120, 130 160 Q 180 185, 230 192 Q 280 197, 380 198"
+                    fill="none"
+                    stroke="#d6d3d1"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+
+                  {/* Spaced repetition curve - with review bumps */}
+                  <path
+                    d="M 50 50
+                       Q 65 80, 80 95
+                       L 80 60
+                       Q 100 85, 130 100
+                       L 130 70
+                       Q 165 90, 215 105
+                       L 215 80
+                       Q 260 95, 380 100"
+                    fill="none"
+                    stroke="#292524"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+
+                  {/* Review points */}
+                  <circle cx="80" cy="60" r="5" fill="#292524" />
+                  <circle cx="130" cy="70" r="5" fill="#292524" />
+                  <circle cx="215" cy="80" r="5" fill="#292524" />
+
+                  {/* Legend */}
+                  <line
+                    x1="50"
+                    y1="235"
+                    x2="70"
+                    y2="235"
+                    stroke="#d6d3d1"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+                  <text x="75" y="238" className="text-xs fill-stone-400">
+                    Without review
+                  </text>
+
+                  <line
+                    x1="180"
+                    y1="235"
+                    x2="200"
+                    y2="235"
+                    stroke="#292524"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+                  <text x="205" y="238" className="text-xs fill-stone-500 font-medium">
+                    With Pluckk
+                  </text>
+                </svg>
+
+                <p className="text-xs text-stone-400 mt-4 text-center">
+                  Each review strengthens memory and extends the time until the next review is
+                  needed.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Third section - Capture from AI */}
+      <section className="relative z-10 min-h-screen bg-stone-900 text-white flex items-center">
+        <div className="w-full max-w-7xl mx-auto px-6 lg:px-12 py-24">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div className="space-y-8">
+              <p className="text-stone-500 text-sm tracking-widest uppercase">How it works</p>
+              <h2 className="text-4xl lg:text-5xl font-bold leading-[1.1] tracking-tight">
+                Extract knowledge
+                <br />
+                <span className="text-stone-400">from wherever you work.</span>
+              </h2>
+
+              <p className="text-lg text-stone-400 leading-relaxed max-w-lg">
+                Articles, documentation, emails, ChatGPT, Claude--wherever you're learning, Pluckk
+                extracts what matters and makes it yours forever.
+              </p>
+
+              <div className="space-y-4 pt-4">
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-sm font-medium">1</span>
+                  </div>
+                  <div>
+                    <p className="font-medium">Highlight anywhere in your browser</p>
+                    <p className="text-stone-500 text-sm">
+                      Articles, docs, emails, ChatGPT, Claude--anywhere.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-sm font-medium">2</span>
+                  </div>
+                  <div>
+                    <p className="font-medium">Get smart flashcards instantly</p>
+                    <p className="text-stone-500 text-sm">
+                      AI generates context-aware cards you can edit.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-sm font-medium">3</span>
+                  </div>
+                  <div>
+                    <p className="font-medium">Review & remember</p>
+                    <p className="text-stone-500 text-sm">
+                      Spaced repetition makes it stick--permanently.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Visual demo - ChatGPT conversation */}
+            <div className="relative">
+              <div className="bg-stone-800 rounded-2xl p-6 border border-stone-700">
+                <div className="space-y-4">
+                  {/* ChatGPT header */}
+                  <div className="flex items-center gap-2 pb-4 border-b border-stone-700">
+                    <div className="w-6 h-6 rounded-sm bg-[#10a37f] flex items-center justify-center">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                        <path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.8956zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z" />
+                      </svg>
+                    </div>
+                    <span className="text-stone-400 text-sm font-mono">ChatGPT</span>
+                  </div>
+
+                  {/* Conversation */}
+                  <div className="space-y-4">
+                    <div className="flex gap-3">
+                      <div className="w-6 h-6 rounded-full bg-stone-600 flex-shrink-0" />
+                      <p className="text-stone-400 text-sm">
+                        What's the difference between useMemo and useCallback in React?
+                      </p>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <div className="w-6 h-6 rounded-sm bg-[#10a37f] flex-shrink-0" />
+                      <div className="text-stone-300 text-sm leading-relaxed">
+                        <p className="mb-2">
+                          Great question! Both are React hooks for optimization:
+                        </p>
+                        <p>
+                          <span className="bg-amber-500/30 px-1 rounded">
+                            useMemo memoizes a computed value, while useCallback memoizes a function
+                            definition. Use useMemo when you have an expensive calculation, and
+                            useCallback when passing callbacks to optimized child components.
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Arrow */}
+                  <div className="flex justify-center py-2">
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-stone-600"
+                    >
+                      <path d="M12 5v14M5 12l7 7 7-7" />
+                    </svg>
+                  </div>
+
+                  {/* Generated card */}
+                  <div className="bg-white rounded-lg p-5 text-stone-900">
+                    <p className="text-xs text-stone-500 uppercase tracking-wide mb-2">Your card</p>
+                    <p className="font-medium mb-2">
+                      What's the difference between useMemo and useCallback?
+                    </p>
+                    <p className="text-stone-500 text-sm">
+                      useMemo memoizes a computed value; useCallback memoizes a function definition.
+                      Use useMemo for expensive calculations, useCallback for callbacks to child
+                      components.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Fourth section - Your data, your knowledge */}
+      <section className="relative z-10 bg-stone-100 py-24">
+        <div className="w-full max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="grid lg:grid-cols-3 gap-12">
+            <div className="space-y-4">
+              <div className="w-12 h-12 rounded-xl bg-stone-200 flex items-center justify-center">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="text-stone-700"
+                >
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-stone-800">Your cards are yours</h3>
+              <p className="text-stone-500 leading-relaxed">
+                Everything you create belongs to you. Export anytime, delete anytime. We're not
+                building on your data--we're helping you build your knowledge.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="w-12 h-12 rounded-xl bg-stone-200 flex items-center justify-center">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="text-stone-700"
+                >
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-stone-800">Private & secure</h3>
+              <p className="text-stone-500 leading-relaxed">
+                Your cards are encrypted and private. We don't sell your data or use it for
+                training. Your knowledge stays yours.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="w-12 h-12 rounded-xl bg-stone-200 flex items-center justify-center">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="text-stone-700"
+                >
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-stone-800">Works with Mochi</h3>
+              <p className="text-stone-500 leading-relaxed">
+                Already use Mochi for spaced repetition? Cards sync directly to your decks. Or
+                review right here--your choice.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="relative z-10 bg-stone-900 py-24">
+        <div className="w-full max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-3xl lg:text-4xl font-bold text-white mb-6">
+            Stop losing what you learn.
+          </h2>
+          <p className="text-lg text-stone-400 mb-10 max-w-xl mx-auto">
+            Start building a knowledge base that grows with you--for work, for life, forever.
+          </p>
+          <button
+            onClick={onSignIn}
+            className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-stone-900 text-lg font-medium rounded-lg hover:bg-stone-100 transition-all hover:shadow-xl"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <path
+                fill="#4285F4"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+              />
+            </svg>
+            Get started free
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="group-hover:translate-x-1 transition-transform"
+            >
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </button>
+          <p className="mt-4 text-sm text-stone-500">
+            Free tier includes 20 cards/month. No credit card required.
+          </p>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative z-10 bg-stone-900 border-t border-stone-800 py-8">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-stone-500">
+            <img src="/logo.png" alt="Pluckk" className="w-6 h-6 rounded opacity-60" />
+            <span className="text-sm font-medium">Pluckk</span>
+          </div>
+          <div className="flex items-center gap-6 text-sm text-stone-500">
+            <a href="/privacy" className="hover:text-stone-300 transition-colors">
+              Privacy
+            </a>
+            <a
+              href="https://eriksheagren.notion.site"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-stone-300 transition-colors"
+            >
+              Contact
+            </a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
