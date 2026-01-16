@@ -296,62 +296,38 @@ export default function ReviewPage({
 
         {/* Rating buttons */}
         {isFlipped && intervals && (
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <button
               onClick={() => handleRating(RATINGS.AGAIN)}
               disabled={submitting}
-              className="flex flex-col items-center px-5 py-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors min-w-[90px] disabled:opacity-50"
+              className="flex flex-col items-center px-4 py-2 text-red-500 dark:text-red-400 text-sm font-medium rounded-md border border-red-500/30 dark:border-red-400/30 hover:bg-red-500/10 transition-colors disabled:opacity-50"
             >
-              <span className="flex items-center gap-1.5">
-                Again
-                <kbd className="px-1.5 py-0.5 text-xs bg-red-100 dark:bg-red-800/50 rounded">1</kbd>
-              </span>
-              <span className="text-xs text-red-400 dark:text-red-500 mt-1">{intervals.again}</span>
+              <span>Again</span>
+              <span className="text-xs opacity-60">{intervals.again}</span>
             </button>
             <button
               onClick={() => handleRating(RATINGS.HARD)}
               disabled={submitting}
-              className="flex flex-col items-center px-5 py-3 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-sm font-medium rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-colors min-w-[90px] disabled:opacity-50"
+              className="flex flex-col items-center px-4 py-2 text-yellow-500 dark:text-yellow-400 text-sm font-medium rounded-md border border-yellow-500/30 dark:border-yellow-400/30 hover:bg-yellow-500/10 transition-colors disabled:opacity-50"
             >
-              <span className="flex items-center gap-1.5">
-                Hard
-                <kbd className="px-1.5 py-0.5 text-xs bg-orange-100 dark:bg-orange-800/50 rounded">
-                  2
-                </kbd>
-              </span>
-              <span className="text-xs text-orange-400 dark:text-orange-500 mt-1">
-                {intervals.hard}
-              </span>
+              <span>Hard</span>
+              <span className="text-xs opacity-60">{intervals.hard}</span>
             </button>
             <button
               onClick={() => handleRating(RATINGS.GOOD)}
               disabled={submitting}
-              className="flex flex-col items-center px-5 py-3 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-sm font-medium rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors min-w-[90px] disabled:opacity-50"
+              className="flex flex-col items-center px-4 py-2 text-green-500 dark:text-green-400 text-sm font-medium rounded-md border border-green-500/30 dark:border-green-400/30 hover:bg-green-500/10 transition-colors disabled:opacity-50"
             >
-              <span className="flex items-center gap-1.5">
-                Good
-                <kbd className="px-1.5 py-0.5 text-xs bg-green-100 dark:bg-green-800/50 rounded">
-                  3
-                </kbd>
-              </span>
-              <span className="text-xs text-green-400 dark:text-green-500 mt-1">
-                {intervals.good}
-              </span>
+              <span>Good</span>
+              <span className="text-xs opacity-60">{intervals.good}</span>
             </button>
             <button
               onClick={() => handleRating(RATINGS.EASY)}
               disabled={submitting}
-              className="flex flex-col items-center px-5 py-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-sm font-medium rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors min-w-[90px] disabled:opacity-50"
+              className="flex flex-col items-center px-4 py-2 text-blue-500 dark:text-blue-400 text-sm font-medium rounded-md border border-blue-500/30 dark:border-blue-400/30 hover:bg-blue-500/10 transition-colors disabled:opacity-50"
             >
-              <span className="flex items-center gap-1.5">
-                Easy
-                <kbd className="px-1.5 py-0.5 text-xs bg-blue-100 dark:bg-blue-800/50 rounded">
-                  4
-                </kbd>
-              </span>
-              <span className="text-xs text-blue-400 dark:text-blue-500 mt-1">
-                {intervals.easy}
-              </span>
+              <span>Easy</span>
+              <span className="text-xs opacity-60">{intervals.easy}</span>
             </button>
           </div>
         )}
