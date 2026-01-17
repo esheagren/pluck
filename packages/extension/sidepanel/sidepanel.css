@@ -149,13 +149,25 @@ body {
   flex-direction: column;
 }
 
-/* Settings Drawer */
+/* Settings Drawer (at bottom) */
 .settings-drawer {
   background: var(--color-surface-secondary);
   border-radius: 8px;
-  margin-bottom: 14px;
-  animation: slideDown 0.15s ease;
+  margin-top: auto;
+  margin-bottom: 8px;
+  animation: slideUp 0.15s ease;
   overflow: hidden;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .drawer-section {
@@ -1423,10 +1435,9 @@ html.dark .card-item.selected .card-checkbox::after {
   font-style: italic;
 }
 
-/* Start Review Button (fixed at bottom) */
+/* Start Review Button (at bottom) */
 .review-btn-container {
-  margin-top: auto;
-  padding-top: 16px;
+  padding-top: 8px;
   display: flex;
   justify-content: center;
 }
