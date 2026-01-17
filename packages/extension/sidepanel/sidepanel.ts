@@ -9,7 +9,8 @@ import {
   getUserProfile,
   getAccessToken
 } from '../src/auth';
-import { initSandAnimation } from './sand-animation';
+import { initSandAnimation, type CleanupFunction } from './sand-animation';
+import { initializeTheme, toggleTheme, type Theme } from '../src/theme';
 import type {
   GeneratedCard,
   GenerateCardsResponse,
@@ -41,7 +42,6 @@ const regenerateBtn = document.getElementById('regenerate-btn') as HTMLButtonEle
 const openSettingsBtn = document.getElementById('open-settings-btn') as HTMLButtonElement | null;
 const upgradeBtn = document.getElementById('upgrade-btn') as HTMLButtonElement | null;
 const closeBtn = document.getElementById('close-btn') as HTMLButtonElement | null;
-const infoBtn = document.getElementById('info-btn') as HTMLButtonElement | null;
 const selectedCountEl = document.getElementById('selected-count') as HTMLElement | null;
 const totalCountEl = document.getElementById('total-count') as HTMLElement | null;
 const focusInputContainer = document.getElementById('focus-input-container') as HTMLElement | null;
@@ -53,17 +53,21 @@ const _questionInputContainer = document.getElementById('question-input-containe
 const questionInput = document.getElementById('question-input') as HTMLTextAreaElement | null;
 const questionSubmitBtn = document.getElementById('question-submit-btn') as HTMLButtonElement | null;
 
-// DOM Elements - Settings Section
-const authLoggedOut = document.getElementById('auth-logged-out') as HTMLElement | null;
-const authLoggedIn = document.getElementById('auth-logged-in') as HTMLElement | null;
-const googleSignInBtn = document.getElementById('google-sign-in-btn') as HTMLButtonElement | null;
-const usageRow = document.getElementById('usage-row') as HTMLElement | null;
-const settingsUsageBar = document.getElementById('settings-usage-bar') as HTMLElement | null;
-const settingsUsageText = document.getElementById('settings-usage-text') as HTMLElement | null;
-const settingsBillingRow = document.getElementById('settings-billing-row') as HTMLElement | null;
-const settingsProRow = document.getElementById('settings-pro-row') as HTMLElement | null;
-const settingsUpgradeBtn = document.getElementById('settings-upgrade-btn') as HTMLButtonElement | null;
-const keepOpenCheckbox = document.getElementById('keep-open-checkbox') as HTMLInputElement | null;
+// DOM Elements - Settings Drawer
+const settingsToggleBtn = document.getElementById('settings-toggle-btn') as HTMLButtonElement | null;
+const settingsDrawer = document.getElementById('settings-drawer') as HTMLElement | null;
+const drawerAuthLoggedOut = document.getElementById('drawer-auth-logged-out') as HTMLElement | null;
+const drawerAuthLoggedIn = document.getElementById('drawer-auth-logged-in') as HTMLElement | null;
+const drawerSignInBtn = document.getElementById('drawer-sign-in-btn') as HTMLButtonElement | null;
+const drawerUsageRow = document.getElementById('drawer-usage-row') as HTMLElement | null;
+const drawerUsageBar = document.getElementById('drawer-usage-bar') as HTMLElement | null;
+const drawerUsageText = document.getElementById('drawer-usage-text') as HTMLElement | null;
+const drawerBillingRow = document.getElementById('drawer-billing-row') as HTMLElement | null;
+const drawerProRow = document.getElementById('drawer-pro-row') as HTMLElement | null;
+const drawerUpgradeBtn = document.getElementById('drawer-upgrade-btn') as HTMLButtonElement | null;
+const drawerThemeToggle = document.getElementById('drawer-theme-toggle') as HTMLInputElement | null;
+const drawerKeepOpenToggle = document.getElementById('drawer-keep-open-toggle') as HTMLInputElement | null;
+const drawerWebappBtn = document.getElementById('drawer-webapp-btn') as HTMLButtonElement | null;
 
 // State
 let cards: GeneratedCard[] = [];
@@ -88,6 +92,10 @@ let _userIsPro = false; // Track if user is Pro (for diagram feature)
 
 // Keep open preference
 let keepOpenAfterStoring = false;
+
+// Theme state
+let currentTheme: Theme = 'light';
+let sandAnimationCleanup: CleanupFunction | null = null;
 
 /**
  * Show a specific state, hide all others
@@ -1080,7 +1088,7 @@ async function clearCachedProfile(): Promise<void> {
 }
 
 /**
- * Apply profile data to the UI
+ * Apply profile data to the UI (drawer elements)
  */
 function applyProfileToUI(profile: ProfileCache | null): void {
   if (!profile) return;
@@ -1094,42 +1102,42 @@ function applyProfileToUI(profile: ProfileCache | null): void {
 
   if (isPro) {
     // Pro users: hide bar, show count + Pro badge
-    usageRow?.classList.add('pro');
-    if (settingsUsageText) settingsUsageText.textContent = `${used} (unlimited)`;
-    if (settingsUsageBar) settingsUsageBar.style.width = '0%';
-    settingsBillingRow?.classList.add('hidden');
-    settingsProRow?.classList.remove('hidden');
-    settingsUpgradeBtn?.classList.remove('at-limit');
+    drawerUsageRow?.classList.add('pro');
+    if (drawerUsageText) drawerUsageText.textContent = `${used} (unlimited)`;
+    if (drawerUsageBar) drawerUsageBar.style.width = '0%';
+    drawerBillingRow?.classList.add('hidden');
+    drawerProRow?.classList.remove('hidden');
+    drawerUpgradeBtn?.classList.remove('at-limit');
   } else {
     // Free users: show bar + "X of Y cards used"
-    usageRow?.classList.remove('pro');
+    drawerUsageRow?.classList.remove('pro');
     const percentage = Math.min((used / limit) * 100, 100);
-    if (settingsUsageText) settingsUsageText.textContent = `${used} of ${limit} cards used`;
-    if (settingsUsageBar) settingsUsageBar.style.width = `${percentage}%`;
-    settingsBillingRow?.classList.remove('hidden');
-    settingsProRow?.classList.add('hidden');
+    if (drawerUsageText) drawerUsageText.textContent = `${used} of ${limit} cards used`;
+    if (drawerUsageBar) drawerUsageBar.style.width = `${percentage}%`;
+    drawerBillingRow?.classList.remove('hidden');
+    drawerProRow?.classList.add('hidden');
 
-    settingsUsageBar?.classList.remove('warning', 'full');
-    settingsUpgradeBtn?.classList.remove('at-limit');
+    drawerUsageBar?.classList.remove('warning', 'full');
+    drawerUpgradeBtn?.classList.remove('at-limit');
 
     if (percentage >= 100) {
-      settingsUsageBar?.classList.add('full');
-      settingsUpgradeBtn?.classList.add('at-limit');
+      drawerUsageBar?.classList.add('full');
+      drawerUpgradeBtn?.classList.add('at-limit');
     } else if (percentage >= 75) {
-      settingsUsageBar?.classList.add('warning');
+      drawerUsageBar?.classList.add('warning');
     }
   }
 }
 
 /**
- * Update auth display in settings
+ * Update auth display in drawer
  */
 async function updateAuthDisplay(): Promise<void> {
   const { user } = await getSession();
 
   if (user) {
-    authLoggedOut?.classList.add('hidden');
-    authLoggedIn?.classList.remove('hidden');
+    drawerAuthLoggedOut?.classList.add('hidden');
+    drawerAuthLoggedIn?.classList.remove('hidden');
 
     // First, apply cached profile immediately (no flash)
     const cachedProfile = await getCachedProfile();
@@ -1154,8 +1162,8 @@ async function updateAuthDisplay(): Promise<void> {
       cacheProfile(profileCache);
     }
   } else {
-    authLoggedOut?.classList.remove('hidden');
-    authLoggedIn?.classList.add('hidden');
+    drawerAuthLoggedOut?.classList.remove('hidden');
+    drawerAuthLoggedIn?.classList.add('hidden');
     clearCachedProfile();
   }
 }
@@ -1165,9 +1173,9 @@ async function updateAuthDisplay(): Promise<void> {
  * Handle Google sign in
  */
 async function handleGoogleSignIn(): Promise<void> {
-  if (googleSignInBtn) {
-    googleSignInBtn.disabled = true;
-    googleSignInBtn.textContent = 'Signing in...';
+  if (drawerSignInBtn) {
+    drawerSignInBtn.disabled = true;
+    drawerSignInBtn.textContent = 'Signing in...';
   }
 
   try {
@@ -1179,9 +1187,9 @@ async function handleGoogleSignIn(): Promise<void> {
     console.error('Sign in error:', error);
     showSettingsStatus('Sign in failed', 'error');
   } finally {
-    if (googleSignInBtn) {
-      googleSignInBtn.disabled = false;
-      googleSignInBtn.innerHTML = `
+    if (drawerSignInBtn) {
+      drawerSignInBtn.disabled = false;
+      drawerSignInBtn.innerHTML = `
         <svg width="16" height="16" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -1198,9 +1206,9 @@ async function handleGoogleSignIn(): Promise<void> {
  * Handle upgrade button - open Stripe Checkout
  */
 async function handleUpgrade(): Promise<void> {
-  if (settingsUpgradeBtn) {
-    settingsUpgradeBtn.disabled = true;
-    settingsUpgradeBtn.textContent = '...';
+  if (drawerUpgradeBtn) {
+    drawerUpgradeBtn.disabled = true;
+    drawerUpgradeBtn.textContent = '...';
   }
 
   try {
@@ -1235,9 +1243,9 @@ async function handleUpgrade(): Promise<void> {
     console.error('Upgrade error:', error);
     showSettingsStatus('Failed to start checkout', 'error');
   } finally {
-    if (settingsUpgradeBtn) {
-      settingsUpgradeBtn.disabled = false;
-      settingsUpgradeBtn.textContent = 'Upgrade to Pro';
+    if (drawerUpgradeBtn) {
+      drawerUpgradeBtn.disabled = false;
+      drawerUpgradeBtn.textContent = 'Upgrade to Pro';
     }
   }
 }
@@ -1305,14 +1313,43 @@ focusInput?.addEventListener('keydown', (e: KeyboardEvent) => {
 openSettingsBtn?.addEventListener('click', handleGoogleSignIn);
 upgradeBtn?.addEventListener('click', handleUpgrade);
 closeBtn?.addEventListener('click', closePanel);
-infoBtn?.addEventListener('click', () => {
+
+// Settings Drawer Toggle Functions
+function toggleSettingsDrawer(): void {
+  const isOpen = !settingsDrawer?.classList.contains('hidden');
+  if (isOpen) {
+    closeSettingsDrawer();
+  } else {
+    settingsDrawer?.classList.remove('hidden');
+    settingsToggleBtn?.classList.add('active');
+  }
+}
+
+function closeSettingsDrawer(): void {
+  settingsDrawer?.classList.add('hidden');
+  settingsToggleBtn?.classList.remove('active');
+}
+
+// Event Listeners - Settings Drawer
+settingsToggleBtn?.addEventListener('click', toggleSettingsDrawer);
+drawerSignInBtn?.addEventListener('click', handleGoogleSignIn);
+drawerUpgradeBtn?.addEventListener('click', handleUpgrade);
+drawerWebappBtn?.addEventListener('click', () => {
   chrome.tabs.create({ url: 'https://pluckk.app' });
   window.close();
 });
 
-// Event Listeners - Settings Section
-googleSignInBtn?.addEventListener('click', handleGoogleSignIn);
-settingsUpgradeBtn?.addEventListener('click', handleUpgrade);
+// Close drawer when clicking outside
+document.addEventListener('click', (e: MouseEvent) => {
+  const target = e.target as HTMLElement;
+  const isDrawerOpen = !settingsDrawer?.classList.contains('hidden');
+  const clickedInDrawer = settingsDrawer?.contains(target);
+  const clickedSettingsBtn = settingsToggleBtn?.contains(target);
+
+  if (isDrawerOpen && !clickedInDrawer && !clickedSettingsBtn) {
+    closeSettingsDrawer();
+  }
+});
 
 // Event Listeners - Screenshot handling
 document.addEventListener('paste', handlePaste);
@@ -1401,9 +1438,11 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     toggleFocusInput();
   }
 
-  // Escape to close (but first collapse focus input if open)
+  // Escape to close (drawer first, then focus input, then panel)
   if (e.key === 'Escape') {
-    if (!focusInputContainer?.classList.contains('hidden')) {
+    if (!settingsDrawer?.classList.contains('hidden')) {
+      closeSettingsDrawer();
+    } else if (!focusInputContainer?.classList.contains('hidden')) {
       focusInputContainer?.classList.add('hidden');
       if (focusInput) focusInput.value = '';
     } else {
@@ -1430,26 +1469,62 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
 });
 
-// Initialize background animation
-const sandCanvas = document.getElementById('sand-animation') as HTMLCanvasElement | null;
-if (sandCanvas) {
-  initSandAnimation(sandCanvas, {
-    filterPosition: 0.98,
-    speed: 0.3,
-    opacity: 0.2,
-    particleCount: 200
-  });
-}
+/**
+ * Initialize sand animation with current theme
+ */
+function initSandWithTheme(): void {
+  // Clean up existing animation
+  if (sandAnimationCleanup) {
+    sandAnimationCleanup();
+  }
 
-// Update tooltip based on toggle state
-function updateKeepOpenTooltip(): void {
-  const toggleLabel = keepOpenCheckbox?.closest('.toggle-switch');
-  if (toggleLabel) {
-    (toggleLabel as HTMLElement).title = keepOpenAfterStoring
-      ? 'Keep Pluck open'
-      : 'Close Pluck after use';
+  const sandCanvas = document.getElementById('sand-animation') as HTMLCanvasElement | null;
+  if (sandCanvas) {
+    sandAnimationCleanup = initSandAnimation(sandCanvas, {
+      filterPosition: 0.98,
+      speed: 0.3,
+      opacity: 0.2,
+      particleCount: 200,
+      darkMode: currentTheme === 'dark'
+    });
   }
 }
+
+/**
+ * Update theme toggle checkbox state
+ */
+function updateThemeToggleState(): void {
+  if (drawerThemeToggle) {
+    drawerThemeToggle.checked = currentTheme === 'dark';
+  }
+}
+
+/**
+ * Handle theme change
+ */
+function handleThemeChange(theme: Theme): void {
+  currentTheme = theme;
+  updateThemeToggleState();
+  initSandWithTheme();
+}
+
+/**
+ * Initialize theme
+ */
+async function initTheme(): Promise<void> {
+  currentTheme = await initializeTheme(handleThemeChange);
+  updateThemeToggleState();
+  initSandWithTheme();
+}
+
+// Theme toggle event listener (drawer checkbox)
+drawerThemeToggle?.addEventListener('change', async () => {
+  const newTheme = await toggleTheme();
+  handleThemeChange(newTheme);
+});
+
+// Initialize theme
+initTheme();
 
 // Load keep-open preference
 async function loadKeepOpenPreference(): Promise<void> {
@@ -1459,10 +1534,9 @@ async function loadKeepOpenPreference(): Promise<void> {
     }
     const result: KeepOpenResult = await chrome.storage.sync.get(['keepOpenAfterStoring']);
     keepOpenAfterStoring = result.keepOpenAfterStoring || false;
-    if (keepOpenCheckbox) {
-      keepOpenCheckbox.checked = keepOpenAfterStoring;
+    if (drawerKeepOpenToggle) {
+      drawerKeepOpenToggle.checked = keepOpenAfterStoring;
     }
-    updateKeepOpenTooltip();
   } catch (error) {
     console.error('Failed to load keep-open preference:', error);
   }
@@ -1473,14 +1547,13 @@ async function saveKeepOpenPreference(value: boolean): Promise<void> {
   try {
     await chrome.storage.sync.set({ keepOpenAfterStoring: value });
     keepOpenAfterStoring = value;
-    updateKeepOpenTooltip();
   } catch (error) {
     console.error('Failed to save keep-open preference:', error);
   }
 }
 
-// Wire up keep-open checkbox
-keepOpenCheckbox?.addEventListener('change', (e: Event) => {
+// Wire up keep-open toggle (drawer)
+drawerKeepOpenToggle?.addEventListener('change', (e: Event) => {
   saveKeepOpenPreference((e.target as HTMLInputElement).checked);
 });
 
