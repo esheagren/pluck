@@ -211,37 +211,6 @@ body {
   padding: 10px 14px;
 }
 
-.drawer-links {
-  padding: 10px 14px;
-}
-
-.drawer-link-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 8px 12px;
-  font-size: 13px;
-  font-weight: 450;
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-light);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  font-family: inherit;
-}
-
-.drawer-link-btn:hover {
-  background: var(--color-surface-tertiary);
-  border-color: var(--color-border);
-}
-
-.drawer-link-btn svg {
-  color: var(--color-text-secondary);
-}
-
 /* Settings button active state */
 .settings-btn.active {
   color: var(--color-text-primary);
@@ -1452,4 +1421,31 @@ html.dark .card-item.selected .card-checkbox::after {
   font-size: 12px;
   color: var(--color-text-secondary);
   font-style: italic;
+}
+
+/* Start Review Button (fixed at bottom) */
+.review-btn-container {
+  margin-top: auto;
+  padding-top: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-review {
+  padding: 10px 24px;
+  font-size: 13px;
+  font-weight: 450;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.btn-review:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+  background: var(--color-surface-secondary);
 }

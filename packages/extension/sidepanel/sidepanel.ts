@@ -67,7 +67,7 @@ const drawerProRow = document.getElementById('drawer-pro-row') as HTMLElement | 
 const drawerUpgradeBtn = document.getElementById('drawer-upgrade-btn') as HTMLButtonElement | null;
 const drawerThemeToggle = document.getElementById('drawer-theme-toggle') as HTMLInputElement | null;
 const drawerKeepOpenToggle = document.getElementById('drawer-keep-open-toggle') as HTMLInputElement | null;
-const drawerWebappBtn = document.getElementById('drawer-webapp-btn') as HTMLButtonElement | null;
+const startReviewBtn = document.getElementById('start-review-btn') as HTMLButtonElement | null;
 
 // State
 let cards: GeneratedCard[] = [];
@@ -1334,7 +1334,9 @@ function closeSettingsDrawer(): void {
 settingsToggleBtn?.addEventListener('click', toggleSettingsDrawer);
 drawerSignInBtn?.addEventListener('click', handleGoogleSignIn);
 drawerUpgradeBtn?.addEventListener('click', handleUpgrade);
-drawerWebappBtn?.addEventListener('click', () => {
+
+// Event Listener - Start Review Button
+startReviewBtn?.addEventListener('click', () => {
   chrome.tabs.create({ url: 'https://pluckk.app' });
   window.close();
 });
