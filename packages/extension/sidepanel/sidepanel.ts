@@ -65,6 +65,8 @@ const drawerUsageText = document.getElementById('drawer-usage-text') as HTMLElem
 const drawerBillingRow = document.getElementById('drawer-billing-row') as HTMLElement | null;
 const drawerProRow = document.getElementById('drawer-pro-row') as HTMLElement | null;
 const drawerUpgradeBtn = document.getElementById('drawer-upgrade-btn') as HTMLButtonElement | null;
+const drawerProBtn = document.getElementById('drawer-pro-btn') as HTMLButtonElement | null;
+const drawerVersion = document.getElementById('drawer-version') as HTMLElement | null;
 const drawerThemeToggle = document.getElementById('drawer-theme-toggle') as HTMLInputElement | null;
 const drawerKeepOpenToggle = document.getElementById('drawer-keep-open-toggle') as HTMLInputElement | null;
 const startReviewBtn = document.getElementById('start-review-btn') as HTMLButtonElement | null;
@@ -1100,19 +1102,20 @@ function applyProfileToUI(profile: ProfileCache | null): void {
   // Store for later use in card generation response
   currentIsPro = isPro;
 
+  // Always show "X cards created"
+  if (drawerUsageText) drawerUsageText.textContent = `${used} cards created`;
+
   if (isPro) {
-    // Pro users: hide bar, show count + Pro badge
+    // Pro users: hide bar, show Pro badge
     drawerUsageRow?.classList.add('pro');
-    if (drawerUsageText) drawerUsageText.textContent = `${used} (unlimited)`;
     if (drawerUsageBar) drawerUsageBar.style.width = '0%';
     drawerBillingRow?.classList.add('hidden');
     drawerProRow?.classList.remove('hidden');
     drawerUpgradeBtn?.classList.remove('at-limit');
   } else {
-    // Free users: show bar + "X of Y cards used"
+    // Free users: show bar
     drawerUsageRow?.classList.remove('pro');
     const percentage = Math.min((used / limit) * 100, 100);
-    if (drawerUsageText) drawerUsageText.textContent = `${used} of ${limit} cards used`;
     if (drawerUsageBar) drawerUsageBar.style.width = `${percentage}%`;
     drawerBillingRow?.classList.remove('hidden');
     drawerProRow?.classList.add('hidden');
@@ -1251,6 +1254,54 @@ async function handleUpgrade(): Promise<void> {
 }
 
 /**
+ * Handle manage subscription - open Stripe Customer Portal
+ */
+async function handleManageSubscription(): Promise<void> {
+  if (drawerProBtn) {
+    drawerProBtn.disabled = true;
+    drawerProBtn.textContent = '...';
+  }
+
+  try {
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      showSettingsStatus('Please sign in first', 'error');
+      return;
+    }
+
+    const response = await fetch(`${BACKEND_URL}/api/portal`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        returnUrl: 'https://pluckk.app'
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Portal failed');
+    }
+
+    interface PortalResponse {
+      url: string;
+    }
+    const { url }: PortalResponse = await response.json();
+    chrome.tabs.create({ url });
+  } catch (error) {
+    console.error('Portal error:', error);
+    showSettingsStatus('Failed to open subscription portal', 'error');
+  } finally {
+    if (drawerProBtn) {
+      drawerProBtn.disabled = false;
+      drawerProBtn.textContent = 'Pro';
+    }
+  }
+}
+
+/**
  * Close the side panel
  */
 function closePanel(): void {
@@ -1334,6 +1385,7 @@ function closeSettingsDrawer(): void {
 settingsToggleBtn?.addEventListener('click', toggleSettingsDrawer);
 drawerSignInBtn?.addEventListener('click', handleGoogleSignIn);
 drawerUpgradeBtn?.addEventListener('click', handleUpgrade);
+drawerProBtn?.addEventListener('click', handleManageSubscription);
 
 // Event Listener - Start Review Button
 startReviewBtn?.addEventListener('click', () => {
@@ -1558,6 +1610,12 @@ async function saveKeepOpenPreference(value: boolean): Promise<void> {
 drawerKeepOpenToggle?.addEventListener('change', (e: Event) => {
   saveKeepOpenPreference((e.target as HTMLInputElement).checked);
 });
+
+// Set version from manifest
+if (drawerVersion) {
+  const manifest = chrome.runtime.getManifest();
+  drawerVersion.textContent = `v${manifest.version}`;
+}
 
 // Load preferences and initialize panel
 loadKeepOpenPreference();

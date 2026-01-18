@@ -153,19 +153,22 @@
         </button>
       </div>
 
-      <!-- Subscription section: usage bar + upgrade OR pro badge -->
+      <!-- Subscription section: usage + upgrade OR pro badge -->
       <div class="drawer-section hidden" id="drawer-auth-logged-in">
+        <div class="drawer-subscription-header">
+          <span class="usage-text" id="drawer-usage-text">0 cards created</span>
+          <span class="drawer-version" id="drawer-version"></span>
+        </div>
         <div class="drawer-usage-row" id="drawer-usage-row">
           <div class="usage-bar" id="drawer-usage-bar-container">
             <div class="usage-bar-fill" id="drawer-usage-bar"></div>
           </div>
-          <span class="usage-text" id="drawer-usage-text">0 of 20 cards used</span>
         </div>
         <div class="drawer-billing-row" id="drawer-billing-row">
           <button class="btn-upgrade" id="drawer-upgrade-btn">Upgrade to Pro</button>
         </div>
         <div class="drawer-billing-row hidden" id="drawer-pro-row">
-          <span class="pro-badge">Pro</span>
+          <button class="pro-badge-btn" id="drawer-pro-btn" title="Manage subscription">Pro</button>
         </div>
       </div>
 

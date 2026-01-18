@@ -199,6 +199,24 @@ body {
   color: var(--color-text-primary);
 }
 
+.drawer-subscription-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.drawer-subscription-header .usage-text {
+  font-size: 13px;
+  color: var(--color-text-primary);
+  font-weight: 450;
+}
+
+.drawer-version {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
 .drawer-usage-row {
   display: flex;
   align-items: center;
@@ -206,10 +224,6 @@ body {
 }
 
 .drawer-usage-row.pro {
-  justify-content: center;
-}
-
-.drawer-usage-row.pro .usage-bar {
   display: none;
 }
 
@@ -217,6 +231,27 @@ body {
   margin-top: 10px;
   display: flex;
   justify-content: center;
+}
+
+.pro-badge-btn {
+  display: inline-block;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.pro-badge-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
 }
 
 .drawer-preferences {
