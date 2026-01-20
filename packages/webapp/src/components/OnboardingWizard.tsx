@@ -12,11 +12,54 @@ import {
   STUDENT_LEVELS,
   WORK_FIELDS,
   YEARS_EXPERIENCE,
-  ADDITIONAL_INTERESTS,
   SPACED_REP_EXPERIENCE,
   TECHNICALITY_EXAMPLES,
   BREADTH_EXAMPLES,
 } from '../types';
+
+// Hierarchical interest categories
+const INTEREST_CATEGORIES: { category: string; interests: string[] }[] = [
+  {
+    category: 'Sciences',
+    interests: ['Biology', 'Chemistry', 'Physics', 'Neuroscience', 'Ecology', 'Astronomy', 'Geology'],
+  },
+  {
+    category: 'Medicine & Health',
+    interests: ['Anatomy', 'Pharmacology', 'Pathology', 'Public Health', 'Nutrition', 'Psychology'],
+  },
+  {
+    category: 'Technology',
+    interests: ['Programming', 'AI/ML', 'Cybersecurity', 'Data Science', 'Web Development', 'Systems Design'],
+  },
+  {
+    category: 'Mathematics',
+    interests: ['Statistics', 'Calculus', 'Linear Algebra', 'Discrete Math', 'Probability'],
+  },
+  {
+    category: 'Business & Economics',
+    interests: ['Finance', 'Accounting', 'Marketing', 'Strategy', 'Economics', 'Entrepreneurship'],
+  },
+  {
+    category: 'Humanities',
+    interests: ['Philosophy', 'History', 'Literature', 'Linguistics', 'Religious Studies', 'Art History'],
+  },
+  {
+    category: 'Social Sciences',
+    interests: ['Sociology', 'Anthropology', 'Political Science', 'International Relations', 'Geography'],
+  },
+  {
+    category: 'Law',
+    interests: ['Constitutional Law', 'Contract Law', 'Criminal Law', 'International Law', 'Legal Theory'],
+  },
+  {
+    category: 'Arts & Design',
+    interests: ['Music Theory', 'Visual Arts', 'Architecture', 'Film Studies', 'Graphic Design', 'Photography'],
+  },
+  {
+    category: 'Languages',
+    interests: ['Spanish', 'French', 'German', 'Mandarin', 'Japanese', 'Arabic', 'Latin'],
+  },
+];
 
 interface OnboardingWizardProps {
   onComplete: (profile: OnboardingData) => Promise<void>;
@@ -39,7 +82,7 @@ export interface OnboardingData {
   breadthPreference: BreadthLevel | null;
 }
 
-const STEPS = ['About you', 'Details', 'Experience', 'Preferences'];
+const STEPS = ['About you', 'Details', 'Experience', 'Preferences', 'Interests'];
 
 export default function OnboardingWizard({
   onComplete,
@@ -47,6 +90,7 @@ export default function OnboardingWizard({
 }: OnboardingWizardProps): JSX.Element {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [showSpacedRepInfo, setShowSpacedRepInfo] = useState(false);
 
   // Form state
   const [primaryCategory, setPrimaryCategory] = useState<PrimaryCategory | null>(null);
@@ -342,13 +386,30 @@ export default function OnboardingWizard({
             </div>
           )}
 
-          {/* Step 3: Spaced Rep Experience & Additional Interests */}
+          {/* Step 3: Spaced Rep Experience */}
           {step === 2 && (
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Have you used spaced repetition before?
-                </label>
+                <div className="flex items-center gap-2 mb-3">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Have you used spaced repetition before?
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowSpacedRepInfo(!showSpacedRepInfo)}
+                    className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs font-medium hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center justify-center"
+                    aria-label="What is spaced repetition?"
+                  >
+                    i
+                  </button>
+                </div>
+                {showSpacedRepInfo && (
+                  <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
+                    <p className="text-xs text-blue-800 dark:text-blue-200">
+                      <strong>Spaced repetition</strong> is a learning technique that shows you flashcards at increasing intervals based on how well you remember them. Popular apps that use this method include <strong>Anki</strong>, <strong>Mochi</strong>, <strong>SuperMemo</strong>, and <strong>Quizlet</strong>.
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-2">
                   {SPACED_REP_EXPERIENCE.map((option) => (
                     <button
@@ -369,34 +430,6 @@ export default function OnboardingWizard({
                     </button>
                   ))}
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  What other fields interest you?
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {ADDITIONAL_INTERESTS.map((interest) => (
-                    <button
-                      key={interest}
-                      onClick={() => toggleInterest(interest)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        selectedInterests.includes(interest)
-                          ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      {interest}
-                    </button>
-                  ))}
-                </div>
-                <input
-                  type="text"
-                  value={otherInterests}
-                  onChange={(e) => setOtherInterests(e.target.value)}
-                  placeholder="Other interests (e.g., Philosophy, Music Theory)"
-                  className="w-full mt-3 px-4 py-3 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-bg dark:text-gray-200 dark:placeholder-gray-500"
-                />
               </div>
             </div>
           )}
@@ -473,6 +506,51 @@ export default function OnboardingWizard({
                     </button>
                   ))}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Interests */}
+          {step === 4 && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                Select topics you&apos;re interested in learning about. This helps us tailor card suggestions.
+              </p>
+              <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
+                {INTEREST_CATEGORIES.map((cat) => (
+                  <div key={cat.category}>
+                    <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                      {cat.category}
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {cat.interests.map((interest) => (
+                        <button
+                          key={interest}
+                          onClick={() => toggleInterest(interest)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                            selectedInterests.includes(interest)
+                              ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          {interest}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="pt-3 border-t border-gray-100 dark:border-dark-border">
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  Something else?
+                </label>
+                <input
+                  type="text"
+                  value={otherInterests}
+                  onChange={(e) => setOtherInterests(e.target.value)}
+                  placeholder="e.g., Cognitive Science, Game Theory, Urban Planning"
+                  className="w-full px-4 py-3 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-bg dark:text-gray-200 dark:placeholder-gray-500"
+                />
               </div>
             </div>
           )}
