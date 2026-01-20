@@ -40,13 +40,16 @@ export function useAuth(): UseAuthReturn {
           primaryCategory: data.learningProfile?.primaryCategory || null,
           studentLevel: data.learningProfile?.studentLevel || null,
           studentField: data.learningProfile?.studentField || null,
-          workField: data.learningProfile?.workField || null,
+          workFields: data.learningProfile?.workFields || [],
           workFieldOther: data.learningProfile?.workFieldOther || null,
           workYearsExperience: data.learningProfile?.workYearsExperience || null,
           researchField: data.learningProfile?.researchField || null,
           researchYearsExperience: data.learningProfile?.researchYearsExperience || null,
           additionalInterests: data.learningProfile?.additionalInterests || [],
           additionalInterestsOther: data.learningProfile?.additionalInterestsOther || null,
+          spacedRepExperience: data.learningProfile?.spacedRepExperience || null,
+          technicalityPreference: data.learningProfile?.technicalityPreference || null,
+          breadthPreference: data.learningProfile?.breadthPreference || null,
         };
         setLearningProfile(profile);
 
@@ -176,13 +179,16 @@ export function useAuth(): UseAuthReturn {
           primaryCategory: profile.primaryCategory,
           studentLevel: profile.studentLevel,
           studentField: profile.studentField,
-          workField: profile.workField,
+          workFields: profile.workFields,
           workFieldOther: profile.workFieldOther,
           workYearsExperience: profile.workYearsExperience,
           researchField: profile.researchField,
           researchYearsExperience: profile.researchYearsExperience,
           additionalInterests: profile.additionalInterests,
           additionalInterestsOther: profile.additionalInterestsOther,
+          spacedRepExperience: profile.spacedRepExperience,
+          technicalityPreference: profile.technicalityPreference,
+          breadthPreference: profile.breadthPreference,
         }),
       });
 

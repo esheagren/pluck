@@ -22,13 +22,16 @@ function buildSystemPrompt(isPro: boolean, profile?: UserProfile): string {
     primaryCategory: profile?.primary_category,
     studentLevel: profile?.student_level,
     studentField: profile?.student_field,
-    workField: profile?.work_field,
+    workFields: profile?.work_fields,
     workFieldOther: profile?.work_field_other,
     workYearsExperience: profile?.work_years_experience,
     researchField: profile?.research_field,
     researchYearsExperience: profile?.research_years_experience,
     additionalInterests: profile?.additional_interests,
     additionalInterestsOther: profile?.additional_interests_other,
+    spacedRepExperience: profile?.spaced_rep_experience,
+    technicalityPreference: profile?.technicality_preference,
+    breadthPreference: profile?.breadth_preference,
   });
   const diagramStyle = isPro ? `
 7. **diagram** - For STRUCTURAL or COMPARATIVE knowledge that benefits from visual representation.

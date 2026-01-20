@@ -130,6 +130,9 @@ export type PrimaryCategory = 'student' | 'worker' | 'researcher';
 export type StudentLevel = 'high_school' | 'college' | 'medical_school' | 'law_school' | 'graduate_school' | 'other';
 export type WorkField = 'consulting' | 'engineering' | 'product' | 'finance' | 'marketing' | 'design' | 'sales' | 'operations' | 'legal' | 'healthcare' | 'education' | 'other';
 export type YearsExperience = '1-2' | '3-5' | '6-10' | '10+';
+export type SpacedRepExperience = 'none' | 'tried' | 'regular' | 'power_user';
+export type TechnicalityLevel = 1 | 2 | 3 | 4;
+export type BreadthLevel = 1 | 2 | 3 | 4;
 
 export interface LearningProfileForPrompt {
   primaryCategory?: PrimaryCategory | null;
@@ -137,7 +140,7 @@ export interface LearningProfileForPrompt {
   studentLevel?: StudentLevel | null;
   studentField?: string | null;
   // Worker
-  workField?: WorkField | null;
+  workFields?: WorkField[] | null;
   workFieldOther?: string | null;
   workYearsExperience?: YearsExperience | null;
   // Researcher
@@ -146,6 +149,10 @@ export interface LearningProfileForPrompt {
   // Additional interests
   additionalInterests?: string[] | null;
   additionalInterestsOther?: string | null;
+  // Learning preferences
+  spacedRepExperience?: SpacedRepExperience | null;
+  technicalityPreference?: TechnicalityLevel | null;
+  breadthPreference?: BreadthLevel | null;
 }
 
 const STUDENT_LEVEL_LABELS: Record<StudentLevel, string> = {
@@ -172,45 +179,76 @@ const WORK_FIELD_LABELS: Record<WorkField, string> = {
   other: 'professional',
 };
 
+const TECHNICALITY_GUIDANCE: Record<TechnicalityLevel, string> = {
+  1: 'Use intuitive language with analogies and everyday comparisons. Avoid jargon and technical terms.',
+  2: 'Use conceptual explanations that explain mechanisms without heavy math or jargon. Define technical terms when used.',
+  3: 'Include specific details, measurements, and technical terminology. Assume familiarity with the domain.',
+  4: 'Use precise technical language, formulas, and quantitative details. Assume expert-level background.',
+};
+
+const BREADTH_GUIDANCE: Record<BreadthLevel, string> = {
+  1: 'Generate cards focused narrowly on exactly what was highlighted. Stick to the specific facts presented.',
+  2: 'Generate cards about the highlighted content plus immediate context (definitions, direct relationships).',
+  3: 'Generate cards that connect the highlighted content to related concepts, causes, and effects.',
+  4: 'Generate exploratory cards including broader connections, applications, and questions the user might not have thought to ask.',
+};
+
 /**
  * Builds a persona prompt section from user's learning profile.
  * Returns empty string if profile is empty or has no meaningful data.
  */
 export function buildPersonaPrompt(profile: LearningProfileForPrompt | null | undefined): string {
-  if (!profile || !profile.primaryCategory) return '';
+  if (!profile) return '';
 
-  let persona = 'The user is ';
+  // If no category and no preferences, return empty
+  const hasPreferences = profile.technicalityPreference || profile.breadthPreference;
+  if (!profile.primaryCategory && !hasPreferences) return '';
+
   const parts: string[] = [];
 
   // Build the main persona description
-  if (profile.primaryCategory === 'student') {
-    const level = profile.studentLevel || 'other';
-    persona += `a ${STUDENT_LEVEL_LABELS[level]}`;
-    if (profile.studentField) {
-      persona += ` studying ${profile.studentField}`;
-    }
-  } else if (profile.primaryCategory === 'worker') {
-    const field = profile.workField || 'other';
-    if (field === 'other' && profile.workFieldOther) {
-      persona += `a ${profile.workFieldOther} professional`;
-    } else {
-      persona += `a ${WORK_FIELD_LABELS[field]}`;
-    }
-    if (profile.workYearsExperience) {
-      persona += ` with ${profile.workYearsExperience} years of experience`;
-    }
-  } else if (profile.primaryCategory === 'researcher') {
-    persona += 'a researcher';
-    if (profile.researchField) {
-      persona += ` in ${profile.researchField}`;
-    }
-    if (profile.researchYearsExperience) {
-      persona += ` with ${profile.researchYearsExperience} years of experience`;
-    }
-  }
+  if (profile.primaryCategory) {
+    let persona = 'The user is ';
 
-  persona += '.';
-  parts.push(persona);
+    if (profile.primaryCategory === 'student') {
+      const level = profile.studentLevel || 'other';
+      persona += `a ${STUDENT_LEVEL_LABELS[level]}`;
+      if (profile.studentField) {
+        persona += ` studying ${profile.studentField}`;
+      }
+    } else if (profile.primaryCategory === 'worker') {
+      const fields = profile.workFields || [];
+      if (fields.length === 0 && profile.workFieldOther) {
+        persona += `a ${profile.workFieldOther} professional`;
+      } else if (fields.length === 1) {
+        const field = fields[0];
+        if (field === 'other' && profile.workFieldOther) {
+          persona += `a ${profile.workFieldOther} professional`;
+        } else {
+          persona += `a ${WORK_FIELD_LABELS[field]}`;
+        }
+      } else if (fields.length > 1) {
+        const labels = fields.map(f => f === 'other' && profile.workFieldOther ? profile.workFieldOther : WORK_FIELD_LABELS[f]);
+        persona += `a professional working in ${labels.join(', ')}`;
+      } else {
+        persona += 'a working professional';
+      }
+      if (profile.workYearsExperience) {
+        persona += ` with ${profile.workYearsExperience} years of experience`;
+      }
+    } else if (profile.primaryCategory === 'researcher') {
+      persona += 'a researcher';
+      if (profile.researchField) {
+        persona += ` in ${profile.researchField}`;
+      }
+      if (profile.researchYearsExperience) {
+        persona += ` with ${profile.researchYearsExperience} years of experience`;
+      }
+    }
+
+    persona += '.';
+    parts.push(persona);
+  }
 
   // Additional interests
   const interests: string[] = [];
@@ -224,10 +262,22 @@ export function buildPersonaPrompt(profile: LearningProfileForPrompt | null | un
     parts.push(`They are also interested in: ${interests.join(', ')}.`);
   }
 
+  // Technicality preference
+  if (profile.technicalityPreference) {
+    parts.push(`**Technicality preference:** ${TECHNICALITY_GUIDANCE[profile.technicalityPreference]}`);
+  }
+
+  // Breadth preference
+  if (profile.breadthPreference) {
+    parts.push(`**Breadth preference:** ${BREADTH_GUIDANCE[profile.breadthPreference]}`);
+  }
+
+  if (parts.length === 0) return '';
+
   return `
 ## User Context
-${parts.join(' ')}
+${parts.join('\n\n')}
 
-Tailor cards to this user's background and expertise level.
+Tailor cards to this user's background, expertise level, and stated preferences.
 `;
 }

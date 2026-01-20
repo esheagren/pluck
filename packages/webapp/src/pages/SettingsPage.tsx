@@ -10,12 +10,18 @@ import type {
   StudentLevel,
   WorkField,
   YearsExperience,
+  SpacedRepExperience,
+  TechnicalityLevel,
+  BreadthLevel,
 } from '../types';
 import {
   STUDENT_LEVELS,
   WORK_FIELDS,
   YEARS_EXPERIENCE,
   ADDITIONAL_INTERESTS,
+  SPACED_REP_EXPERIENCE,
+  TECHNICALITY_EXAMPLES,
+  BREADTH_EXAMPLES,
 } from '../types';
 
 const DEFAULT_NEW_CARDS_PER_DAY = 10;
@@ -44,13 +50,16 @@ export default function SettingsPage({
   const [primaryCategory, setPrimaryCategory] = useState<PrimaryCategory | null>(null);
   const [studentLevel, setStudentLevel] = useState<StudentLevel | null>(null);
   const [studentField, setStudentField] = useState('');
-  const [workField, setWorkField] = useState<WorkField | null>(null);
+  const [workFields, setWorkFields] = useState<WorkField[]>([]);
   const [workFieldOther, setWorkFieldOther] = useState('');
   const [workYearsExperience, setWorkYearsExperience] = useState<YearsExperience | null>(null);
   const [researchField, setResearchField] = useState('');
   const [researchYearsExperience, setResearchYearsExperience] = useState<YearsExperience | null>(null);
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [otherInterests, setOtherInterests] = useState('');
+  const [spacedRepExperience, setSpacedRepExperience] = useState<SpacedRepExperience | null>(null);
+  const [technicalityPreference, setTechnicalityPreference] = useState<TechnicalityLevel | null>(null);
+  const [breadthPreference, setBreadthPreference] = useState<BreadthLevel | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileStatus, setProfileStatus] = useState<StatusMessage>({ type: '', message: '' });
 
@@ -89,13 +98,16 @@ export default function SettingsPage({
           setPrimaryCategory(data.learningProfile.primaryCategory || null);
           setStudentLevel(data.learningProfile.studentLevel || null);
           setStudentField(data.learningProfile.studentField || '');
-          setWorkField(data.learningProfile.workField || null);
+          setWorkFields(data.learningProfile.workFields || []);
           setWorkFieldOther(data.learningProfile.workFieldOther || '');
           setWorkYearsExperience(data.learningProfile.workYearsExperience || null);
           setResearchField(data.learningProfile.researchField || '');
           setResearchYearsExperience(data.learningProfile.researchYearsExperience || null);
           setSelectedInterests(data.learningProfile.additionalInterests || []);
           setOtherInterests(data.learningProfile.additionalInterestsOther || '');
+          setSpacedRepExperience(data.learningProfile.spacedRepExperience || null);
+          setTechnicalityPreference(data.learningProfile.technicalityPreference || null);
+          setBreadthPreference(data.learningProfile.breadthPreference || null);
         }
       }
     } catch (error) {
@@ -215,6 +227,37 @@ export default function SettingsPage({
     return studentLevel === 'college' || studentLevel === 'graduate_school' || studentLevel === 'other';
   };
 
+  const toggleWorkField = (field: WorkField): void => {
+    setWorkFields((prev) => {
+      if (prev.includes(field)) {
+        return prev.filter((f) => f !== field);
+      } else if (prev.length >= 5) {
+        setProfileStatus({ type: 'error', message: 'Maximum 5 work fields allowed' });
+        setTimeout(() => setProfileStatus({ type: '', message: '' }), 3000);
+        return prev;
+      }
+      return [...prev, field];
+    });
+  };
+
+  const handlePrimaryCategoryChange = (category: PrimaryCategory): void => {
+    setPrimaryCategory(category);
+    // Clear fields from other categories to avoid stale data
+    if (category !== 'student') {
+      setStudentLevel(null);
+      setStudentField('');
+    }
+    if (category !== 'worker') {
+      setWorkFields([]);
+      setWorkFieldOther('');
+      setWorkYearsExperience(null);
+    }
+    if (category !== 'researcher') {
+      setResearchField('');
+      setResearchYearsExperience(null);
+    }
+  };
+
   const saveLearningProfile = async (): Promise<void> => {
     setSavingProfile(true);
     setProfileStatus({ type: '', message: '' });
@@ -236,13 +279,16 @@ export default function SettingsPage({
           primaryCategory: primaryCategory || null,
           studentLevel: primaryCategory === 'student' ? studentLevel : null,
           studentField: primaryCategory === 'student' && needsStudentField() ? studentField.trim() || null : null,
-          workField: primaryCategory === 'worker' ? workField : null,
-          workFieldOther: primaryCategory === 'worker' && workField === 'other' ? workFieldOther.trim() || null : null,
+          workFields: primaryCategory === 'worker' && workFields.length > 0 ? workFields : null,
+          workFieldOther: primaryCategory === 'worker' && workFields.includes('other') ? workFieldOther.trim() || null : null,
           workYearsExperience: primaryCategory === 'worker' ? workYearsExperience : null,
           researchField: primaryCategory === 'researcher' ? researchField.trim() || null : null,
           researchYearsExperience: primaryCategory === 'researcher' ? researchYearsExperience : null,
           additionalInterests: selectedInterests.length > 0 ? selectedInterests : null,
           additionalInterestsOther: otherInterests.trim() || null,
+          spacedRepExperience: spacedRepExperience || null,
+          technicalityPreference: technicalityPreference || null,
+          breadthPreference: breadthPreference || null,
         }),
       });
 
@@ -408,7 +454,7 @@ export default function SettingsPage({
                     <button
                       key={option.value}
                       type="button"
-                      onClick={() => setPrimaryCategory(option.value as PrimaryCategory)}
+                      onClick={() => handlePrimaryCategoryChange(option.value as PrimaryCategory)}
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                         primaryCategory === option.value
                           ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900'
@@ -464,23 +510,27 @@ export default function SettingsPage({
                 <>
                   <div>
                     <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                      Field
+                      Fields (select all that apply)
                     </label>
-                    <select
-                      value={workField || ''}
-                      onChange={(e) => setWorkField(e.target.value as WorkField || null)}
-                      className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200"
-                    >
-                      <option value="">Select field</option>
+                    <div className="flex flex-wrap gap-2">
                       {WORK_FIELDS.map((field) => (
-                        <option key={field.value} value={field.value}>
+                        <button
+                          key={field.value}
+                          type="button"
+                          onClick={() => toggleWorkField(field.value)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                            workFields.includes(field.value)
+                              ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                          }`}
+                        >
                           {field.label}
-                        </option>
+                        </button>
                       ))}
-                    </select>
+                    </div>
                   </div>
 
-                  {workField === 'other' && (
+                  {workFields.includes('other') && (
                     <div>
                       <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
                         Please Specify
@@ -579,6 +629,97 @@ export default function SettingsPage({
                   placeholder="Other interests (e.g., Philosophy, Music Theory)"
                   className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200 dark:placeholder-gray-500"
                 />
+              </div>
+
+              {/* Learning Preferences Section */}
+              <div className="pt-4 mt-4 border-t border-gray-200 dark:border-dark-border">
+                <h4 className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">
+                  Learning Preferences
+                </h4>
+
+                {/* Spaced Repetition Experience */}
+                <div className="mb-5">
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                    Experience with Spaced Repetition
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {SPACED_REP_EXPERIENCE.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setSpacedRepExperience(option.value)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                          spacedRepExperience === option.value
+                            ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Technicality Preference */}
+                <div className="mb-5">
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                    How Technical Should Answers Be?
+                  </label>
+                  <div className="space-y-2">
+                    {TECHNICALITY_EXAMPLES.map((option) => (
+                      <button
+                        key={option.level}
+                        type="button"
+                        onClick={() => setTechnicalityPreference(option.level)}
+                        className={`w-full p-3 rounded-lg text-left text-sm transition-colors border ${
+                          technicalityPreference === option.level
+                            ? 'border-gray-800 dark:border-gray-200 bg-gray-50 dark:bg-gray-800'
+                            : 'border-gray-200 dark:border-dark-border bg-white dark:bg-dark-surface hover:bg-gray-50 dark:hover:bg-gray-800'
+                        }`}
+                      >
+                        <div className="font-medium text-gray-800 dark:text-gray-200 mb-1">
+                          {option.label}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 italic">
+                          "{option.example}"
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Breadth Preference */}
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                    How Exploratory Should Questions Be?
+                  </label>
+                  <div className="space-y-2">
+                    {BREADTH_EXAMPLES.map((option) => (
+                      <button
+                        key={option.level}
+                        type="button"
+                        onClick={() => setBreadthPreference(option.level)}
+                        className={`w-full p-3 rounded-lg text-left text-sm transition-colors border ${
+                          breadthPreference === option.level
+                            ? 'border-gray-800 dark:border-gray-200 bg-gray-50 dark:bg-gray-800'
+                            : 'border-gray-200 dark:border-dark-border bg-white dark:bg-dark-surface hover:bg-gray-50 dark:hover:bg-gray-800'
+                        }`}
+                      >
+                        <div className="font-medium text-gray-800 dark:text-gray-200 mb-1">
+                          {option.label}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {option.questions.map((q, i) => (
+                            <span key={i}>
+                              {i > 0 && ' • '}
+                              <span className="italic">"{q}"</span>
+                            </span>
+                          ))}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
