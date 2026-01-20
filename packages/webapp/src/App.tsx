@@ -4,6 +4,7 @@ import { useAuth } from './hooks/useAuth';
 import { useCards } from './hooks/useCards';
 import { useFolders } from './hooks/useFolders';
 import Layout from './components/Layout';
+import OnboardingWizard from './components/OnboardingWizard';
 import ReviewPage from './pages/ReviewPage';
 import CardsPage from './pages/CardsPage';
 import ProfilePage from './pages/ProfilePage';
@@ -32,10 +33,13 @@ export default function App(): JSX.Element {
     user,
     loading: authLoading,
     billingInfo,
+    showOnboarding,
     signIn,
     signOut,
     handleUpgrade,
     handleManageSubscription,
+    completeOnboarding,
+    skipOnboarding,
   } = useAuth();
   const { cards, loading: cardsLoading, updateCard, deleteCard, moveCardToFolder } = useCards(
     user?.id
@@ -71,7 +75,22 @@ export default function App(): JSX.Element {
 
   // Authenticated - show main app
   return (
-    <Routes>
+    <>
+      {showOnboarding && (
+        <OnboardingWizard
+          onComplete={async (data) => {
+            await completeOnboarding({
+              role: data.role,
+              learningGoals: data.learningGoals,
+              expertiseLevel: data.expertiseLevel,
+              cardStyle: data.cardStyle,
+              domains: data.domains,
+            });
+          }}
+          onSkip={skipOnboarding}
+        />
+      )}
+      <Routes>
       <Route element={<Layout />}>
         <Route
           path="/"
@@ -117,5 +136,6 @@ export default function App(): JSX.Element {
         <Route path="/feedback" element={<FeedbackPage />} />
       </Route>
     </Routes>
+    </>
   );
 }

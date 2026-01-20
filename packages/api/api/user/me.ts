@@ -68,6 +68,14 @@ export default async function handler(
       settings: {
         mochiApiKey: profile.mochi_api_key || null,
         mochiDeckId: profile.mochi_deck_id || null
+      },
+      learningProfile: {
+        onboardingCompleted: profile.onboarding_completed ?? false,
+        role: profile.role || null,
+        learningGoals: profile.learning_goals || null,
+        expertiseLevel: profile.expertise_level || null,
+        cardStyle: profile.card_style || null,
+        domains: profile.domains || []
       }
     });
     return;
@@ -75,7 +83,10 @@ export default async function handler(
 
   // PATCH - Update user settings and profile
   if (req.method === 'PATCH') {
-    const { mochiApiKey, mochiDeckId, username, displayName, bio, profileIsPublic } = req.body as UpdateUserSettingsRequest;
+    const {
+      mochiApiKey, mochiDeckId, username, displayName, bio, profileIsPublic,
+      onboardingCompleted, role, learningGoals, expertiseLevel, cardStyle, domains
+    } = req.body as UpdateUserSettingsRequest;
 
     const updates: Record<string, unknown> = {};
 
@@ -144,6 +155,47 @@ export default async function handler(
 
     if (profileIsPublic !== undefined) {
       updates.profile_is_public = Boolean(profileIsPublic);
+    }
+
+    // Learning profile fields
+    if (onboardingCompleted !== undefined) {
+      updates.onboarding_completed = Boolean(onboardingCompleted);
+    }
+
+    if (role !== undefined) {
+      const sanitized = sanitizeText(role);
+      updates.role = sanitized ? sanitized.slice(0, 100) : null;
+    }
+
+    if (learningGoals !== undefined) {
+      const sanitized = sanitizeText(learningGoals);
+      updates.learning_goals = sanitized ? sanitized.slice(0, 1000) : null;
+    }
+
+    if (expertiseLevel !== undefined) {
+      const validLevels = ['beginner', 'intermediate', 'expert'];
+      if (expertiseLevel === null || validLevels.includes(expertiseLevel)) {
+        updates.expertise_level = expertiseLevel;
+      }
+    }
+
+    if (cardStyle !== undefined) {
+      const validStyles = ['concise', 'balanced', 'detailed'];
+      if (cardStyle === null || validStyles.includes(cardStyle)) {
+        updates.card_style = cardStyle;
+      }
+    }
+
+    if (domains !== undefined) {
+      if (domains === null) {
+        updates.domains = null;
+      } else if (Array.isArray(domains)) {
+        // Sanitize and limit domains
+        updates.domains = domains
+          .map(d => sanitizeText(d))
+          .filter((d): d is string => d !== null && d.length > 0)
+          .slice(0, 20); // Max 20 domains
+      }
     }
 
     if (Object.keys(updates).length === 0) {

@@ -2,7 +2,14 @@ import { useState, useEffect, type JSX } from 'react';
 import { BACKEND_URL, MOCHI_API_URL } from '@pluckk/shared/constants';
 import { getAccessToken } from '@pluckk/shared/supabase';
 import { useTheme } from '../hooks/useTheme';
-import type { SettingsPageProps, MochiDeck, StatusMessage } from '../types';
+import type {
+  SettingsPageProps,
+  MochiDeck,
+  StatusMessage,
+  ExpertiseLevel,
+  CardStylePreference,
+} from '../types';
+import { PREDEFINED_DOMAINS } from '../types';
 
 const DEFAULT_NEW_CARDS_PER_DAY = 10;
 const NEW_CARDS_KEY = 'pluckk_new_cards_per_day';
@@ -23,7 +30,18 @@ export default function SettingsPage({
   const [fetchingDecks, setFetchingDecks] = useState(false);
   const [status, setStatus] = useState<StatusMessage>({ type: '', message: '' });
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [learningProfileOpen, setLearningProfileOpen] = useState(false);
   const [newCardsPerDay, setNewCardsPerDay] = useState<number | ''>(DEFAULT_NEW_CARDS_PER_DAY);
+
+  // Learning profile state
+  const [role, setRole] = useState('');
+  const [learningGoals, setLearningGoals] = useState('');
+  const [expertiseLevel, setExpertiseLevel] = useState<ExpertiseLevel | ''>('');
+  const [cardStyle, setCardStyle] = useState<CardStylePreference | ''>('');
+  const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
+  const [customDomain, setCustomDomain] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileStatus, setProfileStatus] = useState<StatusMessage>({ type: '', message: '' });
 
   useEffect(() => {
     loadSettings();
@@ -53,6 +71,23 @@ export default function SettingsPage({
 
         if (data.settings?.mochiApiKey) {
           fetchDecks(data.settings.mochiApiKey, data.settings.mochiDeckId);
+        }
+
+        // Load learning profile
+        if (data.learningProfile) {
+          setRole(data.learningProfile.role || '');
+          setLearningGoals(data.learningProfile.learningGoals || '');
+          setExpertiseLevel(data.learningProfile.expertiseLevel || '');
+          setCardStyle(data.learningProfile.cardStyle || '');
+          const domains = data.learningProfile.domains || [];
+          const predefined = domains.filter((d: string) =>
+            PREDEFINED_DOMAINS.includes(d as typeof PREDEFINED_DOMAINS[number])
+          );
+          const custom = domains.filter(
+            (d: string) => !PREDEFINED_DOMAINS.includes(d as typeof PREDEFINED_DOMAINS[number])
+          );
+          setSelectedDomains(predefined);
+          setCustomDomain(custom.join(', '));
         }
       }
     } catch (error) {
@@ -162,6 +197,63 @@ export default function SettingsPage({
     }
   };
 
+  const toggleDomain = (domain: string): void => {
+    setSelectedDomains((prev) =>
+      prev.includes(domain) ? prev.filter((d) => d !== domain) : [...prev, domain]
+    );
+  };
+
+  const saveLearningProfile = async (): Promise<void> => {
+    setSavingProfile(true);
+    setProfileStatus({ type: '', message: '' });
+
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setProfileStatus({ type: 'error', message: 'Not authenticated' });
+        return;
+      }
+
+      const domains = [...selectedDomains];
+      if (customDomain.trim()) {
+        customDomain.split(',').forEach((d) => {
+          const trimmed = d.trim();
+          if (trimmed && !domains.includes(trimmed)) {
+            domains.push(trimmed);
+          }
+        });
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/user/me`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          role: role || null,
+          learningGoals: learningGoals || null,
+          expertiseLevel: expertiseLevel || null,
+          cardStyle: cardStyle || null,
+          domains: domains.length > 0 ? domains : null,
+        }),
+      });
+
+      if (response.ok) {
+        setProfileStatus({ type: 'success', message: 'Learning profile saved' });
+        setTimeout(() => setProfileStatus({ type: '', message: '' }), 3000);
+      } else {
+        const data = await response.json();
+        setProfileStatus({ type: 'error', message: data.error || 'Failed to save profile' });
+      }
+    } catch (error) {
+      console.error('Failed to save learning profile:', error);
+      setProfileStatus({ type: 'error', message: 'Failed to save profile' });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center text-center gap-4">
@@ -263,6 +355,155 @@ export default function SettingsPage({
             </button>
           </div>
         </div>
+
+        {/* Learning Profile Toggle */}
+        <div className="px-5 py-4">
+          <button
+            onClick={() => setLearningProfileOpen(!learningProfileOpen)}
+            className="flex items-center justify-between w-full text-left"
+          >
+            <span className="text-sm text-gray-800 dark:text-gray-200">Learning Profile</span>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className={`text-gray-400 dark:text-gray-500 transition-transform ${
+                learningProfileOpen ? 'rotate-180' : ''
+              }`}
+            >
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        </div>
+
+        {/* Learning Profile Content */}
+        {learningProfileOpen && (
+          <div className="px-5 py-4 border-t border-gray-100 dark:border-dark-border bg-gray-50/50 dark:bg-dark-bg/50">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Help us personalize your flashcards by telling us about yourself.
+            </p>
+
+            <div className="space-y-4">
+              {/* Role */}
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                  Your Role
+                </label>
+                <input
+                  type="text"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  placeholder="e.g., Medical student, Software engineer"
+                  className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200 dark:placeholder-gray-500"
+                />
+              </div>
+
+              {/* Learning Goals */}
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                  Learning Goals
+                </label>
+                <textarea
+                  value={learningGoals}
+                  onChange={(e) => setLearningGoals(e.target.value)}
+                  placeholder="e.g., Preparing for USMLE Step 1"
+                  rows={2}
+                  className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200 dark:placeholder-gray-500 resize-none"
+                />
+              </div>
+
+              {/* Expertise Level */}
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                  Expertise Level
+                </label>
+                <select
+                  value={expertiseLevel}
+                  onChange={(e) => setExpertiseLevel(e.target.value as ExpertiseLevel | '')}
+                  className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200"
+                >
+                  <option value="">Not specified</option>
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="expert">Expert</option>
+                </select>
+              </div>
+
+              {/* Card Style */}
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                  Card Style Preference
+                </label>
+                <select
+                  value={cardStyle}
+                  onChange={(e) => setCardStyle(e.target.value as CardStylePreference | '')}
+                  className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200"
+                >
+                  <option value="">Not specified</option>
+                  <option value="concise">Concise - Brief, to-the-point</option>
+                  <option value="balanced">Balanced - Moderate detail</option>
+                  <option value="detailed">Detailed - Comprehensive</option>
+                </select>
+              </div>
+
+              {/* Domains */}
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                  Study Domains
+                </label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {PREDEFINED_DOMAINS.map((domain) => (
+                    <button
+                      key={domain}
+                      type="button"
+                      onClick={() => toggleDomain(domain)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                        selectedDomains.includes(domain)
+                          ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {domain}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  value={customDomain}
+                  onChange={(e) => setCustomDomain(e.target.value)}
+                  placeholder="Other topics (comma-separated)"
+                  className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200 dark:placeholder-gray-500"
+                />
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-border">
+              <button
+                onClick={saveLearningProfile}
+                disabled={savingProfile}
+                className="w-full py-2.5 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-900 dark:hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {savingProfile ? 'Saving...' : 'Save Learning Profile'}
+              </button>
+
+              {profileStatus.message && (
+                <p
+                  className={`text-sm text-center mt-3 ${
+                    profileStatus.type === 'success'
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-red-600 dark:text-red-400'
+                  }`}
+                >
+                  {profileStatus.message}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Advanced Settings Toggle */}
         <div className="px-5 py-4">

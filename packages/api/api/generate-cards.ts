@@ -2,19 +2,29 @@
 // Proxies Claude API calls with server-side API key
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { buildPersonaPrompt } from '@pluckk/shared/constants';
 import { authenticateRequest, checkUsageLimit, isAuthError } from '../lib/auth.js';
 import { incrementCardCount } from '../lib/supabase-admin.js';
-import type { GenerateCardsRequest, GeneratedCard } from '../lib/types.js';
+import type { GenerateCardsRequest, GeneratedCard, UserProfile } from '../lib/types.js';
 import type { ClaudeResponse } from '../lib/claude-types.js';
 
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 
 /**
- * Build the system prompt based on user's subscription status
+ * Build the system prompt based on user's subscription status and learning profile
  * Pro users get access to the diagram card style
+ * Learning profile adds personalization context
  */
-function buildSystemPrompt(isPro: boolean): string {
+function buildSystemPrompt(isPro: boolean, profile?: UserProfile): string {
+  // Build persona prompt from learning profile
+  const personaPrompt = buildPersonaPrompt({
+    role: profile?.role,
+    learningGoals: profile?.learning_goals,
+    expertiseLevel: profile?.expertise_level,
+    cardStyle: profile?.card_style,
+    domains: profile?.domains,
+  });
   const diagramStyle = isPro ? `
 7. **diagram** - For STRUCTURAL or COMPARATIVE knowledge that benefits from visual representation.
    When to use: taxonomies, hierarchies, system architectures, X vs Y comparisons, process flows
@@ -24,6 +34,7 @@ function buildSystemPrompt(isPro: boolean): string {
 ` : '';
 
   return `You are a spaced repetition card generator. Create cards that produce durable understanding through retrieval practice.
+${personaPrompt}
 
 **Card Styles (choose the most appropriate for each piece of knowledge):**
 
@@ -131,8 +142,8 @@ Generate 2-3 spaced repetition cards for the highlighted selection.`;
   // Determine if user is Pro (for diagram feature access)
   const isPro = profile.subscription_status === 'active' || profile.subscription_status === 'admin';
 
-  // Use custom prompt or build based on subscription status
-  const systemPrompt = customPrompt || buildSystemPrompt(isPro);
+  // Use custom prompt or build based on subscription status and learning profile
+  const systemPrompt = customPrompt || buildSystemPrompt(isPro, profile);
 
   try {
     // Call Claude API with server-side key

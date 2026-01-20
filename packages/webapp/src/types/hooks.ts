@@ -73,10 +73,14 @@ export interface UseAuthReturn {
   user: User | null;
   loading: boolean;
   billingInfo: BillingInfo | null;
+  learningProfile: LearningProfile | null;
+  showOnboarding: boolean;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   handleUpgrade: () => Promise<void>;
   handleManageSubscription: () => Promise<void>;
+  completeOnboarding: (profile: Omit<LearningProfile, 'onboardingCompleted'>) => Promise<void>;
+  skipOnboarding: () => Promise<void>;
 }
 
 // ============================================================================
@@ -111,6 +115,31 @@ export interface Profile {
   is_public: boolean;
   created_at: string;
 }
+
+/**
+ * Learning profile for personalized card generation
+ */
+export type ExpertiseLevel = 'beginner' | 'intermediate' | 'expert';
+export type CardStylePreference = 'concise' | 'balanced' | 'detailed';
+
+export interface LearningProfile {
+  onboardingCompleted: boolean;
+  role: string | null;
+  learningGoals: string | null;
+  expertiseLevel: ExpertiseLevel | null;
+  cardStyle: CardStylePreference | null;
+  domains: string[];
+}
+
+export const PREDEFINED_DOMAINS = [
+  'Medicine',
+  'Law',
+  'Languages',
+  'Programming',
+  'Science',
+  'History',
+  'Business',
+] as const;
 
 /**
  * Subscription data

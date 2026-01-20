@@ -19,6 +19,9 @@ export type ApiHandler = (
 /**
  * User profile from database
  */
+export type ExpertiseLevel = 'beginner' | 'intermediate' | 'expert';
+export type CardStylePreference = 'concise' | 'balanced' | 'detailed';
+
 export interface UserProfile {
   id: string;
   email?: string;
@@ -35,6 +38,13 @@ export interface UserProfile {
   current_period_start?: string | null;
   mochi_api_key?: string | null;
   mochi_deck_id?: string | null;
+  // Onboarding & learning profile
+  onboarding_completed?: boolean;
+  role?: string | null;
+  learning_goals?: string | null;
+  expertise_level?: ExpertiseLevel | null;
+  card_style?: CardStylePreference | null;
+  domains?: string[] | null;
 }
 
 /**
@@ -157,6 +167,13 @@ export interface UpdateUserSettingsRequest {
   displayName?: string | null;
   bio?: string | null;
   profileIsPublic?: boolean;
+  // Learning profile fields
+  onboardingCompleted?: boolean;
+  role?: string | null;
+  learningGoals?: string | null;
+  expertiseLevel?: ExpertiseLevel | null;
+  cardStyle?: CardStylePreference | null;
+  domains?: string[] | null;
 }
 
 /**

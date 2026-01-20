@@ -122,3 +122,67 @@ For cloze_list style (closed lists), output the full set:
 - Consider adding cues (in parentheses) if a prompt might be difficult, but never give away the answer
 - If a concept would benefit from multiple angles (fact + explanation + application), generate those as separate cards
 - For lists longer than 5-6 items, consider whether all items are truly worth memorizing`;
+
+/**
+ * Learning profile fields for persona prompt generation
+ */
+export interface LearningProfileForPrompt {
+  role?: string | null;
+  learningGoals?: string | null;
+  expertiseLevel?: 'beginner' | 'intermediate' | 'expert' | null;
+  cardStyle?: 'concise' | 'balanced' | 'detailed' | null;
+  domains?: string[] | null;
+}
+
+/**
+ * Builds a persona prompt section from user's learning profile.
+ * Returns empty string if profile is empty or has no meaningful data.
+ */
+export function buildPersonaPrompt(profile: LearningProfileForPrompt | null | undefined): string {
+  if (!profile) return '';
+
+  const parts: string[] = [];
+
+  // Role and expertise level
+  if (profile.role) {
+    const expertise = profile.expertiseLevel
+      ? ` with ${profile.expertiseLevel} expertise`
+      : '';
+    parts.push(`The user is a ${profile.role}${expertise}.`);
+  } else if (profile.expertiseLevel) {
+    parts.push(`The user has ${profile.expertiseLevel} expertise in their field.`);
+  }
+
+  // Learning goals
+  if (profile.learningGoals) {
+    parts.push(`Learning goals: ${profile.learningGoals}`);
+  }
+
+  // Domains
+  if (profile.domains && profile.domains.length > 0) {
+    parts.push(`Domains of study: ${profile.domains.join(', ')}`);
+  }
+
+  // Card style preference
+  if (profile.cardStyle) {
+    const styleDescriptions: Record<string, string> = {
+      concise: 'concise (favor brevity over elaboration, keep answers short and direct)',
+      balanced: 'balanced (moderate detail with helpful context)',
+      detailed: 'detailed (comprehensive explanations with examples when useful)',
+    };
+    parts.push(`Card style preference: ${styleDescriptions[profile.cardStyle]}`);
+  }
+
+  // If we have no meaningful content, return empty
+  if (parts.length === 0) return '';
+
+  // Build the final prompt section
+  const userContext = parts.join('\n');
+
+  return `
+## User Context
+${userContext}
+
+Tailor cards to this context. Use terminology appropriate for their expertise level. Focus on their stated goals when relevant.
+`;
+}
