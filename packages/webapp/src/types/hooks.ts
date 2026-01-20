@@ -212,12 +212,12 @@ export const SPACED_REP_EXPERIENCE: { value: SpacedRepExperience; label: string;
   { value: 'power_user', label: 'Power user', description: 'I optimize my card writing and review habits' },
 ];
 
-// ATP examples for technicality levels
-export const TECHNICALITY_EXAMPLES: { level: TechnicalityLevel; label: string; sublabel: string; example: string }[] = [
-  { level: 1, label: 'Intuitive', sublabel: 'High school', example: "ATP is like a rechargeable battery that gives your cells energy to do work" },
-  { level: 2, label: 'Conceptual', sublabel: 'AP Bio / AP Chem', example: "ATP (adenosine triphosphate) stores energy in its phosphate bonds. When the third phosphate is removed, energy is released to power cellular processes like muscle contraction" },
-  { level: 3, label: 'Detailed', sublabel: 'College', example: "ATP hydrolysis (ATP → ADP + Pi) releases ~30.5 kJ/mol under cellular conditions. This exergonic reaction is coupled to endergonic processes via enzymes like ATPases and kinases" },
-  { level: 4, label: 'Technical', sublabel: 'Research', example: "ATP hydrolysis has ΔG°' = -30.5 kJ/mol, but actual cellular ΔG ranges from -50 to -65 kJ/mol due to mass action ratios. The γ-phosphate's high transfer potential derives from electrostatic repulsion, resonance stabilization of products, and solvation effects" },
+// Technicality level examples (fallback examples for when API fails)
+export const TECHNICALITY_EXAMPLES: { level: TechnicalityLevel; label: string; example: string }[] = [
+  { level: 1, label: 'Intuitive', example: "ATP is like a rechargeable battery that gives your cells energy to do work" },
+  { level: 2, label: 'Conceptual', example: "ATP (adenosine triphosphate) stores energy in its phosphate bonds. When the third phosphate is removed, energy is released to power cellular processes like muscle contraction" },
+  { level: 3, label: 'Detailed', example: "ATP hydrolysis (ATP → ADP + Pi) releases ~30.5 kJ/mol under cellular conditions. This exergonic reaction is coupled to endergonic processes via enzymes like ATPases and kinases" },
+  { level: 4, label: 'Technical', example: "ATP hydrolysis has ΔG°' = -30.5 kJ/mol, but actual cellular ΔG ranges from -50 to -65 kJ/mol due to mass action ratios. The γ-phosphate's high transfer potential derives from electrostatic repulsion, resonance stabilization of products, and solvation effects" },
 ];
 
 // ATP examples for breadth levels

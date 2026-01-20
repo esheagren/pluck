@@ -1,4 +1,6 @@
-import { useState, type JSX } from 'react';
+import { useState, useEffect, useRef, type JSX } from 'react';
+import { BACKEND_URL } from '@pluckk/shared/constants';
+import { getAccessToken } from '@pluckk/shared/supabase';
 import type {
   PrimaryCategory,
   StudentLevel,
@@ -16,6 +18,42 @@ import {
   TECHNICALITY_EXAMPLES,
   BREADTH_EXAMPLES,
 } from '../types';
+
+// Personalized example from API
+interface PersonalizedExample {
+  question: string;
+  answers: {
+    intuitive: string;
+    conceptual: string;
+    detailed: string;
+    technical: string;
+  };
+}
+
+// Explicit mapping from technicality level to answer key
+const TECHNICALITY_ANSWER_KEY: Record<TechnicalityLevel, keyof PersonalizedExample['answers']> = {
+  1: 'intuitive',
+  2: 'conceptual',
+  3: 'detailed',
+  4: 'technical',
+};
+
+/**
+ * Validates that the API response has the expected structure
+ */
+function isValidPersonalizedExample(data: unknown): data is PersonalizedExample {
+  if (!data || typeof data !== 'object') return false;
+  const obj = data as Record<string, unknown>;
+  if (typeof obj.question !== 'string') return false;
+  if (!obj.answers || typeof obj.answers !== 'object') return false;
+  const answers = obj.answers as Record<string, unknown>;
+  return (
+    typeof answers.intuitive === 'string' &&
+    typeof answers.conceptual === 'string' &&
+    typeof answers.detailed === 'string' &&
+    typeof answers.technical === 'string'
+  );
+}
 
 // Hierarchical interest categories
 const INTEREST_CATEGORIES: { category: string; interests: string[] }[] = [
@@ -92,6 +130,11 @@ export default function OnboardingWizard({
   const [saving, setSaving] = useState(false);
   const [showSpacedRepInfo, setShowSpacedRepInfo] = useState(false);
 
+  // Personalized example state
+  const [personalizedExample, setPersonalizedExample] = useState<PersonalizedExample | null>(null);
+  const [loadingExample, setLoadingExample] = useState(false);
+  const exampleFetchedRef = useRef(false);
+
   // Form state
   const [primaryCategory, setPrimaryCategory] = useState<PrimaryCategory | null>(null);
   // Student
@@ -111,6 +154,71 @@ export default function OnboardingWizard({
   const [spacedRepExperience, setSpacedRepExperience] = useState<SpacedRepExperience | null>(null);
   const [technicalityPreference, setTechnicalityPreference] = useState<TechnicalityLevel | null>(null);
   const [breadthPreference, setBreadthPreference] = useState<BreadthLevel | null>(null);
+
+  // Fetch personalized example when entering technicality step
+  useEffect(() => {
+    if (step !== 3 || exampleFetchedRef.current || !primaryCategory) return;
+
+    const fetchExample = async (): Promise<void> => {
+      exampleFetchedRef.current = true;
+      setLoadingExample(true);
+
+      // Get user's field based on category
+      let field = 'general';
+      if (primaryCategory === 'student') {
+        field = studentField || studentLevel || 'general studies';
+      } else if (primaryCategory === 'worker') {
+        if (workFields.includes('other') && workFieldOther) {
+          field = workFieldOther;
+        } else {
+          const fieldLabel = WORK_FIELDS.find(f => f.value === workFields[0])?.label;
+          field = fieldLabel || 'professional work';
+        }
+      } else if (primaryCategory === 'researcher') {
+        field = researchField || 'research';
+      }
+
+      // Get years of experience
+      let yearsExperience: string | undefined;
+      if (primaryCategory === 'worker') {
+        yearsExperience = workYearsExperience || undefined;
+      } else if (primaryCategory === 'researcher') {
+        yearsExperience = researchYearsExperience || undefined;
+      }
+
+      try {
+        const accessToken = await getAccessToken();
+        const response = await fetch(`${BACKEND_URL}/api/onboarding/example-question`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+          },
+          body: JSON.stringify({
+            primaryCategory,
+            field,
+            yearsExperience,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (isValidPersonalizedExample(data)) {
+            setPersonalizedExample(data);
+          } else {
+            console.error('Invalid response format from API');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch personalized example:', error);
+        // Fallback to generic example - handled in UI
+      } finally {
+        setLoadingExample(false);
+      }
+    };
+
+    fetchExample();
+  }, [step, primaryCategory, studentField, studentLevel, workFields, workFieldOther, workYearsExperience, researchField, researchYearsExperience]);
 
   const handleNext = (): void => {
     if (step < STEPS.length - 1) {
@@ -440,34 +548,55 @@ export default function OnboardingWizard({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 How technical should explanations be?
               </label>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                Example: &quot;What is ATP?&quot;
-              </p>
-              <div className="space-y-2">
-                {TECHNICALITY_EXAMPLES.map((item) => (
-                  <button
-                    key={item.level}
-                    onClick={() => setTechnicalityPreference(item.level)}
-                    className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
-                      technicalityPreference === item.level
-                        ? 'border-gray-800 dark:border-gray-200 bg-gray-50 dark:bg-gray-800'
-                        : 'border-gray-200 dark:border-dark-border hover:border-gray-300 dark:hover:border-gray-600'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
-                        {item.label}
-                      </span>
-                      <span className="text-xs text-gray-400 dark:text-gray-500">
-                        ({item.sublabel})
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-                      &quot;{item.example}&quot;
+
+              {/* Loading state */}
+              {loadingExample && (
+                <div className="flex items-center justify-center py-8">
+                  <div className="spinner w-6 h-6 border-2 border-gray-200 dark:border-gray-700 border-t-gray-800 dark:border-t-gray-200 rounded-full"></div>
+                  <span className="ml-3 text-sm text-gray-500 dark:text-gray-400">Generating personalized example...</span>
+                </div>
+              )}
+
+              {/* Content when loaded */}
+              {!loadingExample && (
+                <>
+                  {/* Question card preview */}
+                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-dark-border">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Question</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {personalizedExample?.question || 'What is ATP?'}
                     </p>
-                  </button>
-                ))}
-              </div>
+                  </div>
+
+                  {/* Answer options */}
+                  <div className="space-y-2">
+                    {TECHNICALITY_EXAMPLES.map((item) => {
+                      // Get the personalized answer using explicit mapping, or fall back to generic
+                      const answerKey = TECHNICALITY_ANSWER_KEY[item.level];
+                      const answer = personalizedExample?.answers?.[answerKey] || item.example;
+
+                      return (
+                        <button
+                          key={item.level}
+                          onClick={() => setTechnicalityPreference(item.level)}
+                          className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
+                            technicalityPreference === item.level
+                              ? 'border-gray-800 dark:border-gray-200 bg-gray-50 dark:bg-gray-800'
+                              : 'border-gray-200 dark:border-dark-border hover:border-gray-300 dark:hover:border-gray-600'
+                          }`}
+                        >
+                          <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                            {item.label}
+                          </span>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mt-1">
+                            &quot;{answer}&quot;
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
