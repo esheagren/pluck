@@ -74,13 +74,16 @@ export default async function handler(
         primaryCategory: profile.primary_category || null,
         studentLevel: profile.student_level || null,
         studentField: profile.student_field || null,
-        workField: profile.work_field || null,
+        workFields: profile.work_fields || [],
         workFieldOther: profile.work_field_other || null,
         workYearsExperience: profile.work_years_experience || null,
         researchField: profile.research_field || null,
         researchYearsExperience: profile.research_years_experience || null,
         additionalInterests: profile.additional_interests || [],
-        additionalInterestsOther: profile.additional_interests_other || null
+        additionalInterestsOther: profile.additional_interests_other || null,
+        spacedRepExperience: profile.spaced_rep_experience || null,
+        technicalityPreference: profile.technicality_preference || null,
+        breadthPreference: profile.breadth_preference || null
       }
     });
     return;
@@ -91,9 +94,10 @@ export default async function handler(
     const {
       mochiApiKey, mochiDeckId, username, displayName, bio, profileIsPublic,
       onboardingCompleted, primaryCategory, studentLevel, studentField,
-      workField, workFieldOther, workYearsExperience,
+      workFields, workFieldOther, workYearsExperience,
       researchField, researchYearsExperience,
-      additionalInterests, additionalInterestsOther
+      additionalInterests, additionalInterestsOther,
+      spacedRepExperience, technicalityPreference, breadthPreference
     } = req.body as UpdateUserSettingsRequest;
 
     const updates: Record<string, unknown> = {};
@@ -189,10 +193,12 @@ export default async function handler(
       updates.student_field = sanitized ? sanitized.slice(0, 100) : null;
     }
 
-    if (workField !== undefined) {
+    if (workFields !== undefined) {
       const validFields = ['consulting', 'engineering', 'product', 'finance', 'marketing', 'design', 'sales', 'operations', 'legal', 'healthcare', 'education', 'other'];
-      if (workField === null || validFields.includes(workField)) {
-        updates.work_field = workField;
+      if (workFields === null) {
+        updates.work_fields = null;
+      } else if (Array.isArray(workFields)) {
+        updates.work_fields = workFields.filter(f => validFields.includes(f)).slice(0, 5);
       }
     }
 
@@ -234,6 +240,26 @@ export default async function handler(
     if (additionalInterestsOther !== undefined) {
       const sanitized = sanitizeText(additionalInterestsOther);
       updates.additional_interests_other = sanitized ? sanitized.slice(0, 200) : null;
+    }
+
+    // Learning preferences
+    if (spacedRepExperience !== undefined) {
+      const validOptions = ['none', 'tried', 'regular', 'power_user'];
+      if (spacedRepExperience === null || validOptions.includes(spacedRepExperience)) {
+        updates.spaced_rep_experience = spacedRepExperience;
+      }
+    }
+
+    if (technicalityPreference !== undefined) {
+      if (technicalityPreference === null || (technicalityPreference >= 1 && technicalityPreference <= 4)) {
+        updates.technicality_preference = technicalityPreference;
+      }
+    }
+
+    if (breadthPreference !== undefined) {
+      if (breadthPreference === null || (breadthPreference >= 1 && breadthPreference <= 4)) {
+        updates.breadth_preference = breadthPreference;
+      }
     }
 
     if (Object.keys(updates).length === 0) {
