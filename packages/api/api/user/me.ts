@@ -275,12 +275,13 @@ export default async function handler(
       .eq('id', user.id);
 
     if (error) {
-      console.error('Error updating user settings:', error);
+      console.error('Error updating user settings:', error.message, error.code, error.details, error.hint);
+      console.error('Attempted updates:', JSON.stringify(updates));
       if (error.code === '23505' && error.message.includes('username')) {
         res.status(409).json({ error: 'Username already taken' });
         return;
       }
-      res.status(500).json({ error: 'Failed to update settings' });
+      res.status(500).json({ error: 'Failed to update settings', details: error.message });
       return;
     }
 
