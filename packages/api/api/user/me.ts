@@ -267,8 +267,6 @@ export default async function handler(
       return;
     }
 
-    updates.updated_at = new Date().toISOString();
-
     const { error } = await supabaseAdmin
       .from('users')
       .update(updates)
