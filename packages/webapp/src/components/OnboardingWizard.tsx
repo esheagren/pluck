@@ -16,50 +16,6 @@ import {
   BREADTH_EXAMPLE_QUESTIONS,
 } from '../types';
 
-// Hierarchical interest categories
-const INTEREST_CATEGORIES: { category: string; interests: string[] }[] = [
-  {
-    category: 'Sciences',
-    interests: ['Biology', 'Chemistry', 'Physics', 'Neuroscience', 'Ecology', 'Astronomy', 'Geology'],
-  },
-  {
-    category: 'Medicine & Health',
-    interests: ['Anatomy', 'Pharmacology', 'Pathology', 'Public Health', 'Nutrition', 'Psychology'],
-  },
-  {
-    category: 'Technology',
-    interests: ['Programming', 'AI/ML', 'Cybersecurity', 'Data Science', 'Web Development', 'Systems Design'],
-  },
-  {
-    category: 'Mathematics',
-    interests: ['Statistics', 'Calculus', 'Linear Algebra', 'Discrete Math', 'Probability'],
-  },
-  {
-    category: 'Business & Economics',
-    interests: ['Finance', 'Accounting', 'Marketing', 'Strategy', 'Economics', 'Entrepreneurship'],
-  },
-  {
-    category: 'Humanities',
-    interests: ['Philosophy', 'History', 'Literature', 'Linguistics', 'Religious Studies', 'Art History'],
-  },
-  {
-    category: 'Social Sciences',
-    interests: ['Sociology', 'Anthropology', 'Political Science', 'International Relations', 'Geography'],
-  },
-  {
-    category: 'Law',
-    interests: ['Constitutional Law', 'Contract Law', 'Criminal Law', 'International Law', 'Legal Theory'],
-  },
-  {
-    category: 'Arts & Design',
-    interests: ['Music Theory', 'Visual Arts', 'Architecture', 'Film Studies', 'Graphic Design', 'Photography'],
-  },
-  {
-    category: 'Languages',
-    interests: ['Spanish', 'French', 'German', 'Mandarin', 'Japanese', 'Arabic', 'Latin'],
-  },
-];
-
 interface OnboardingWizardProps {
   onComplete: (profile: OnboardingData) => Promise<void>;
   onSkip: () => void;
@@ -81,7 +37,7 @@ export interface OnboardingData {
   breadthPreference: BreadthLevel | null;
 }
 
-const STEPS = ['About you', 'Details', 'Experience', 'Breadth', 'Interests'];
+const STEPS = ['About you', 'Details', 'Experience', 'Breadth'];
 
 export default function OnboardingWizard({
   onComplete,
@@ -103,9 +59,6 @@ export default function OnboardingWizard({
   // Researcher
   const [researchField, setResearchField] = useState('');
   const [researchYearsExperience, setResearchYearsExperience] = useState<YearsExperience | null>(null);
-  // Additional interests
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [otherInterests, setOtherInterests] = useState('');
   // Learning preferences
   const [spacedRepExperience, setSpacedRepExperience] = useState<SpacedRepExperience | null>(null);
   const [breadthPreference, setBreadthPreference] = useState<BreadthLevel | null>(null);
@@ -135,8 +88,8 @@ export default function OnboardingWizard({
         workYearsExperience: primaryCategory === 'worker' ? workYearsExperience : null,
         researchField: primaryCategory === 'researcher' ? researchField.trim() || null : null,
         researchYearsExperience: primaryCategory === 'researcher' ? researchYearsExperience : null,
-        additionalInterests: selectedInterests,
-        additionalInterestsOther: otherInterests.trim() || null,
+        additionalInterests: [], // Can be set later in Settings
+        additionalInterestsOther: null,
         spacedRepExperience,
         technicalityPreference: null,
         breadthPreference,
@@ -144,12 +97,6 @@ export default function OnboardingWizard({
     } finally {
       setSaving(false);
     }
-  };
-
-  const toggleInterest = (interest: string): void => {
-    setSelectedInterests((prev) =>
-      prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest]
-    );
   };
 
   const toggleWorkField = (field: WorkField): void => {
@@ -543,50 +490,6 @@ export default function OnboardingWizard({
             </div>
           )}
 
-          {/* Step 5: Interests */}
-          {step === 4 && (
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                Select topics you&apos;re interested in learning about. This helps us tailor card suggestions.
-              </p>
-              <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
-                {INTEREST_CATEGORIES.map((cat) => (
-                  <div key={cat.category}>
-                    <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                      {cat.category}
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {cat.interests.map((interest) => (
-                        <button
-                          key={interest}
-                          onClick={() => toggleInterest(interest)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                            selectedInterests.includes(interest)
-                              ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900'
-                              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                          }`}
-                        >
-                          {interest}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="pt-3 border-t border-gray-100 dark:border-dark-border">
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-2">
-                  Something else?
-                </label>
-                <input
-                  type="text"
-                  value={otherInterests}
-                  onChange={(e) => setOtherInterests(e.target.value)}
-                  placeholder="e.g., Cognitive Science, Game Theory, Urban Planning"
-                  className="w-full px-4 py-3 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-bg dark:text-gray-200 dark:placeholder-gray-500"
-                />
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Footer */}
