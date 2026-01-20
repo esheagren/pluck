@@ -336,8 +336,9 @@ export default function OnboardingWizard({
             <div className="space-y-6">
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Have you used spaced repetition before?
+                  <label className="block text-gray-700 dark:text-gray-300">
+                    <span className="text-lg font-bold text-gray-900 dark:text-gray-100">Spaced repetition</span>
+                    <span className="text-sm font-medium ml-1">— have you used it before?</span>
                   </label>
                   <button
                     type="button"
