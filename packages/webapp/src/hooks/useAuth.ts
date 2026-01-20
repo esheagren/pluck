@@ -198,9 +198,17 @@ export function useAuth(): UseAuthReturn {
           onboardingCompleted: true,
         });
         setShowOnboarding(false);
+      } else {
+        // Log the error for debugging
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to save onboarding:', response.status, errorData);
+        // Still close the wizard so user isn't stuck
+        setShowOnboarding(false);
       }
     } catch (error) {
       console.error('Failed to save onboarding:', error);
+      // Still close the wizard so user isn't stuck
+      setShowOnboarding(false);
     }
   };
 
