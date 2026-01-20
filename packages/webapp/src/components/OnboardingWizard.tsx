@@ -82,7 +82,7 @@ export interface OnboardingData {
   breadthPreference: BreadthLevel | null;
 }
 
-const STEPS = ['About you', 'Details', 'Experience', 'Preferences', 'Interests'];
+const STEPS = ['About you', 'Details', 'Experience', 'Technicality', 'Breadth', 'Interests'];
 
 export default function OnboardingWizard({
   onComplete,
@@ -434,84 +434,83 @@ export default function OnboardingWizard({
             </div>
           )}
 
-          {/* Step 4: Card Preferences */}
+          {/* Step 4: Technicality Preference */}
           {step === 3 && (
-            <div className="space-y-6">
-              {/* Technicality Preference */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  How technical should explanations be?
-                </label>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                  Example: &quot;What is ATP?&quot;
-                </p>
-                <div className="space-y-2">
-                  {TECHNICALITY_EXAMPLES.map((item) => (
-                    <button
-                      key={item.level}
-                      onClick={() => setTechnicalityPreference(item.level)}
-                      className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
-                        technicalityPreference === item.level
-                          ? 'border-gray-800 dark:border-gray-200 bg-gray-50 dark:bg-gray-800'
-                          : 'border-gray-200 dark:border-dark-border hover:border-gray-300 dark:hover:border-gray-600'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-medium text-gray-400 dark:text-gray-500 w-6">{item.level}</span>
-                        <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
-                          {item.label}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 ml-8 italic">
-                        &quot;{item.example}&quot;
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Breadth Preference */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  How many related questions should we generate?
-                </label>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                  When you highlight text about ATP, we could ask:
-                </p>
-                <div className="space-y-2">
-                  {BREADTH_EXAMPLES.map((item) => (
-                    <button
-                      key={item.level}
-                      onClick={() => setBreadthPreference(item.level)}
-                      className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
-                        breadthPreference === item.level
-                          ? 'border-gray-800 dark:border-gray-200 bg-gray-50 dark:bg-gray-800'
-                          : 'border-gray-200 dark:border-dark-border hover:border-gray-300 dark:hover:border-gray-600'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-medium text-gray-400 dark:text-gray-500 w-6">{item.level}</span>
-                        <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
-                          {item.label}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 ml-8">
-                        {item.questions.map((q, i) => (
-                          <span key={q}>
-                            {i > 0 && ' · '}
-                            <span className="italic">&quot;{q}&quot;</span>
-                          </span>
-                        ))}
-                      </p>
-                    </button>
-                  ))}
-                </div>
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                How technical should explanations be?
+              </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                Example: &quot;What is ATP?&quot;
+              </p>
+              <div className="space-y-2">
+                {TECHNICALITY_EXAMPLES.map((item) => (
+                  <button
+                    key={item.level}
+                    onClick={() => setTechnicalityPreference(item.level)}
+                    className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
+                      technicalityPreference === item.level
+                        ? 'border-gray-800 dark:border-gray-200 bg-gray-50 dark:bg-gray-800'
+                        : 'border-gray-200 dark:border-dark-border hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-medium text-gray-400 dark:text-gray-500 w-6">{item.level}</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                        {item.label}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 ml-8 italic">
+                      &quot;{item.example}&quot;
+                    </p>
+                  </button>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Step 5: Interests */}
+          {/* Step 5: Breadth Preference */}
           {step === 4 && (
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                How many related questions should we generate?
+              </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                When you highlight text about ATP, we could ask:
+              </p>
+              <div className="space-y-2">
+                {BREADTH_EXAMPLES.map((item) => (
+                  <button
+                    key={item.level}
+                    onClick={() => setBreadthPreference(item.level)}
+                    className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
+                      breadthPreference === item.level
+                        ? 'border-gray-800 dark:border-gray-200 bg-gray-50 dark:bg-gray-800'
+                        : 'border-gray-200 dark:border-dark-border hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-medium text-gray-400 dark:text-gray-500 w-6">{item.level}</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                        {item.label}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 ml-8">
+                      {item.questions.map((q, i) => (
+                        <span key={q}>
+                          {i > 0 && ' · '}
+                          <span className="italic">&quot;{q}&quot;</span>
+                        </span>
+                      ))}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Step 6: Interests */}
+          {step === 5 && (
             <div className="space-y-4">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                 Select topics you&apos;re interested in learning about. This helps us tailor card suggestions.
