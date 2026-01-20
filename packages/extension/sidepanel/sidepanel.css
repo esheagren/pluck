@@ -1500,29 +1500,122 @@ html.dark .card-item.selected .card-checkbox::after {
   font-style: italic;
 }
 
-/* Start Review Button (at bottom) */
-.review-btn-container {
+/* Review Card Container */
+.review-card-container {
+  margin: 8px 0;
+  padding: 12px 14px;
+  background: var(--color-surface-secondary);
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Clickable Start Review area - left third */
+.review-card {
+  flex: 1;
   display: flex;
   justify-content: center;
-  padding: 16px 24px;
-  flex-shrink: 0;
-}
-
-.btn-review {
-  padding: 10px 24px;
-  font-size: 13px;
-  font-weight: 450;
-  color: var(--color-text-secondary);
-  background: transparent;
-  border: 1px solid var(--color-border-light);
-  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.15s ease;
-  font-family: inherit;
+  transition: opacity 0.15s ease;
 }
 
-.btn-review:hover {
+.review-card:hover {
+  opacity: 0.7;
+}
+
+.review-card-title {
+  font-size: 13px;
+  font-weight: 500;
   color: var(--color-text-primary);
-  border-color: var(--color-border);
-  background: var(--color-surface-secondary);
+}
+
+/* Mini Activity Grid - center third */
+.activity-grid-mini {
+  flex: 1;
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Settings button in review card - right third */
+.review-card-settings {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  border-radius: 4px;
+  align-items: center;
+  transition: color 0.15s ease;
+}
+
+.review-card-settings:hover {
+  color: var(--color-text-primary);
+}
+
+.activity-grid-mini .activity-week {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.activity-grid-mini .activity-day {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--color-border-light);
+}
+
+/* Activity intensity levels - Light theme */
+.activity-grid-mini .activity-day.level-0 {
+  background: var(--color-border-light);
+}
+
+.activity-grid-mini .activity-day.level-1 {
+  background: #c6e48b;
+}
+
+.activity-grid-mini .activity-day.level-2 {
+  background: #7bc96f;
+}
+
+.activity-grid-mini .activity-day.level-3 {
+  background: #239a3b;
+}
+
+.activity-grid-mini .activity-day.level-4 {
+  background: #196127;
+}
+
+/* Dark theme intensity levels */
+html.dark .activity-grid-mini .activity-day.level-0 {
+  background: var(--color-border);
+}
+
+html.dark .activity-grid-mini .activity-day.level-1 {
+  background: #0e4429;
+}
+
+html.dark .activity-grid-mini .activity-day.level-2 {
+  background: #006d32;
+}
+
+html.dark .activity-grid-mini .activity-day.level-3 {
+  background: #26a641;
+}
+
+html.dark .activity-grid-mini .activity-day.level-4 {
+  background: #39d353;
+}
+
+.activity-grid-loading,
+.activity-grid-empty {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  padding: 4px 0;
 }

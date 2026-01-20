@@ -2,7 +2,7 @@
 // Main UI logic for card generation and Mochi integration
 
 import { escapeHtml } from '@pluckk/shared/utils';
-import { FREE_TIER_LIMIT, BACKEND_URL } from '@pluckk/shared/constants';
+import { FREE_TIER_LIMIT, BACKEND_URL, SUPABASE_URL, SUPABASE_KEY } from '@pluckk/shared/constants';
 import {
   signInWithGoogle,
   getSession,
@@ -55,7 +55,6 @@ const questionInput = document.getElementById('question-input') as HTMLTextAreaE
 const questionSubmitBtn = document.getElementById('question-submit-btn') as HTMLButtonElement | null;
 
 // DOM Elements - Settings Drawer
-const settingsToggleBtn = document.getElementById('settings-toggle-btn') as HTMLButtonElement | null;
 const settingsDrawer = document.getElementById('settings-drawer') as HTMLElement | null;
 const drawerAuthLoggedOut = document.getElementById('drawer-auth-logged-out') as HTMLElement | null;
 const drawerAuthLoggedIn = document.getElementById('drawer-auth-logged-in') as HTMLElement | null;
@@ -70,7 +69,29 @@ const drawerProBtn = document.getElementById('drawer-pro-btn') as HTMLButtonElem
 const drawerVersion = document.getElementById('drawer-version') as HTMLElement | null;
 const drawerThemeToggle = document.getElementById('drawer-theme-toggle') as HTMLInputElement | null;
 const drawerKeepOpenToggle = document.getElementById('drawer-keep-open-toggle') as HTMLInputElement | null;
-const startReviewBtn = document.getElementById('start-review-btn') as HTMLButtonElement | null;
+// DOM Elements - Review Card
+const reviewCard = document.getElementById('review-card') as HTMLElement | null;
+const activityGridMini = document.getElementById('activity-grid-mini') as HTMLElement | null;
+const reviewSettingsBtn = document.getElementById('review-settings-btn') as HTMLButtonElement | null;
+
+// Activity data types
+interface ActivityDataPoint {
+  reviews: number;
+  cardsCreated: number;
+}
+
+interface ActivityDataMap {
+  [date: string]: ActivityDataPoint;
+}
+
+// Activity cache
+const ACTIVITY_CACHE_KEY = 'pluckk_activity_cache';
+const ACTIVITY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+interface ActivityCache {
+  data: ActivityDataMap;
+  timestamp: number;
+}
 
 // State
 let cards: GeneratedCard[] = [];
@@ -990,11 +1011,220 @@ function stopSelectionPolling(): void {
 }
 
 /**
+ * Format date as YYYY-MM-DD (local timezone)
+ */
+function formatDateLocal(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Get cached activity data
+ */
+async function getCachedActivity(): Promise<ActivityCache | null> {
+  try {
+    const result = await chrome.storage.local.get([ACTIVITY_CACHE_KEY]);
+    return result[ACTIVITY_CACHE_KEY] || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Cache activity data
+ */
+async function cacheActivity(cache: ActivityCache): Promise<void> {
+  try {
+    await chrome.storage.local.set({ [ACTIVITY_CACHE_KEY]: cache });
+  } catch (error) {
+    console.error('Failed to cache activity:', error);
+  }
+}
+
+/**
+ * Fetch activity data from Supabase (last 12 weeks)
+ */
+async function fetchActivityData(): Promise<ActivityDataMap | null> {
+  const { session } = await getSession();
+  if (!session?.user?.id) return null;
+
+  const userId = session.user.id;
+  const accessToken = session.access_token;
+
+  // Calculate date 84 days ago (12 weeks)
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 84);
+  const startDateStr = formatDateLocal(startDate);
+
+  try {
+    // Fetch review data
+    const reviewsResponse = await fetch(
+      `${SUPABASE_URL}/rest/v1/user_daily_review_summary?user_id=eq.${userId}&review_date=gte.${startDateStr}&select=review_date,total_reviews`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'apikey': SUPABASE_KEY
+        }
+      }
+    );
+
+    // Fetch card creation data
+    const cardsResponse = await fetch(
+      `${SUPABASE_URL}/rest/v1/user_daily_card_summary?user_id=eq.${userId}&created_date=gte.${startDateStr}&select=created_date,cards_created`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'apikey': SUPABASE_KEY
+        }
+      }
+    );
+
+    if (!reviewsResponse.ok && !cardsResponse.ok) return null;
+
+    const reviewsData = reviewsResponse.ok ? await reviewsResponse.json() : [];
+    const cardsData = cardsResponse.ok ? await cardsResponse.json() : [];
+
+    // Combine into activity map
+    const activityData: ActivityDataMap = {};
+
+    for (const row of reviewsData) {
+      if (!row.review_date || typeof row.review_date !== 'string') continue;
+      activityData[row.review_date] = {
+        reviews: row.total_reviews || 0,
+        cardsCreated: 0
+      };
+    }
+
+    for (const row of cardsData) {
+      if (!row.created_date || typeof row.created_date !== 'string') continue;
+      if (activityData[row.created_date]) {
+        activityData[row.created_date].cardsCreated = row.cards_created || 0;
+      } else {
+        activityData[row.created_date] = {
+          reviews: 0,
+          cardsCreated: row.cards_created || 0
+        };
+      }
+    }
+
+    return activityData;
+  } catch (error) {
+    console.error('Failed to fetch activity data:', error);
+    return null;
+  }
+}
+
+/**
+ * Render mini activity grid (last 12 weeks)
+ */
+function renderMiniActivityGrid(activityData: ActivityDataMap): void {
+  if (!activityGridMini) return;
+
+  // Calculate max count for intensity scaling
+  let maxCount = 0;
+  for (const date in activityData) {
+    const total = (activityData[date].reviews || 0) + (activityData[date].cardsCreated || 0);
+    if (total > maxCount) maxCount = total;
+  }
+
+  // Build grid HTML (12 weeks, 7 days each)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Start from ~12 weeks ago, adjusted to start on Sunday
+  const startDate = new Date(today);
+  startDate.setDate(startDate.getDate() - 83); // Go back ~12 weeks
+  const dayOfWeek = startDate.getDay();
+  startDate.setDate(startDate.getDate() - dayOfWeek); // Adjust to previous Sunday
+
+  let html = '';
+  const currentDate = new Date(startDate);
+
+  for (let week = 0; week < 12; week++) {
+    html += '<div class="activity-week">';
+
+    for (let day = 0; day < 7; day++) {
+      const dateStr = formatDateLocal(currentDate);
+      const isFuture = currentDate > today;
+
+      let level = 0;
+      if (!isFuture && activityData[dateStr]) {
+        const total = (activityData[dateStr].reviews || 0) + (activityData[dateStr].cardsCreated || 0);
+        if (total > 0 && maxCount > 0) {
+          const ratio = total / maxCount;
+          if (ratio <= 0.25) level = 1;
+          else if (ratio <= 0.5) level = 2;
+          else if (ratio <= 0.75) level = 3;
+          else level = 4;
+        }
+      }
+
+      const visibility = isFuture ? 'style="visibility: hidden;"' : '';
+      html += `<div class="activity-day level-${level}" ${visibility} title="${dateStr}"></div>`;
+
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    html += '</div>';
+  }
+
+  activityGridMini.innerHTML = html;
+}
+
+/**
+ * Update review card with activity data
+ */
+async function updateReviewCard(): Promise<void> {
+  const { session } = await getSession();
+
+  if (!session?.user) {
+    // Not logged in - show empty state
+    if (activityGridMini) {
+      activityGridMini.innerHTML = '<span class="activity-grid-empty">Sign in to see activity</span>';
+    }
+    return;
+  }
+
+  // Check cache first
+  const cached = await getCachedActivity();
+  if (cached && Date.now() - cached.timestamp < ACTIVITY_CACHE_TTL) {
+    renderMiniActivityGrid(cached.data);
+    return;
+  }
+
+  // Show loading state
+  if (activityGridMini) {
+    activityGridMini.innerHTML = '<span class="activity-grid-loading">Loading...</span>';
+  }
+
+  // Fetch fresh data
+  const activityData = await fetchActivityData();
+
+  if (activityData) {
+    renderMiniActivityGrid(activityData);
+
+    // Cache the data
+    await cacheActivity({
+      data: activityData,
+      timestamp: Date.now()
+    });
+  } else {
+    // Show empty state on error
+    if (activityGridMini) {
+      activityGridMini.innerHTML = '<span class="activity-grid-empty">No activity yet</span>';
+    }
+  }
+}
+
+/**
  * Initialize panel and start selection monitoring
  */
 async function initializePanel(): Promise<void> {
   await checkMochiStatus();
   await updateAuthDisplay();
+  updateReviewCard().catch(err => console.error('Failed to load activity grid:', err));
 
   // Reset button state
   generateBtn?.classList.add('hidden');
@@ -1376,25 +1606,28 @@ function toggleSettingsDrawer(): void {
     closeSettingsDrawer();
   } else {
     settingsDrawer?.classList.remove('hidden');
-    settingsToggleBtn?.classList.add('active');
   }
 }
 
 function closeSettingsDrawer(): void {
   settingsDrawer?.classList.add('hidden');
-  settingsToggleBtn?.classList.remove('active');
 }
 
 // Event Listeners - Settings Drawer
-settingsToggleBtn?.addEventListener('click', toggleSettingsDrawer);
 drawerSignInBtn?.addEventListener('click', handleGoogleSignIn);
 drawerUpgradeBtn?.addEventListener('click', handleUpgrade);
 drawerProBtn?.addEventListener('click', handleManageSubscription);
 
-// Event Listener - Start Review Button
-startReviewBtn?.addEventListener('click', () => {
+// Event Listener - Review Card
+reviewCard?.addEventListener('click', () => {
   chrome.tabs.create({ url: 'https://pluckk.app' });
   window.close();
+});
+
+// Event Listener - Review Card Settings Button
+reviewSettingsBtn?.addEventListener('click', (e) => {
+  e.stopPropagation(); // Prevent triggering review card click
+  toggleSettingsDrawer();
 });
 
 // Close drawer when clicking outside
@@ -1402,7 +1635,7 @@ document.addEventListener('click', (e: MouseEvent) => {
   const target = e.target as HTMLElement;
   const isDrawerOpen = !settingsDrawer?.classList.contains('hidden');
   const clickedInDrawer = settingsDrawer?.contains(target);
-  const clickedSettingsBtn = settingsToggleBtn?.contains(target);
+  const clickedSettingsBtn = reviewSettingsBtn?.contains(target);
 
   if (isDrawerOpen && !clickedInDrawer && !clickedSettingsBtn) {
     closeSettingsDrawer();
