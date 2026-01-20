@@ -131,7 +131,7 @@ export default function OnboardingWizard({
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-dark-border flex-shrink-0">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-            Personalize your experience
+            Let's get started
           </h2>
 
           {/* Progress indicator */}
