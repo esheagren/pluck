@@ -455,12 +455,14 @@ export default function OnboardingWizard({
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium text-gray-400 dark:text-gray-500 w-6">{item.level}</span>
                       <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
                         {item.label}
                       </span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
+                        ({item.sublabel})
+                      </span>
                     </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 ml-8 italic">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
                       &quot;{item.example}&quot;
                     </p>
                   </button>

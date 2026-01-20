@@ -677,10 +677,15 @@ export default function SettingsPage({
                             : 'border-gray-200 dark:border-dark-border bg-white dark:bg-dark-surface hover:bg-gray-50 dark:hover:bg-gray-800'
                         }`}
                       >
-                        <div className="font-medium text-gray-800 dark:text-gray-200 mb-1">
-                          {option.label}
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-gray-800 dark:text-gray-200">
+                            {option.label}
+                          </span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">
+                            ({option.sublabel})
+                          </span>
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 italic">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
                           "{option.example}"
                         </div>
                       </button>
