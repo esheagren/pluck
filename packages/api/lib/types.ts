@@ -23,6 +23,9 @@ export type PrimaryCategory = 'student' | 'worker' | 'researcher';
 export type StudentLevel = 'high_school' | 'college' | 'medical_school' | 'law_school' | 'graduate_school' | 'other';
 export type WorkField = 'consulting' | 'engineering' | 'product' | 'finance' | 'marketing' | 'design' | 'sales' | 'operations' | 'legal' | 'healthcare' | 'education' | 'other';
 export type YearsExperience = '1-2' | '3-5' | '6-10' | '10+';
+export type SpacedRepExperience = 'none' | 'tried' | 'regular' | 'power_user';
+export type TechnicalityLevel = 1 | 2 | 3 | 4;
+export type BreadthLevel = 1 | 2 | 3 | 4;
 
 export interface UserProfile {
   id: string;
@@ -45,13 +48,17 @@ export interface UserProfile {
   primary_category?: PrimaryCategory | null;
   student_level?: StudentLevel | null;
   student_field?: string | null;
-  work_field?: WorkField | null;
+  work_fields?: WorkField[] | null;
   work_field_other?: string | null;
   work_years_experience?: YearsExperience | null;
   research_field?: string | null;
   research_years_experience?: YearsExperience | null;
   additional_interests?: string[] | null;
   additional_interests_other?: string | null;
+  // Learning preferences
+  spaced_rep_experience?: SpacedRepExperience | null;
+  technicality_preference?: TechnicalityLevel | null;
+  breadth_preference?: BreadthLevel | null;
 }
 
 /**
@@ -179,13 +186,17 @@ export interface UpdateUserSettingsRequest {
   primaryCategory?: PrimaryCategory | null;
   studentLevel?: StudentLevel | null;
   studentField?: string | null;
-  workField?: WorkField | null;
+  workFields?: WorkField[] | null;
   workFieldOther?: string | null;
   workYearsExperience?: YearsExperience | null;
   researchField?: string | null;
   researchYearsExperience?: YearsExperience | null;
   additionalInterests?: string[] | null;
   additionalInterestsOther?: string | null;
+  // Learning preferences
+  spacedRepExperience?: SpacedRepExperience | null;
+  technicalityPreference?: TechnicalityLevel | null;
+  breadthPreference?: BreadthLevel | null;
 }
 
 /**

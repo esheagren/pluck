@@ -124,6 +124,23 @@ export type StudentLevel = 'high_school' | 'college' | 'medical_school' | 'law_s
 export type WorkField = 'consulting' | 'engineering' | 'product' | 'finance' | 'marketing' | 'design' | 'sales' | 'operations' | 'legal' | 'healthcare' | 'education' | 'other';
 export type YearsExperience = '1-2' | '3-5' | '6-10' | '10+';
 
+// Technicality preference (1-4 scale)
+// 1 = Intuitive (impressions, analogies)
+// 2 = Conceptual (mechanisms, relationships)
+// 3 = Detailed (specifics, numbers)
+// 4 = Mathematical (formulas, precise values)
+export type TechnicalityLevel = 1 | 2 | 3 | 4;
+
+// Breadth preference (1-4 scale)
+// 1 = Focused (exactly what was highlighted)
+// 2 = Contextual (immediate context)
+// 3 = Connected (related concepts)
+// 4 = Exploratory (broader implications)
+export type BreadthLevel = 1 | 2 | 3 | 4;
+
+// Spaced repetition experience
+export type SpacedRepExperience = 'none' | 'tried' | 'regular' | 'power_user';
+
 export interface LearningProfile {
   onboardingCompleted: boolean;
   // Primary category
@@ -132,8 +149,8 @@ export interface LearningProfile {
   studentLevel: StudentLevel | null;
   studentField: string | null; // For college, graduate, or other students
   // Worker-specific
-  workField: WorkField | null;
-  workFieldOther: string | null; // If workField is 'other'
+  workFields: WorkField[]; // Multiple selection allowed
+  workFieldOther: string | null; // If 'other' is selected
   workYearsExperience: YearsExperience | null;
   // Researcher-specific
   researchField: string | null;
@@ -141,6 +158,10 @@ export interface LearningProfile {
   // Additional interests
   additionalInterests: string[];
   additionalInterestsOther: string | null;
+  // Learning preferences
+  spacedRepExperience: SpacedRepExperience | null;
+  technicalityPreference: TechnicalityLevel | null;
+  breadthPreference: BreadthLevel | null;
 }
 
 export const STUDENT_LEVELS: { value: StudentLevel; label: string }[] = [
@@ -183,6 +204,29 @@ export const ADDITIONAL_INTERESTS = [
   'Business',
   'Technology',
 ] as const;
+
+export const SPACED_REP_EXPERIENCE: { value: SpacedRepExperience; label: string; description: string }[] = [
+  { value: 'none', label: 'New to this', description: "I haven't used spaced repetition before" },
+  { value: 'tried', label: 'Tried it', description: "I've experimented with Anki, Mochi, or similar" },
+  { value: 'regular', label: 'Regular user', description: 'I use spaced repetition regularly' },
+  { value: 'power_user', label: 'Power user', description: 'I optimize my card writing and review habits' },
+];
+
+// ATP examples for technicality levels
+export const TECHNICALITY_EXAMPLES: { level: TechnicalityLevel; label: string; example: string }[] = [
+  { level: 1, label: 'Intuitive', example: "ATP is like a rechargeable battery for your cells" },
+  { level: 2, label: 'Conceptual', example: "ATP stores energy in phosphate bonds that cells break to power reactions" },
+  { level: 3, label: 'Detailed', example: "ATP releases ~7.3 kcal/mol when hydrolyzed to ADP + Pi" },
+  { level: 4, label: 'Technical', example: "ΔG°' = -30.5 kJ/mol for ATP hydrolysis under standard conditions" },
+];
+
+// ATP examples for breadth levels
+export const BREADTH_EXAMPLES: { level: BreadthLevel; label: string; questions: string[] }[] = [
+  { level: 1, label: 'Focused', questions: ['What is ATP?'] },
+  { level: 2, label: 'Contextual', questions: ['What is ATP?', 'What does ATP stand for?'] },
+  { level: 3, label: 'Connected', questions: ['What is ATP?', 'Where is ATP produced?', 'What is ATP used for?'] },
+  { level: 4, label: 'Exploratory', questions: ['What is ATP?', 'How does ATP relate to exercise?', 'Why did evolution favor ATP as energy currency?', 'What happens when ATP is depleted?'] },
+];
 
 /**
  * Subscription data
