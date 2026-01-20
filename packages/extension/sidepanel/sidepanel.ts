@@ -31,6 +31,7 @@ const screenshotState = document.getElementById('screenshot-state') as HTMLEleme
 const apiKeyState = document.getElementById('api-key-state') as HTMLElement | null;
 const usageLimitState = document.getElementById('usage-limit-state') as HTMLElement | null;
 const cardsState = document.getElementById('cards-state') as HTMLElement | null;
+const readyStateWrapper = document.getElementById('ready-state-wrapper') as HTMLElement | null;
 const cardsList = document.getElementById('cards-list') as HTMLElement | null;
 const errorMessage = document.getElementById('error-message') as HTMLElement | null;
 const mochiBtn = document.getElementById('mochi-btn') as HTMLButtonElement | null;
@@ -108,10 +109,12 @@ function showState(state: HTMLElement | null): void {
   states.forEach(s => s?.classList.add('hidden'));
   state?.classList.remove('hidden');
 
-  // Manage selection polling based on state
+  // Manage ready-state-wrapper visibility (contains no-selection-state and review button)
   if (state === noSelectionState) {
+    readyStateWrapper?.classList.remove('hidden');
     startSelectionPolling();
   } else {
+    readyStateWrapper?.classList.add('hidden');
     stopSelectionPolling();
   }
 }
@@ -948,11 +951,12 @@ async function checkSelectionState(): Promise<void> {
     const selectionData: SelectionResponse = await chrome.tabs.sendMessage(tab.id, { action: 'getSelection' });
 
     if (selectionData?.selection) {
-      // We have text selected - show generate button
-      if (readyHint) readyHint.textContent = 'Text selected';
+      // We have text selected - show generate button, hide hint
+      readyHint?.classList.add('hidden');
       generateBtn?.classList.remove('hidden');
     } else {
-      // No selection - hide generate button
+      // No selection - hide generate button, show hint
+      readyHint?.classList.remove('hidden');
       if (readyHint) readyHint.textContent = 'Select text or paste screenshot';
       generateBtn?.classList.add('hidden');
     }
