@@ -46,10 +46,10 @@ export async function authenticateRequest(req: VercelRequest): Promise<AuthResul
     return { error: 'Invalid or expired token', status: 401 };
   }
 
-  // Get user profile with subscription info
-  const profile = await getUserProfile(user.id);
+  // Get user profile with subscription info (auto-creates if missing)
+  const profile = await getUserProfile(user.id, user.email);
   if (!profile) {
-    return { error: 'User profile not found', status: 401 };
+    return { error: 'Failed to get or create user profile', status: 500 };
   }
 
   return { user, profile };

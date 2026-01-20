@@ -37,8 +37,9 @@ export async function getUserFromToken(token: string): Promise<User | null> {
 
 /**
  * Get user profile with subscription info
+ * Auto-creates profile if it doesn't exist (for users who authenticated but have no profile row)
  */
-export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+export async function getUserProfile(userId: string, userEmail?: string): Promise<UserProfile | null> {
   const { data, error } = await supabaseAdmin
     .from('users')
     .select('*')
@@ -46,6 +47,30 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     .single();
 
   if (error) {
+    // If user doesn't exist, try to create them
+    if (error.code === 'PGRST116') { // Row not found
+      console.log('User profile not found, creating new profile for:', userId);
+
+      const { data: newUser, error: createError } = await supabaseAdmin
+        .from('users')
+        .insert({
+          id: userId,
+          email: userEmail || null,
+          subscription_status: 'free',
+          onboarding_completed: false,
+          cards_generated_this_month: 0,
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('Error creating user profile:', createError);
+        return null;
+      }
+
+      return newUser as UserProfile;
+    }
+
     console.error('Error fetching user profile:', error);
     return null;
   }
