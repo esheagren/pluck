@@ -78,15 +78,7 @@ export default function App(): JSX.Element {
     <>
       {showOnboarding && (
         <OnboardingWizard
-          onComplete={async (data) => {
-            await completeOnboarding({
-              role: data.role,
-              learningGoals: data.learningGoals,
-              expertiseLevel: data.expertiseLevel,
-              cardStyle: data.cardStyle,
-              domains: data.domains,
-            });
-          }}
+          onComplete={completeOnboarding}
           onSkip={skipOnboarding}
         />
       )}

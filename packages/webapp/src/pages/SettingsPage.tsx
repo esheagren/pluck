@@ -21,7 +21,7 @@ import {
   ADDITIONAL_INTERESTS,
   SPACED_REP_EXPERIENCE,
   TECHNICALITY_EXAMPLES,
-  BREADTH_EXAMPLES,
+  BREADTH_LEVELS,
 } from '../types';
 
 const DEFAULT_NEW_CARDS_PER_DAY = 10;
@@ -691,10 +691,10 @@ export default function SettingsPage({
                 {/* Breadth Preference */}
                 <div>
                   <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                    How Exploratory Should Questions Be?
+                    How Focused Should Questions Be?
                   </label>
                   <div className="space-y-2">
-                    {BREADTH_EXAMPLES.map((option) => (
+                    {BREADTH_LEVELS.map((option) => (
                       <button
                         key={option.level}
                         type="button"
@@ -705,16 +705,11 @@ export default function SettingsPage({
                             : 'border-gray-200 dark:border-dark-border bg-white dark:bg-dark-surface hover:bg-gray-50 dark:hover:bg-gray-800'
                         }`}
                       >
-                        <div className="font-medium text-gray-800 dark:text-gray-200 mb-1">
+                        <span className="font-medium text-gray-800 dark:text-gray-200">
                           {option.label}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {option.questions.map((q, i) => (
-                            <span key={i}>
-                              {i > 0 && ' • '}
-                              <span className="italic">"{q}"</span>
-                            </span>
-                          ))}
+                        </span>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {option.description}
                         </div>
                       </button>
                     ))}

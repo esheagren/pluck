@@ -187,10 +187,10 @@ const TECHNICALITY_GUIDANCE: Record<TechnicalityLevel, string> = {
 };
 
 const BREADTH_GUIDANCE: Record<BreadthLevel, string> = {
-  1: 'Generate cards focused narrowly on exactly what was highlighted. Stick to the specific facts presented.',
-  2: 'Generate cards about the highlighted content plus immediate context (definitions, direct relationships).',
-  3: 'Generate cards that connect the highlighted content to related concepts, causes, and effects.',
-  4: 'Generate exploratory cards including broader connections, applications, and questions the user might not have thought to ask.',
+  1: 'LASER focus: Generate cards only about exactly what was highlighted. Stick to the specific facts presented, nothing more.',
+  2: 'NARROW focus: Generate cards about the highlighted content plus direct implications that follow logically.',
+  3: 'MEDIUM focus: Generate cards that connect the highlighted content to related concepts, causes, and effects.',
+  4: 'SYNTHESIZER mode: Generate exploratory cards including broader connections, applications, and questions the user might not have thought to ask.',
 };
 
 /**

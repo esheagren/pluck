@@ -220,13 +220,35 @@ export const TECHNICALITY_EXAMPLES: { level: TechnicalityLevel; label: string; e
   { level: 4, label: 'Technical', example: "ATP hydrolysis has ΔG°' = -30.5 kJ/mol, but actual cellular ΔG ranges from -50 to -65 kJ/mol due to mass action ratios. The γ-phosphate's high transfer potential derives from electrostatic repulsion, resonance stabilization of products, and solvation effects" },
 ];
 
-// ATP examples for breadth levels
-export const BREADTH_EXAMPLES: { level: BreadthLevel; label: string; questions: string[] }[] = [
-  { level: 1, label: 'Focused', questions: ['What is ATP?'] },
-  { level: 2, label: 'Contextual', questions: ['What is ATP?', 'What does ATP stand for?'] },
-  { level: 3, label: 'Connected', questions: ['What is ATP?', 'Where is ATP produced?', 'What is ATP used for?'] },
-  { level: 4, label: 'Exploratory', questions: ['What is ATP?', 'How does ATP relate to exercise?', 'Why did evolution favor ATP as energy currency?', 'What happens when ATP is depleted?'] },
+// Breadth level configuration
+export const BREADTH_LEVELS: { level: BreadthLevel; label: string; description: string }[] = [
+  { level: 1, label: 'Laser', description: 'Exactly what you highlighted' },
+  { level: 2, label: 'Narrow', description: 'Direct implications' },
+  { level: 3, label: 'Medium', description: 'Related concepts' },
+  { level: 4, label: 'Synthesizer', description: 'Broader connections' },
 ];
+
+// Caffeine example questions for breadth demonstration
+export const BREADTH_EXAMPLE_QUESTIONS: Record<BreadthLevel, { text: string; extended: boolean }[]> = {
+  1: [
+    { text: 'What does caffeine block?', extended: false },
+  ],
+  2: [
+    { text: 'What does caffeine block?', extended: false },
+    { text: 'Why does blocking adenosine make you feel alert?', extended: false },
+  ],
+  3: [
+    { text: 'What does caffeine block?', extended: false },
+    { text: 'Why does blocking adenosine make you feel alert?', extended: false },
+    { text: "What is adenosine's normal role in the brain?", extended: true },
+  ],
+  4: [
+    { text: 'What does caffeine block?', extended: false },
+    { text: 'Why does blocking adenosine make you feel alert?', extended: false },
+    { text: 'How does sleep pressure accumulate throughout the day?', extended: true },
+    { text: 'Why does caffeine cause an energy crash later?', extended: true },
+  ],
+};
 
 /**
  * Subscription data
