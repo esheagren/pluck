@@ -119,26 +119,69 @@ export interface Profile {
 /**
  * Learning profile for personalized card generation
  */
-export type ExpertiseLevel = 'beginner' | 'intermediate' | 'expert';
-export type CardStylePreference = 'concise' | 'balanced' | 'detailed';
+export type PrimaryCategory = 'student' | 'worker' | 'researcher';
+export type StudentLevel = 'high_school' | 'college' | 'medical_school' | 'law_school' | 'graduate_school' | 'other';
+export type WorkField = 'consulting' | 'engineering' | 'product' | 'finance' | 'marketing' | 'design' | 'sales' | 'operations' | 'legal' | 'healthcare' | 'education' | 'other';
+export type YearsExperience = '1-2' | '3-5' | '6-10' | '10+';
 
 export interface LearningProfile {
   onboardingCompleted: boolean;
-  role: string | null;
-  learningGoals: string | null;
-  expertiseLevel: ExpertiseLevel | null;
-  cardStyle: CardStylePreference | null;
-  domains: string[];
+  // Primary category
+  primaryCategory: PrimaryCategory | null;
+  // Student-specific
+  studentLevel: StudentLevel | null;
+  studentField: string | null; // For college, graduate, or other students
+  // Worker-specific
+  workField: WorkField | null;
+  workFieldOther: string | null; // If workField is 'other'
+  workYearsExperience: YearsExperience | null;
+  // Researcher-specific
+  researchField: string | null;
+  researchYearsExperience: YearsExperience | null;
+  // Additional interests
+  additionalInterests: string[];
+  additionalInterestsOther: string | null;
 }
 
-export const PREDEFINED_DOMAINS = [
-  'Medicine',
-  'Law',
-  'Languages',
-  'Programming',
+export const STUDENT_LEVELS: { value: StudentLevel; label: string }[] = [
+  { value: 'high_school', label: 'High School' },
+  { value: 'college', label: 'College' },
+  { value: 'medical_school', label: 'Medical School' },
+  { value: 'law_school', label: 'Law School' },
+  { value: 'graduate_school', label: 'Graduate School' },
+  { value: 'other', label: 'Other' },
+];
+
+export const WORK_FIELDS: { value: WorkField; label: string }[] = [
+  { value: 'consulting', label: 'Consulting' },
+  { value: 'engineering', label: 'Engineering' },
+  { value: 'product', label: 'Product' },
+  { value: 'finance', label: 'Finance' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'design', label: 'Design' },
+  { value: 'sales', label: 'Sales' },
+  { value: 'operations', label: 'Operations' },
+  { value: 'legal', label: 'Legal' },
+  { value: 'healthcare', label: 'Healthcare' },
+  { value: 'education', label: 'Education' },
+  { value: 'other', label: 'Other' },
+];
+
+export const YEARS_EXPERIENCE: { value: YearsExperience; label: string }[] = [
+  { value: '1-2', label: '1-2 years' },
+  { value: '3-5', label: '3-5 years' },
+  { value: '6-10', label: '6-10 years' },
+  { value: '10+', label: '10+ years' },
+];
+
+export const ADDITIONAL_INTERESTS = [
   'Science',
+  'Math',
   'History',
+  'Languages',
+  'Arts',
   'Business',
+  'Technology',
 ] as const;
 
 /**

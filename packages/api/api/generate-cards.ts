@@ -19,11 +19,16 @@ const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 function buildSystemPrompt(isPro: boolean, profile?: UserProfile): string {
   // Build persona prompt from learning profile
   const personaPrompt = buildPersonaPrompt({
-    role: profile?.role,
-    learningGoals: profile?.learning_goals,
-    expertiseLevel: profile?.expertise_level,
-    cardStyle: profile?.card_style,
-    domains: profile?.domains,
+    primaryCategory: profile?.primary_category,
+    studentLevel: profile?.student_level,
+    studentField: profile?.student_field,
+    workField: profile?.work_field,
+    workFieldOther: profile?.work_field_other,
+    workYearsExperience: profile?.work_years_experience,
+    researchField: profile?.research_field,
+    researchYearsExperience: profile?.research_years_experience,
+    additionalInterests: profile?.additional_interests,
+    additionalInterestsOther: profile?.additional_interests_other,
   });
   const diagramStyle = isPro ? `
 7. **diagram** - For STRUCTURAL or COMPARATIVE knowledge that benefits from visual representation.

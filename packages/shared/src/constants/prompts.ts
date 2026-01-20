@@ -126,63 +126,108 @@ For cloze_list style (closed lists), output the full set:
 /**
  * Learning profile fields for persona prompt generation
  */
+export type PrimaryCategory = 'student' | 'worker' | 'researcher';
+export type StudentLevel = 'high_school' | 'college' | 'medical_school' | 'law_school' | 'graduate_school' | 'other';
+export type WorkField = 'consulting' | 'engineering' | 'product' | 'finance' | 'marketing' | 'design' | 'sales' | 'operations' | 'legal' | 'healthcare' | 'education' | 'other';
+export type YearsExperience = '1-2' | '3-5' | '6-10' | '10+';
+
 export interface LearningProfileForPrompt {
-  role?: string | null;
-  learningGoals?: string | null;
-  expertiseLevel?: 'beginner' | 'intermediate' | 'expert' | null;
-  cardStyle?: 'concise' | 'balanced' | 'detailed' | null;
-  domains?: string[] | null;
+  primaryCategory?: PrimaryCategory | null;
+  // Student
+  studentLevel?: StudentLevel | null;
+  studentField?: string | null;
+  // Worker
+  workField?: WorkField | null;
+  workFieldOther?: string | null;
+  workYearsExperience?: YearsExperience | null;
+  // Researcher
+  researchField?: string | null;
+  researchYearsExperience?: YearsExperience | null;
+  // Additional interests
+  additionalInterests?: string[] | null;
+  additionalInterestsOther?: string | null;
 }
+
+const STUDENT_LEVEL_LABELS: Record<StudentLevel, string> = {
+  high_school: 'high school student',
+  college: 'college student',
+  medical_school: 'medical student',
+  law_school: 'law student',
+  graduate_school: 'graduate student',
+  other: 'student',
+};
+
+const WORK_FIELD_LABELS: Record<WorkField, string> = {
+  consulting: 'consultant',
+  engineering: 'engineer',
+  product: 'product manager',
+  finance: 'finance professional',
+  marketing: 'marketing professional',
+  design: 'designer',
+  sales: 'sales professional',
+  operations: 'operations professional',
+  legal: 'legal professional',
+  healthcare: 'healthcare professional',
+  education: 'educator',
+  other: 'professional',
+};
 
 /**
  * Builds a persona prompt section from user's learning profile.
  * Returns empty string if profile is empty or has no meaningful data.
  */
 export function buildPersonaPrompt(profile: LearningProfileForPrompt | null | undefined): string {
-  if (!profile) return '';
+  if (!profile || !profile.primaryCategory) return '';
 
+  let persona = 'The user is ';
   const parts: string[] = [];
 
-  // Role and expertise level
-  if (profile.role) {
-    const expertise = profile.expertiseLevel
-      ? ` with ${profile.expertiseLevel} expertise`
-      : '';
-    parts.push(`The user is a ${profile.role}${expertise}.`);
-  } else if (profile.expertiseLevel) {
-    parts.push(`The user has ${profile.expertiseLevel} expertise in their field.`);
+  // Build the main persona description
+  if (profile.primaryCategory === 'student') {
+    const level = profile.studentLevel || 'other';
+    persona += `a ${STUDENT_LEVEL_LABELS[level]}`;
+    if (profile.studentField) {
+      persona += ` studying ${profile.studentField}`;
+    }
+  } else if (profile.primaryCategory === 'worker') {
+    const field = profile.workField || 'other';
+    if (field === 'other' && profile.workFieldOther) {
+      persona += `a ${profile.workFieldOther} professional`;
+    } else {
+      persona += `a ${WORK_FIELD_LABELS[field]}`;
+    }
+    if (profile.workYearsExperience) {
+      persona += ` with ${profile.workYearsExperience} years of experience`;
+    }
+  } else if (profile.primaryCategory === 'researcher') {
+    persona += 'a researcher';
+    if (profile.researchField) {
+      persona += ` in ${profile.researchField}`;
+    }
+    if (profile.researchYearsExperience) {
+      persona += ` with ${profile.researchYearsExperience} years of experience`;
+    }
   }
 
-  // Learning goals
-  if (profile.learningGoals) {
-    parts.push(`Learning goals: ${profile.learningGoals}`);
+  persona += '.';
+  parts.push(persona);
+
+  // Additional interests
+  const interests: string[] = [];
+  if (profile.additionalInterests && profile.additionalInterests.length > 0) {
+    interests.push(...profile.additionalInterests);
   }
-
-  // Domains
-  if (profile.domains && profile.domains.length > 0) {
-    parts.push(`Domains of study: ${profile.domains.join(', ')}`);
+  if (profile.additionalInterestsOther) {
+    interests.push(profile.additionalInterestsOther);
   }
-
-  // Card style preference
-  if (profile.cardStyle) {
-    const styleDescriptions: Record<string, string> = {
-      concise: 'concise (favor brevity over elaboration, keep answers short and direct)',
-      balanced: 'balanced (moderate detail with helpful context)',
-      detailed: 'detailed (comprehensive explanations with examples when useful)',
-    };
-    parts.push(`Card style preference: ${styleDescriptions[profile.cardStyle]}`);
+  if (interests.length > 0) {
+    parts.push(`They are also interested in: ${interests.join(', ')}.`);
   }
-
-  // If we have no meaningful content, return empty
-  if (parts.length === 0) return '';
-
-  // Build the final prompt section
-  const userContext = parts.join('\n');
 
   return `
 ## User Context
-${userContext}
+${parts.join(' ')}
 
-Tailor cards to this context. Use terminology appropriate for their expertise level. Focus on their stated goals when relevant.
+Tailor cards to this user's background and expertise level.
 `;
 }

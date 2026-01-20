@@ -19,8 +19,10 @@ export type ApiHandler = (
 /**
  * User profile from database
  */
-export type ExpertiseLevel = 'beginner' | 'intermediate' | 'expert';
-export type CardStylePreference = 'concise' | 'balanced' | 'detailed';
+export type PrimaryCategory = 'student' | 'worker' | 'researcher';
+export type StudentLevel = 'high_school' | 'college' | 'medical_school' | 'law_school' | 'graduate_school' | 'other';
+export type WorkField = 'consulting' | 'engineering' | 'product' | 'finance' | 'marketing' | 'design' | 'sales' | 'operations' | 'legal' | 'healthcare' | 'education' | 'other';
+export type YearsExperience = '1-2' | '3-5' | '6-10' | '10+';
 
 export interface UserProfile {
   id: string;
@@ -40,11 +42,16 @@ export interface UserProfile {
   mochi_deck_id?: string | null;
   // Onboarding & learning profile
   onboarding_completed?: boolean;
-  role?: string | null;
-  learning_goals?: string | null;
-  expertise_level?: ExpertiseLevel | null;
-  card_style?: CardStylePreference | null;
-  domains?: string[] | null;
+  primary_category?: PrimaryCategory | null;
+  student_level?: StudentLevel | null;
+  student_field?: string | null;
+  work_field?: WorkField | null;
+  work_field_other?: string | null;
+  work_years_experience?: YearsExperience | null;
+  research_field?: string | null;
+  research_years_experience?: YearsExperience | null;
+  additional_interests?: string[] | null;
+  additional_interests_other?: string | null;
 }
 
 /**
@@ -169,11 +176,16 @@ export interface UpdateUserSettingsRequest {
   profileIsPublic?: boolean;
   // Learning profile fields
   onboardingCompleted?: boolean;
-  role?: string | null;
-  learningGoals?: string | null;
-  expertiseLevel?: ExpertiseLevel | null;
-  cardStyle?: CardStylePreference | null;
-  domains?: string[] | null;
+  primaryCategory?: PrimaryCategory | null;
+  studentLevel?: StudentLevel | null;
+  studentField?: string | null;
+  workField?: WorkField | null;
+  workFieldOther?: string | null;
+  workYearsExperience?: YearsExperience | null;
+  researchField?: string | null;
+  researchYearsExperience?: YearsExperience | null;
+  additionalInterests?: string[] | null;
+  additionalInterestsOther?: string | null;
 }
 
 /**

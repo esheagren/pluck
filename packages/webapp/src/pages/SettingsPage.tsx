@@ -6,10 +6,17 @@ import type {
   SettingsPageProps,
   MochiDeck,
   StatusMessage,
-  ExpertiseLevel,
-  CardStylePreference,
+  PrimaryCategory,
+  StudentLevel,
+  WorkField,
+  YearsExperience,
 } from '../types';
-import { PREDEFINED_DOMAINS } from '../types';
+import {
+  STUDENT_LEVELS,
+  WORK_FIELDS,
+  YEARS_EXPERIENCE,
+  ADDITIONAL_INTERESTS,
+} from '../types';
 
 const DEFAULT_NEW_CARDS_PER_DAY = 10;
 const NEW_CARDS_KEY = 'pluckk_new_cards_per_day';
@@ -34,12 +41,16 @@ export default function SettingsPage({
   const [newCardsPerDay, setNewCardsPerDay] = useState<number | ''>(DEFAULT_NEW_CARDS_PER_DAY);
 
   // Learning profile state
-  const [role, setRole] = useState('');
-  const [learningGoals, setLearningGoals] = useState('');
-  const [expertiseLevel, setExpertiseLevel] = useState<ExpertiseLevel | ''>('');
-  const [cardStyle, setCardStyle] = useState<CardStylePreference | ''>('');
-  const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
-  const [customDomain, setCustomDomain] = useState('');
+  const [primaryCategory, setPrimaryCategory] = useState<PrimaryCategory | null>(null);
+  const [studentLevel, setStudentLevel] = useState<StudentLevel | null>(null);
+  const [studentField, setStudentField] = useState('');
+  const [workField, setWorkField] = useState<WorkField | null>(null);
+  const [workFieldOther, setWorkFieldOther] = useState('');
+  const [workYearsExperience, setWorkYearsExperience] = useState<YearsExperience | null>(null);
+  const [researchField, setResearchField] = useState('');
+  const [researchYearsExperience, setResearchYearsExperience] = useState<YearsExperience | null>(null);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [otherInterests, setOtherInterests] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileStatus, setProfileStatus] = useState<StatusMessage>({ type: '', message: '' });
 
@@ -75,19 +86,16 @@ export default function SettingsPage({
 
         // Load learning profile
         if (data.learningProfile) {
-          setRole(data.learningProfile.role || '');
-          setLearningGoals(data.learningProfile.learningGoals || '');
-          setExpertiseLevel(data.learningProfile.expertiseLevel || '');
-          setCardStyle(data.learningProfile.cardStyle || '');
-          const domains = data.learningProfile.domains || [];
-          const predefined = domains.filter((d: string) =>
-            PREDEFINED_DOMAINS.includes(d as typeof PREDEFINED_DOMAINS[number])
-          );
-          const custom = domains.filter(
-            (d: string) => !PREDEFINED_DOMAINS.includes(d as typeof PREDEFINED_DOMAINS[number])
-          );
-          setSelectedDomains(predefined);
-          setCustomDomain(custom.join(', '));
+          setPrimaryCategory(data.learningProfile.primaryCategory || null);
+          setStudentLevel(data.learningProfile.studentLevel || null);
+          setStudentField(data.learningProfile.studentField || '');
+          setWorkField(data.learningProfile.workField || null);
+          setWorkFieldOther(data.learningProfile.workFieldOther || '');
+          setWorkYearsExperience(data.learningProfile.workYearsExperience || null);
+          setResearchField(data.learningProfile.researchField || '');
+          setResearchYearsExperience(data.learningProfile.researchYearsExperience || null);
+          setSelectedInterests(data.learningProfile.additionalInterests || []);
+          setOtherInterests(data.learningProfile.additionalInterestsOther || '');
         }
       }
     } catch (error) {
@@ -197,10 +205,14 @@ export default function SettingsPage({
     }
   };
 
-  const toggleDomain = (domain: string): void => {
-    setSelectedDomains((prev) =>
-      prev.includes(domain) ? prev.filter((d) => d !== domain) : [...prev, domain]
+  const toggleInterest = (interest: string): void => {
+    setSelectedInterests((prev) =>
+      prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest]
     );
+  };
+
+  const needsStudentField = (): boolean => {
+    return studentLevel === 'college' || studentLevel === 'graduate_school' || studentLevel === 'other';
   };
 
   const saveLearningProfile = async (): Promise<void> => {
@@ -214,16 +226,6 @@ export default function SettingsPage({
         return;
       }
 
-      const domains = [...selectedDomains];
-      if (customDomain.trim()) {
-        customDomain.split(',').forEach((d) => {
-          const trimmed = d.trim();
-          if (trimmed && !domains.includes(trimmed)) {
-            domains.push(trimmed);
-          }
-        });
-      }
-
       const response = await fetch(`${BACKEND_URL}/api/user/me`, {
         method: 'PATCH',
         headers: {
@@ -231,11 +233,16 @@ export default function SettingsPage({
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          role: role || null,
-          learningGoals: learningGoals || null,
-          expertiseLevel: expertiseLevel || null,
-          cardStyle: cardStyle || null,
-          domains: domains.length > 0 ? domains : null,
+          primaryCategory: primaryCategory || null,
+          studentLevel: primaryCategory === 'student' ? studentLevel : null,
+          studentField: primaryCategory === 'student' && needsStudentField() ? studentField.trim() || null : null,
+          workField: primaryCategory === 'worker' ? workField : null,
+          workFieldOther: primaryCategory === 'worker' && workField === 'other' ? workFieldOther.trim() || null : null,
+          workYearsExperience: primaryCategory === 'worker' ? workYearsExperience : null,
+          researchField: primaryCategory === 'researcher' ? researchField.trim() || null : null,
+          researchYearsExperience: primaryCategory === 'researcher' ? researchYearsExperience : null,
+          additionalInterests: selectedInterests.length > 0 ? selectedInterests : null,
+          additionalInterestsOther: otherInterests.trim() || null,
         }),
       });
 
@@ -386,95 +393,190 @@ export default function SettingsPage({
               Help us personalize your flashcards by telling us about yourself.
             </p>
 
-            <div className="space-y-4">
-              {/* Role */}
+            <div className="space-y-5">
+              {/* Primary Category */}
               <div>
                 <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                  Your Role
+                  What best describes you?
                 </label>
-                <input
-                  type="text"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  placeholder="e.g., Medical student, Software engineer"
-                  className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200 dark:placeholder-gray-500"
-                />
-              </div>
-
-              {/* Learning Goals */}
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                  Learning Goals
-                </label>
-                <textarea
-                  value={learningGoals}
-                  onChange={(e) => setLearningGoals(e.target.value)}
-                  placeholder="e.g., Preparing for USMLE Step 1"
-                  rows={2}
-                  className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200 dark:placeholder-gray-500 resize-none"
-                />
-              </div>
-
-              {/* Expertise Level */}
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                  Expertise Level
-                </label>
-                <select
-                  value={expertiseLevel}
-                  onChange={(e) => setExpertiseLevel(e.target.value as ExpertiseLevel | '')}
-                  className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200"
-                >
-                  <option value="">Not specified</option>
-                  <option value="beginner">Beginner</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="expert">Expert</option>
-                </select>
-              </div>
-
-              {/* Card Style */}
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                  Card Style Preference
-                </label>
-                <select
-                  value={cardStyle}
-                  onChange={(e) => setCardStyle(e.target.value as CardStylePreference | '')}
-                  className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200"
-                >
-                  <option value="">Not specified</option>
-                  <option value="concise">Concise - Brief, to-the-point</option>
-                  <option value="balanced">Balanced - Moderate detail</option>
-                  <option value="detailed">Detailed - Comprehensive</option>
-                </select>
-              </div>
-
-              {/* Domains */}
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                  Study Domains
-                </label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {PREDEFINED_DOMAINS.map((domain) => (
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: 'student', label: 'Student' },
+                    { value: 'worker', label: 'Work in Industry' },
+                    { value: 'researcher', label: 'Researcher' },
+                  ].map((option) => (
                     <button
-                      key={domain}
+                      key={option.value}
                       type="button"
-                      onClick={() => toggleDomain(domain)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                        selectedDomains.includes(domain)
+                      onClick={() => setPrimaryCategory(option.value as PrimaryCategory)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        primaryCategory === option.value
                           ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900'
                           : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                       }`}
                     >
-                      {domain}
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Student-specific fields */}
+              {primaryCategory === 'student' && (
+                <>
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                      Level of Study
+                    </label>
+                    <select
+                      value={studentLevel || ''}
+                      onChange={(e) => setStudentLevel(e.target.value as StudentLevel || null)}
+                      className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200"
+                    >
+                      <option value="">Select level</option>
+                      {STUDENT_LEVELS.map((level) => (
+                        <option key={level.value} value={level.value}>
+                          {level.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {needsStudentField() && (
+                    <div>
+                      <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                        {studentLevel === 'college' ? 'Major' : 'Field of Study'}
+                      </label>
+                      <input
+                        type="text"
+                        value={studentField}
+                        onChange={(e) => setStudentField(e.target.value)}
+                        placeholder={studentLevel === 'college' ? 'e.g., Computer Science' : 'e.g., Neuroscience'}
+                        className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200 dark:placeholder-gray-500"
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Worker-specific fields */}
+              {primaryCategory === 'worker' && (
+                <>
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                      Field
+                    </label>
+                    <select
+                      value={workField || ''}
+                      onChange={(e) => setWorkField(e.target.value as WorkField || null)}
+                      className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200"
+                    >
+                      <option value="">Select field</option>
+                      {WORK_FIELDS.map((field) => (
+                        <option key={field.value} value={field.value}>
+                          {field.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {workField === 'other' && (
+                    <div>
+                      <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                        Please Specify
+                      </label>
+                      <input
+                        type="text"
+                        value={workFieldOther}
+                        onChange={(e) => setWorkFieldOther(e.target.value)}
+                        placeholder="e.g., Real Estate"
+                        className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200 dark:placeholder-gray-500"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                      Years of Experience
+                    </label>
+                    <select
+                      value={workYearsExperience || ''}
+                      onChange={(e) => setWorkYearsExperience(e.target.value as YearsExperience || null)}
+                      className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200"
+                    >
+                      <option value="">Select experience</option>
+                      {YEARS_EXPERIENCE.map((years) => (
+                        <option key={years.value} value={years.value}>
+                          {years.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* Researcher-specific fields */}
+              {primaryCategory === 'researcher' && (
+                <>
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                      Research Field
+                    </label>
+                    <input
+                      type="text"
+                      value={researchField}
+                      onChange={(e) => setResearchField(e.target.value)}
+                      placeholder="e.g., Computational Biology"
+                      className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200 dark:placeholder-gray-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                      Years of Experience
+                    </label>
+                    <select
+                      value={researchYearsExperience || ''}
+                      onChange={(e) => setResearchYearsExperience(e.target.value as YearsExperience || null)}
+                      className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200"
+                    >
+                      <option value="">Select experience</option>
+                      {YEARS_EXPERIENCE.map((years) => (
+                        <option key={years.value} value={years.value}>
+                          {years.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* Additional Interests */}
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                  Additional Interests
+                </label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {ADDITIONAL_INTERESTS.map((interest) => (
+                    <button
+                      key={interest}
+                      type="button"
+                      onClick={() => toggleInterest(interest)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                        selectedInterests.includes(interest)
+                          ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {interest}
                     </button>
                   ))}
                 </div>
                 <input
                   type="text"
-                  value={customDomain}
-                  onChange={(e) => setCustomDomain(e.target.value)}
-                  placeholder="Other topics (comma-separated)"
+                  value={otherInterests}
+                  onChange={(e) => setOtherInterests(e.target.value)}
+                  placeholder="Other interests (e.g., Philosophy, Music Theory)"
                   className="w-full px-3 py-2.5 border border-gray-200 dark:border-dark-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-surface dark:text-gray-200 dark:placeholder-gray-500"
                 />
               </div>

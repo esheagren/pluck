@@ -71,11 +71,16 @@ export default async function handler(
       },
       learningProfile: {
         onboardingCompleted: profile.onboarding_completed ?? false,
-        role: profile.role || null,
-        learningGoals: profile.learning_goals || null,
-        expertiseLevel: profile.expertise_level || null,
-        cardStyle: profile.card_style || null,
-        domains: profile.domains || []
+        primaryCategory: profile.primary_category || null,
+        studentLevel: profile.student_level || null,
+        studentField: profile.student_field || null,
+        workField: profile.work_field || null,
+        workFieldOther: profile.work_field_other || null,
+        workYearsExperience: profile.work_years_experience || null,
+        researchField: profile.research_field || null,
+        researchYearsExperience: profile.research_years_experience || null,
+        additionalInterests: profile.additional_interests || [],
+        additionalInterestsOther: profile.additional_interests_other || null
       }
     });
     return;
@@ -85,7 +90,10 @@ export default async function handler(
   if (req.method === 'PATCH') {
     const {
       mochiApiKey, mochiDeckId, username, displayName, bio, profileIsPublic,
-      onboardingCompleted, role, learningGoals, expertiseLevel, cardStyle, domains
+      onboardingCompleted, primaryCategory, studentLevel, studentField,
+      workField, workFieldOther, workYearsExperience,
+      researchField, researchYearsExperience,
+      additionalInterests, additionalInterestsOther
     } = req.body as UpdateUserSettingsRequest;
 
     const updates: Record<string, unknown> = {};
@@ -162,40 +170,70 @@ export default async function handler(
       updates.onboarding_completed = Boolean(onboardingCompleted);
     }
 
-    if (role !== undefined) {
-      const sanitized = sanitizeText(role);
-      updates.role = sanitized ? sanitized.slice(0, 100) : null;
-    }
-
-    if (learningGoals !== undefined) {
-      const sanitized = sanitizeText(learningGoals);
-      updates.learning_goals = sanitized ? sanitized.slice(0, 1000) : null;
-    }
-
-    if (expertiseLevel !== undefined) {
-      const validLevels = ['beginner', 'intermediate', 'expert'];
-      if (expertiseLevel === null || validLevels.includes(expertiseLevel)) {
-        updates.expertise_level = expertiseLevel;
+    if (primaryCategory !== undefined) {
+      const validCategories = ['student', 'worker', 'researcher'];
+      if (primaryCategory === null || validCategories.includes(primaryCategory)) {
+        updates.primary_category = primaryCategory;
       }
     }
 
-    if (cardStyle !== undefined) {
-      const validStyles = ['concise', 'balanced', 'detailed'];
-      if (cardStyle === null || validStyles.includes(cardStyle)) {
-        updates.card_style = cardStyle;
+    if (studentLevel !== undefined) {
+      const validLevels = ['high_school', 'college', 'medical_school', 'law_school', 'graduate_school', 'other'];
+      if (studentLevel === null || validLevels.includes(studentLevel)) {
+        updates.student_level = studentLevel;
       }
     }
 
-    if (domains !== undefined) {
-      if (domains === null) {
-        updates.domains = null;
-      } else if (Array.isArray(domains)) {
-        // Sanitize and limit domains
-        updates.domains = domains
+    if (studentField !== undefined) {
+      const sanitized = sanitizeText(studentField);
+      updates.student_field = sanitized ? sanitized.slice(0, 100) : null;
+    }
+
+    if (workField !== undefined) {
+      const validFields = ['consulting', 'engineering', 'product', 'finance', 'marketing', 'design', 'sales', 'operations', 'legal', 'healthcare', 'education', 'other'];
+      if (workField === null || validFields.includes(workField)) {
+        updates.work_field = workField;
+      }
+    }
+
+    if (workFieldOther !== undefined) {
+      const sanitized = sanitizeText(workFieldOther);
+      updates.work_field_other = sanitized ? sanitized.slice(0, 100) : null;
+    }
+
+    if (workYearsExperience !== undefined) {
+      const validYears = ['1-2', '3-5', '6-10', '10+'];
+      if (workYearsExperience === null || validYears.includes(workYearsExperience)) {
+        updates.work_years_experience = workYearsExperience;
+      }
+    }
+
+    if (researchField !== undefined) {
+      const sanitized = sanitizeText(researchField);
+      updates.research_field = sanitized ? sanitized.slice(0, 200) : null;
+    }
+
+    if (researchYearsExperience !== undefined) {
+      const validYears = ['1-2', '3-5', '6-10', '10+'];
+      if (researchYearsExperience === null || validYears.includes(researchYearsExperience)) {
+        updates.research_years_experience = researchYearsExperience;
+      }
+    }
+
+    if (additionalInterests !== undefined) {
+      if (additionalInterests === null) {
+        updates.additional_interests = null;
+      } else if (Array.isArray(additionalInterests)) {
+        updates.additional_interests = additionalInterests
           .map(d => sanitizeText(d))
           .filter((d): d is string => d !== null && d.length > 0)
-          .slice(0, 20); // Max 20 domains
+          .slice(0, 10);
       }
+    }
+
+    if (additionalInterestsOther !== undefined) {
+      const sanitized = sanitizeText(additionalInterestsOther);
+      updates.additional_interests_other = sanitized ? sanitized.slice(0, 200) : null;
     }
 
     if (Object.keys(updates).length === 0) {

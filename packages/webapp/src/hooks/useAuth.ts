@@ -37,11 +37,16 @@ export function useAuth(): UseAuthReturn {
 
         const profile: LearningProfile = {
           onboardingCompleted: data.learningProfile?.onboardingCompleted ?? false,
-          role: data.learningProfile?.role || null,
-          learningGoals: data.learningProfile?.learningGoals || null,
-          expertiseLevel: data.learningProfile?.expertiseLevel || null,
-          cardStyle: data.learningProfile?.cardStyle || null,
-          domains: data.learningProfile?.domains || [],
+          primaryCategory: data.learningProfile?.primaryCategory || null,
+          studentLevel: data.learningProfile?.studentLevel || null,
+          studentField: data.learningProfile?.studentField || null,
+          workField: data.learningProfile?.workField || null,
+          workFieldOther: data.learningProfile?.workFieldOther || null,
+          workYearsExperience: data.learningProfile?.workYearsExperience || null,
+          researchField: data.learningProfile?.researchField || null,
+          researchYearsExperience: data.learningProfile?.researchYearsExperience || null,
+          additionalInterests: data.learningProfile?.additionalInterests || [],
+          additionalInterestsOther: data.learningProfile?.additionalInterestsOther || null,
         };
         setLearningProfile(profile);
 
@@ -168,11 +173,16 @@ export function useAuth(): UseAuthReturn {
         },
         body: JSON.stringify({
           onboardingCompleted: true,
-          role: profile.role,
-          learningGoals: profile.learningGoals,
-          expertiseLevel: profile.expertiseLevel,
-          cardStyle: profile.cardStyle,
-          domains: profile.domains,
+          primaryCategory: profile.primaryCategory,
+          studentLevel: profile.studentLevel,
+          studentField: profile.studentField,
+          workField: profile.workField,
+          workFieldOther: profile.workFieldOther,
+          workYearsExperience: profile.workYearsExperience,
+          researchField: profile.researchField,
+          researchYearsExperience: profile.researchYearsExperience,
+          additionalInterests: profile.additionalInterests,
+          additionalInterestsOther: profile.additionalInterestsOther,
         }),
       });
 
