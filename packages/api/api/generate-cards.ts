@@ -38,7 +38,7 @@ function buildSystemPrompt(isPro: boolean, profile?: UserProfile): string {
    When to use: taxonomies, hierarchies, system architectures, X vs Y comparisons, process flows
    The diagram_prompt describes what image to generate - be specific about layout, relationships, and visual structure.
    Example:
-   {"style":"diagram","question":"What are the two main branches of supervised learning?","answer":"Classification (predicts categories) and Regression (predicts continuous values)","diagram_prompt":"A tree diagram with 'Supervised Learning' at the top, branching into two nodes: 'Classification' (with examples: spam detection, image recognition) and 'Regression' (with examples: price prediction, temperature forecasting)","tags":{"content_type":"concept","domain":"machine_learning"}}
+   {"style":"diagram","question":"What are the two main branches of supervised learning?","answer":"Classification (predicts categories) and Regression (predicts continuous values)","diagram_prompt":"A tree diagram with 'Supervised Learning' at the top, branching into two nodes: 'Classification' (with examples: spam detection, image recognition) and 'Regression' (with examples: price prediction, temperature forecasting)","tags":{"content_type":"concept","domain":"machine_learning","technicality":2}}
 ` : '';
 
   return `You are a spaced repetition card generator. Create cards that produce durable understanding through retrieval practice.
@@ -48,40 +48,45 @@ ${personaPrompt}
 
 1. **qa** - Direct factual question for single facts
    Example:
-   {"style":"qa","question":"What type of chicken parts are used in stock?","answer":"Bones","tags":{"content_type":"fact","domain":"cooking"}}
+   {"style":"qa","question":"What type of chicken parts are used in stock?","answer":"Bones","tags":{"content_type":"fact","domain":"cooking","technicality":1}}
 
 2. **qa_bidirectional** - For DEFINITIONS where both directions are useful. Generates forward (term→definition) and reverse (definition→term). Counts as ONE card toward the 2-4 target.
    ALWAYS use this style when the text defines a term, concept, or introduces vocabulary.
    Example:
-   {"style":"qa_bidirectional","forward":{"question":"What is photosynthesis?","answer":"The process by which plants convert light energy into chemical energy"},"reverse":{"question":"What biological process describes plants converting light energy into chemical energy?","answer":"Photosynthesis"},"tags":{"content_type":"definition","domain":"biology"}}
+   {"style":"qa_bidirectional","forward":{"question":"What is photosynthesis?","answer":"The process by which plants convert light energy into chemical energy"},"reverse":{"question":"What biological process describes plants converting light energy into chemical energy?","answer":"Photosynthesis"},"tags":{"content_type":"definition","domain":"biology","technicality":2}}
 
 3. **cloze** - Single fill-in-the-blank for key terms or relationships
    Example:
-   {"style":"cloze","question":"The mitochondria is the ___ of the cell","answer":"powerhouse","tags":{"content_type":"fact","domain":"biology"}}
+   {"style":"cloze","question":"The mitochondria is the ___ of the cell","answer":"powerhouse","tags":{"content_type":"fact","domain":"biology","technicality":1}}
 
 4. **cloze_list** - For CLOSED LISTS with fixed, known members. Creates N+1 clozes: one per item PLUS a final "recall all" card. Counts as ONE card in UI but expands to N+1 on save.
    For N items: first N prompts each occlude ONE item, final prompt occludes ALL items.
    Example (3 items → 4 prompts):
-   {"style":"cloze_list","list_name":"Primary colors","items":["red","blue","yellow"],"prompts":[{"question":"Primary colors: ___, blue, yellow","answer":"red"},{"question":"Primary colors: red, ___, yellow","answer":"blue"},{"question":"Primary colors: red, blue, ___","answer":"yellow"},{"question":"Primary colors: ___, ___, ___","answer":"red, blue, yellow"}],"tags":{"content_type":"list","domain":"art"}}
+   {"style":"cloze_list","list_name":"Primary colors","items":["red","blue","yellow"],"prompts":[{"question":"Primary colors: ___, blue, yellow","answer":"red"},{"question":"Primary colors: red, ___, yellow","answer":"blue"},{"question":"Primary colors: red, blue, ___","answer":"yellow"},{"question":"Primary colors: ___, ___, ___","answer":"red, blue, yellow"}],"tags":{"content_type":"list","domain":"art","technicality":1}}
 
 5. **explanation** - "Why" or "How" questions connecting facts to deeper meaning
    Example:
-   {"style":"explanation","question":"Why are bones used instead of meat for making stock?","answer":"Bones contain collagen which converts to gelatin, giving the stock body and richness","tags":{"content_type":"concept","domain":"cooking"}}
+   {"style":"explanation","question":"Why are bones used instead of meat for making stock?","answer":"Bones contain collagen which converts to gelatin, giving the stock body and richness","tags":{"content_type":"concept","domain":"cooking","technicality":2}}
 
 6. **application** - Connect knowledge to real-world situations or decision-making
    Example:
-   {"style":"application","question":"When cooking a savory dish with water, what should you consider using instead?","answer":"Stock, as it adds depth and flavor","tags":{"content_type":"procedure","domain":"cooking"}}
+   {"style":"application","question":"When cooking a savory dish with water, what should you consider using instead?","answer":"Stock, as it adds depth and flavor","tags":{"content_type":"procedure","domain":"cooking","technicality":1}}
 ${diagramStyle}
-**Tags (always include both):**
+**Tags (always include all three):**
 - content_type: "definition" | "fact" | "concept" | "procedure" | "list"
 - domain: infer from context (e.g., "biology", "cooking", "programming", "machine_learning", "history")
+- technicality: 1 | 2 | 3 | 4
+  - 1 = Intuitive (early high school or before): simple analogies, everyday language, no jargon
+  - 2 = Foundational (high school): basic terminology, concepts explained accessibly
+  - 3 = College: technical terminology, specific details, assumes foundational knowledge
+  - 4 = Graduate: expert precision, formulas, quantitative details, assumes deep background
 
 **Critical Rules:**
 - Generate 2-4 cards total (qa_bidirectional and cloze_list each count as ONE card)
 - ALWAYS use qa_bidirectional when text contains a definition (X is Y, X means Y, X refers to Y)
 - Use cloze_list for enumerated lists with fixed membership
 - Prioritize the most important knowledge, not exhaustive coverage
-- Tags help organization - always include content_type and domain
+- Tags help organization - always include content_type, domain, and technicality
 
 **Output Format:**
 Return ONLY valid JSON, no markdown code blocks:

@@ -256,7 +256,8 @@ export interface GeneratedCard {
   tags?: {
     content_type?: string;
     domain?: string;
-    [key: string]: string | undefined;
+    technicality?: number; // 1-4 scale: 1=intuitive, 2=foundational, 3=college, 4=graduate
+    [key: string]: string | number | undefined;
   };
 }
 
