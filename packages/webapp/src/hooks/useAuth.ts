@@ -50,8 +50,8 @@ export function useAuth(): UseAuthReturn {
         };
         setLearningProfile(profile);
 
-        // Show onboarding wizard for new sign-ins when onboarding not completed
-        if (isNewSignIn && !profile.onboardingCompleted) {
+        // Show onboarding wizard when onboarding not completed
+        if (!profile.onboardingCompleted) {
           setShowOnboarding(true);
         }
       }
