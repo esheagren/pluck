@@ -82,8 +82,9 @@ export default function App(): JSX.Element {
           onSkip={skipOnboarding}
         />
       )}
-      <Routes>
-      <Route element={<Layout />}>
+      <div className={showOnboarding ? 'blur-sm pointer-events-none' : ''}>
+        <Routes>
+        <Route element={<Layout />}>
         <Route
           path="/"
           element={
@@ -127,7 +128,8 @@ export default function App(): JSX.Element {
         <Route path="/activity" element={<Navigate to="/profile" replace />} />
         <Route path="/feedback" element={<FeedbackPage />} />
       </Route>
-    </Routes>
+      </Routes>
+      </div>
     </>
   );
 }
