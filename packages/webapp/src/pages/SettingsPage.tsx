@@ -436,7 +436,7 @@ export default function SettingsPage({
         {learningProfileOpen && (
           <div className="px-5 py-4 border-t border-gray-100 dark:border-dark-border bg-gray-50/50 dark:bg-dark-bg/50">
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Help us personalize your flashcards by telling us about yourself.
+              Help us personalize your experience.
             </p>
 
             <div className="space-y-5">
