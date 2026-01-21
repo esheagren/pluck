@@ -488,68 +488,70 @@ export default function OnboardingWizard({
 
           {/* Step 4: Extension Download */}
           {step === 3 && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div className="text-center">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Get the Chrome extension
+                  You'll need the Chrome extension
                 </label>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Turn any webpage into flashcards with one click
-                </p>
               </div>
 
-              {/* Extension visual */}
-              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6 border border-gray-100 dark:border-dark-border">
-                <div className="flex items-center justify-center mb-6">
-                  {/* Chrome extension icon representation */}
-                  <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-2xl flex items-center justify-center shadow-sm">
-                    <svg
-                      className="w-8 h-8 text-gray-600 dark:text-gray-300"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
+              {/* Browser mockup */}
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+                {/* Browser toolbar */}
+                <div className="bg-gray-200 dark:bg-gray-700 px-3 py-2 flex items-center gap-2">
+                  {/* Window controls */}
+                  <div className="flex gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-gray-400 dark:bg-gray-500" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-gray-400 dark:bg-gray-500" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-gray-400 dark:bg-gray-500" />
+                  </div>
+                  {/* URL bar */}
+                  <div className="flex-1 bg-white dark:bg-gray-600 rounded px-2 py-1 mx-2">
+                    <span className="text-[10px] text-gray-400 dark:text-gray-400">example.com/article</span>
+                  </div>
+                  {/* Extension icon */}
+                  <div className="w-5 h-5 bg-gray-800 dark:bg-gray-200 rounded flex items-center justify-center">
+                    <span className="text-[8px] font-bold text-white dark:text-gray-800">P</span>
                   </div>
                 </div>
 
-                {/* Flow description */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300">
-                      1
-                    </span>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                      Highlight text on any webpage
-                    </span>
+                {/* Browser content area */}
+                <div className="flex h-36">
+                  {/* Webpage content (left) */}
+                  <div className="flex-1 bg-white dark:bg-gray-900 p-3 overflow-hidden">
+                    <div className="space-y-2">
+                      <div className="h-2 w-24 bg-gray-300 dark:bg-gray-600 rounded" />
+                      <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-700 rounded" />
+                      <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-700 rounded" />
+                      {/* Highlighted text */}
+                      <div className="h-1.5 w-3/4 bg-yellow-200 dark:bg-yellow-700/50 rounded" />
+                      <div className="h-1.5 w-1/2 bg-yellow-200 dark:bg-yellow-700/50 rounded" />
+                      <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-700 rounded" />
+                      <div className="h-1.5 w-5/6 bg-gray-100 dark:bg-gray-700 rounded" />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300">
-                      2
-                    </span>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                      Click the Pluckk icon or press{' '}
-                      <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">
-                        Cmd+Shift+M
-                      </kbd>
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300">
-                      3
-                    </span>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                      Choose from generated flashcards
-                    </span>
+
+                  {/* Sidebar (right) */}
+                  <div className="w-28 bg-gray-50 dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-2">
+                    <div className="text-[8px] font-medium text-gray-500 dark:text-gray-400 mb-2">Generated cards</div>
+                    {/* Mini card 1 */}
+                    <div className="bg-white dark:bg-gray-700 rounded p-1.5 mb-1.5 border border-gray-200 dark:border-gray-600 shadow-sm">
+                      <div className="h-1 w-full bg-gray-200 dark:bg-gray-500 rounded mb-1" />
+                      <div className="h-1 w-3/4 bg-gray-100 dark:bg-gray-600 rounded" />
+                    </div>
+                    {/* Mini card 2 */}
+                    <div className="bg-white dark:bg-gray-700 rounded p-1.5 border border-gray-200 dark:border-gray-600 shadow-sm">
+                      <div className="h-1 w-full bg-gray-200 dark:bg-gray-500 rounded mb-1" />
+                      <div className="h-1 w-2/3 bg-gray-100 dark:bg-gray-600 rounded" />
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {/* Brief description */}
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                Highlight text on any page, click the extension, and save flashcards
+              </p>
 
               {/* Add to Chrome button */}
               <button
