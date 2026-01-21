@@ -70,6 +70,7 @@ const drawerVersion = document.getElementById('drawer-version') as HTMLElement |
 const drawerThemeToggle = document.getElementById('drawer-theme-toggle') as HTMLInputElement | null;
 const drawerKeepOpenToggle = document.getElementById('drawer-keep-open-toggle') as HTMLInputElement | null;
 // DOM Elements - Review Card
+const reviewCardContainer = document.getElementById('review-card-container') as HTMLElement | null;
 const reviewCard = document.getElementById('review-card') as HTMLElement | null;
 const activityGridMini = document.getElementById('activity-grid-mini') as HTMLElement | null;
 const reviewSettingsBtn = document.getElementById('review-settings-btn') as HTMLButtonElement | null;
@@ -130,13 +131,20 @@ function showState(state: HTMLElement | null): void {
   states.forEach(s => s?.classList.add('hidden'));
   state?.classList.remove('hidden');
 
-  // Manage ready-state-wrapper visibility (contains no-selection-state and review button)
+  // Manage ready-state-wrapper visibility
   if (state === noSelectionState) {
     readyStateWrapper?.classList.remove('hidden');
     startSelectionPolling();
   } else {
     readyStateWrapper?.classList.add('hidden');
     stopSelectionPolling();
+  }
+
+  // Show review card container during ready and screenshot states
+  if (state === noSelectionState || state === screenshotState) {
+    reviewCardContainer?.classList.remove('hidden');
+  } else {
+    reviewCardContainer?.classList.add('hidden');
   }
 }
 
