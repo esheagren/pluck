@@ -1,5 +1,4 @@
 import { useState, type JSX } from 'react';
-import { getSupabaseClient } from '@pluckk/shared/supabase';
 import type {
   PrimaryCategory,
   StudentLevel,
@@ -21,16 +20,9 @@ const EXTENSION_URL = 'https://pluckk.app/extension';
 // Sample content for the first card step
 const SAMPLE_TEXT = `Spaced repetition is a learning technique that schedules reviews at increasing intervals based on how well you remember each item. Items you struggle with appear more frequently, while well-remembered items appear less often.`;
 
-const SAMPLE_CARD = {
-  question: 'What is spaced repetition?',
-  answer:
-    'A learning technique that schedules reviews at increasing intervals based on how well you remember each item. Items you struggle with appear more frequently, while well-remembered items appear less often.',
-};
-
 interface OnboardingWizardProps {
   onComplete: (profile: OnboardingData) => Promise<void>;
   onSkip: () => void;
-  userId: string;
 }
 
 export interface OnboardingData {
@@ -54,13 +46,9 @@ const STEPS = ['About you', 'Details', 'Breadth', 'Extension', 'First Card'];
 export default function OnboardingWizard({
   onComplete,
   onSkip,
-  userId,
 }: OnboardingWizardProps): JSX.Element {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [cardSaved, setCardSaved] = useState(false);
-  const [savingCard, setSavingCard] = useState(false);
-  const [cardError, setCardError] = useState<string | null>(null);
 
   // Form state
   const [primaryCategory, setPrimaryCategory] = useState<PrimaryCategory | null>(null);
@@ -110,32 +98,6 @@ export default function OnboardingWizard({
       });
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleSaveCard = async (): Promise<void> => {
-    setSavingCard(true);
-    setCardError(null);
-    try {
-      const supabase = getSupabaseClient();
-      const { error } = await supabase.from('cards').insert({
-        user_id: userId,
-        question: SAMPLE_CARD.question,
-        answer: SAMPLE_CARD.answer,
-        source_url: 'https://pluckk.app/onboarding',
-      });
-
-      if (error) {
-        console.error('Failed to save card:', error);
-        setCardError('Failed to save card. Please try again.');
-      } else {
-        setCardSaved(true);
-      }
-    } catch (error) {
-      console.error('Failed to save card:', error);
-      setCardError('Failed to save card. Please try again.');
-    } finally {
-      setSavingCard(false);
     }
   };
 
@@ -573,74 +535,19 @@ export default function OnboardingWizard({
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Try it out
                 </label>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Here's how it works — we highlighted some text for you
-                </p>
               </div>
 
-              {/* Sample highlighted text */}
+              {/* Sample text */}
               <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-dark-border">
-                <p className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 font-medium mb-2">
-                  Highlighted text
-                </p>
                 <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                  <span className="bg-yellow-100 dark:bg-yellow-900/30 px-0.5">
-                    {SAMPLE_TEXT}
-                  </span>
+                  {SAMPLE_TEXT}
                 </p>
               </div>
 
-              {/* Generated card */}
-              <div className="bg-white dark:bg-dark-surface rounded-xl border border-gray-200 dark:border-dark-border overflow-hidden">
-                <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-dark-border">
-                  <p className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 font-medium">
-                    Generated card
-                  </p>
-                </div>
-                <div className="p-4 space-y-3">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 font-medium mb-1">
-                      Question
-                    </p>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {SAMPLE_CARD.question}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 font-medium mb-1">
-                      Answer
-                    </p>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
-                      {SAMPLE_CARD.answer}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Save button or success state */}
-              {cardSaved ? (
-                <div className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400 py-2">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-sm font-medium">Card saved to your deck!</span>
-                </div>
-              ) : (
-                <>
-                  <button
-                    onClick={handleSaveCard}
-                    disabled={savingCard}
-                    className="w-full px-5 py-3 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-900 dark:hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {savingCard ? 'Saving...' : 'Save to my deck'}
-                  </button>
-                  {cardError && (
-                    <p className="text-sm text-red-600 dark:text-red-400 text-center">
-                      {cardError}
-                    </p>
-                  )}
-                </>
-              )}
+              {/* Instruction */}
+              <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                Click on your extension to highlight this text and create a flashcard.
+              </p>
             </div>
           )}
 
