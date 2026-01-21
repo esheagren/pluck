@@ -5,14 +5,12 @@ import type {
   StudentLevel,
   WorkField,
   YearsExperience,
-  SpacedRepExperience,
   BreadthLevel,
 } from '../types';
 import {
   STUDENT_LEVELS,
   WORK_FIELDS,
   YEARS_EXPERIENCE,
-  SPACED_REP_EXPERIENCE,
   BREADTH_LEVELS,
   BREADTH_EXAMPLE_QUESTIONS,
 } from '../types';
@@ -51,7 +49,7 @@ export interface OnboardingData {
   breadthPreference: BreadthLevel | null;
 }
 
-const STEPS = ['About you', 'Details', 'Experience', 'Breadth', 'Extension', 'First Card'];
+const STEPS = ['About you', 'Details', 'Breadth', 'Extension', 'First Card'];
 
 export default function OnboardingWizard({
   onComplete,
@@ -60,7 +58,6 @@ export default function OnboardingWizard({
 }: OnboardingWizardProps): JSX.Element {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [showSpacedRepInfo, setShowSpacedRepInfo] = useState(false);
   const [cardSaved, setCardSaved] = useState(false);
   const [savingCard, setSavingCard] = useState(false);
   const [cardError, setCardError] = useState<string | null>(null);
@@ -78,7 +75,6 @@ export default function OnboardingWizard({
   const [researchField, setResearchField] = useState('');
   const [researchYearsExperience, setResearchYearsExperience] = useState<YearsExperience | null>(null);
   // Learning preferences
-  const [spacedRepExperience, setSpacedRepExperience] = useState<SpacedRepExperience | null>(null);
   const [breadthPreference, setBreadthPreference] = useState<BreadthLevel | null>(null);
 
   const handleNext = (): void => {
@@ -108,7 +104,7 @@ export default function OnboardingWizard({
         researchYearsExperience: primaryCategory === 'researcher' ? researchYearsExperience : null,
         additionalInterests: [], // Can be set later in Settings
         additionalInterestsOther: null,
-        spacedRepExperience,
+        spacedRepExperience: null,
         technicalityPreference: null,
         breadthPreference,
       });
@@ -379,57 +375,8 @@ export default function OnboardingWizard({
             </div>
           )}
 
-          {/* Step 3: Spaced Rep Experience */}
+          {/* Step 3: Breadth Preference */}
           {step === 2 && (
-            <div className="space-y-6">
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <label className="block text-gray-700 dark:text-gray-300">
-                    <span className="text-lg font-bold text-gray-900 dark:text-gray-100">Spaced repetition</span>
-                    <span className="text-sm font-medium ml-1">— have you used it before?</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowSpacedRepInfo(!showSpacedRepInfo)}
-                    className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs font-medium hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center justify-center"
-                    aria-label="What is spaced repetition?"
-                  >
-                    i
-                  </button>
-                </div>
-                {showSpacedRepInfo && (
-                  <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
-                    <p className="text-xs text-blue-800 dark:text-blue-200">
-                      <strong>Spaced repetition</strong> is a learning technique that shows you flashcards at increasing intervals based on how well you remember them. Popular apps that use this method include <strong>Anki</strong>, <strong>Mochi</strong>, <strong>SuperMemo</strong>, and <strong>Quizlet</strong>.
-                    </p>
-                  </div>
-                )}
-                <div className="space-y-2">
-                  {SPACED_REP_EXPERIENCE.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => setSpacedRepExperience(option.value)}
-                      className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
-                        spacedRepExperience === option.value
-                          ? 'border-gray-800 dark:border-gray-200 bg-gray-50 dark:bg-gray-800'
-                          : 'border-gray-200 dark:border-dark-border hover:border-gray-300 dark:hover:border-gray-600'
-                      }`}
-                    >
-                      <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
-                        {option.label}
-                      </span>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        {option.description}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Breadth Preference */}
-          {step === 3 && (
             <div className="space-y-6">
               <div className="text-center">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -539,8 +486,8 @@ export default function OnboardingWizard({
             </div>
           )}
 
-          {/* Step 5: Extension Download */}
-          {step === 4 && (
+          {/* Step 4: Extension Download */}
+          {step === 3 && (
             <div className="space-y-6">
               <div className="text-center">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -617,8 +564,8 @@ export default function OnboardingWizard({
             </div>
           )}
 
-          {/* Step 6: First Card */}
-          {step === 5 && (
+          {/* Step 5: First Card */}
+          {step === 4 && (
             <div className="space-y-5">
               <div className="text-center">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -721,12 +668,12 @@ export default function OnboardingWizard({
                 onClick={handleNext}
                 disabled={!canProceed()}
                 className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                  step === 4
+                  step === 3
                     ? 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
                     : 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 hover:bg-gray-900 dark:hover:bg-white'
                 }`}
               >
-                {step === 4 ? "I'll do this later" : 'Continue'}
+                {step === 3 ? "I'll do this later" : 'Continue'}
               </button>
             ) : (
               <button
