@@ -44,7 +44,7 @@ export default function CreateFolderButton({
     return (
       <button
         onClick={() => setIsCreating(true)}
-        className="flex items-center justify-center w-9 h-9 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+        className="flex-shrink-0 flex items-center justify-center w-9 h-9 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
         title="Create folder"
       >
         <svg

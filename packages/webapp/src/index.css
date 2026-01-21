@@ -49,3 +49,12 @@ html, body {
 .pro-badge {
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
 }
+
+/* Hide scrollbar but allow scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
+}

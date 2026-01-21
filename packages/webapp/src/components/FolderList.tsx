@@ -139,10 +139,10 @@ export default function FolderList({
     }
 
     return (
-      <div className="group relative">
+      <div className="group relative flex-shrink-0">
         <button
           onClick={() => onSelectFolder(id)}
-          className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
             selectedFolderId === id
               ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900'
               : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -211,9 +211,9 @@ export default function FolderList({
     orderedItems.length > 0 ? orderedItems : ['unfiled', ...folders.map((f) => f.id)];
 
   return (
-    <div className="flex-1 flex items-center justify-between gap-2">
+    <div className="flex-1 flex items-center justify-between gap-2 max-md:flex-col max-md:items-stretch">
       {/* Left side: Sortable folder tabs - uses parent DndContext from CardsPage */}
-      <div className="flex flex-wrap gap-2 items-center">
+      <div className="flex gap-2 items-center overflow-x-auto max-md:pb-2 max-md:-mx-1 max-md:px-1 scrollbar-hide">
         <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
           {sortableIds.map((id) => {
             const isUnfiled = id === 'unfiled';
@@ -237,12 +237,24 @@ export default function FolderList({
             );
           })}
         </SortableContext>
+        {/* All Cards button - inline in scrollable row on mobile */}
+        <button
+          onClick={() => onSelectFolder('all')}
+          className={`md:hidden px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap flex-shrink-0 ${
+            selectedFolderId === 'all'
+              ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+          }`}
+        >
+          All
+          <span className="ml-1 text-xs opacity-70">({cards.length})</span>
+        </button>
       </div>
 
-      {/* Right side: All Cards option - fixed position */}
+      {/* Right side: All Cards option - fixed right on desktop only */}
       <button
         onClick={() => onSelectFolder('all')}
-        className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+        className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap flex-shrink-0 max-md:hidden ${
           selectedFolderId === 'all'
             ? 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900'
             : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'

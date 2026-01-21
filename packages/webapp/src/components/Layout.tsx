@@ -17,7 +17,7 @@ export default function Layout(): JSX.Element {
 
       <Sidebar />
       <MobileNav />
-      <main className="relative z-10 flex-1 ml-[220px] flex items-start justify-center p-10 max-md:ml-0">
+      <main className="relative z-10 flex-1 ml-[220px] flex items-start justify-center p-10 max-md:ml-0 max-md:pt-20 max-md:px-4">
         <Outlet />
       </main>
     </div>

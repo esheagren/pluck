@@ -370,7 +370,7 @@ export default function CardsPage({
         {/* Folder list / filter bar */}
         <div className="w-full max-w-5xl mb-4">
           <div className="pb-4 border-b border-gray-200 dark:border-dark-border">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 max-md:items-start">
               <CreateFolderButton onCreateFolder={onCreateFolder} />
               <FolderList
                 folders={folders}

@@ -28,7 +28,7 @@ export default function CardGrid({
   const isMultiDrag = Boolean(activeId && selectedCardIds.has(activeId));
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full max-w-5xl">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 w-full max-w-5xl">
       {cards.map((card) => {
         // Card should disappear if it's selected and we're doing a multi-drag (but not the actual dragged card)
         const isBeingDraggedAway =
@@ -43,7 +43,7 @@ export default function CardGrid({
           >
             <div
               onClick={(e) => handleCardClick(card, e)}
-              className="group bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-xl p-5 pt-10 cursor-pointer hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all h-full select-none"
+              className="group bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-xl p-3 pt-8 md:p-5 md:pt-10 cursor-pointer hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all h-full select-none"
             >
               <div className="text-sm text-gray-800 dark:text-gray-200 line-clamp-3 mb-3">
                 {card.question}
