@@ -1117,6 +1117,14 @@ async function fetchActivityData(): Promise<ActivityDataMap | null> {
 }
 
 /**
+ * Format date for tooltip display (e.g., "Jan 15, 2026")
+ */
+function formatDateForTooltip(date: Date): string {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+}
+
+/**
  * Render mini activity grid (last 12 weeks)
  */
 function renderMiniActivityGrid(activityData: ActivityDataMap): void {
@@ -1150,8 +1158,13 @@ function renderMiniActivityGrid(activityData: ActivityDataMap): void {
       const isFuture = currentDate > today;
 
       let level = 0;
+      let reviews = 0;
+      let cardsCreated = 0;
+
       if (!isFuture && activityData[dateStr]) {
-        const total = (activityData[dateStr].reviews || 0) + (activityData[dateStr].cardsCreated || 0);
+        reviews = activityData[dateStr].reviews || 0;
+        cardsCreated = activityData[dateStr].cardsCreated || 0;
+        const total = reviews + cardsCreated;
         if (total > 0 && maxCount > 0) {
           const ratio = total / maxCount;
           if (ratio <= 0.25) level = 1;
@@ -1161,8 +1174,22 @@ function renderMiniActivityGrid(activityData: ActivityDataMap): void {
         }
       }
 
+      // Build tooltip text
+      const formattedDate = formatDateForTooltip(currentDate);
+      let tooltip = formattedDate;
+      if (!isFuture) {
+        if (reviews > 0 || cardsCreated > 0) {
+          const parts: string[] = [];
+          if (reviews > 0) parts.push(`${reviews} review${reviews !== 1 ? 's' : ''}`);
+          if (cardsCreated > 0) parts.push(`${cardsCreated} card${cardsCreated !== 1 ? 's' : ''} created`);
+          tooltip = `${formattedDate}\n${parts.join(', ')}`;
+        } else {
+          tooltip = `${formattedDate}\nNo activity`;
+        }
+      }
+
       const visibility = isFuture ? 'style="visibility: hidden;"' : '';
-      html += `<div class="activity-day level-${level}" ${visibility} title="${dateStr}"></div>`;
+      html += `<div class="activity-day level-${level}" ${visibility} title="${tooltip}"></div>`;
 
       currentDate.setDate(currentDate.getDate() + 1);
     }
@@ -1170,6 +1197,23 @@ function renderMiniActivityGrid(activityData: ActivityDataMap): void {
     html += '</div>';
   }
 
+  activityGridMini.innerHTML = html;
+}
+
+/**
+ * Render a skeleton loading grid (pulsing placeholder)
+ */
+function renderSkeletonGrid(): void {
+  if (!activityGridMini) return;
+
+  let html = '';
+  for (let week = 0; week < 12; week++) {
+    html += '<div class="activity-week">';
+    for (let day = 0; day < 7; day++) {
+      html += '<div class="activity-day skeleton"></div>';
+    }
+    html += '</div>';
+  }
   activityGridMini.innerHTML = html;
 }
 
@@ -1187,17 +1231,27 @@ async function updateReviewCard(): Promise<void> {
     return;
   }
 
-  // Check cache first
+  // Check cache first - show immediately even if stale
   const cached = await getCachedActivity();
-  if (cached && Date.now() - cached.timestamp < ACTIVITY_CACHE_TTL) {
+  if (cached?.data) {
     renderMiniActivityGrid(cached.data);
+
+    // If cache is still fresh, we're done
+    if (Date.now() - cached.timestamp < ACTIVITY_CACHE_TTL) {
+      return;
+    }
+    // Otherwise, refresh in background (don't await, don't show loading)
+    fetchActivityData().then(activityData => {
+      if (activityData) {
+        renderMiniActivityGrid(activityData);
+        cacheActivity({ data: activityData, timestamp: Date.now() });
+      }
+    });
     return;
   }
 
-  // Show loading state
-  if (activityGridMini) {
-    activityGridMini.innerHTML = '<span class="activity-grid-loading">Loading...</span>';
-  }
+  // No cache - show skeleton loading state
+  renderSkeletonGrid();
 
   // Fetch fresh data
   const activityData = await fetchActivityData();
