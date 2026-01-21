@@ -1,4 +1,5 @@
 import { useState, type JSX } from 'react';
+import { getSupabaseClient } from '@pluckk/shared/supabase';
 import type {
   PrimaryCategory,
   StudentLevel,
@@ -16,9 +17,22 @@ import {
   BREADTH_EXAMPLE_QUESTIONS,
 } from '../types';
 
+// Chrome Web Store URL (update when extension is published)
+const EXTENSION_URL = 'https://pluckk.app/extension';
+
+// Sample content for the first card step
+const SAMPLE_TEXT = `Spaced repetition is a learning technique that schedules reviews at increasing intervals based on how well you remember each item. Items you struggle with appear more frequently, while well-remembered items appear less often.`;
+
+const SAMPLE_CARD = {
+  question: 'What is spaced repetition?',
+  answer:
+    'A learning technique that schedules reviews at increasing intervals based on how well you remember each item. Items you struggle with appear more frequently, while well-remembered items appear less often.',
+};
+
 interface OnboardingWizardProps {
   onComplete: (profile: OnboardingData) => Promise<void>;
   onSkip: () => void;
+  userId: string;
 }
 
 export interface OnboardingData {
@@ -37,15 +51,19 @@ export interface OnboardingData {
   breadthPreference: BreadthLevel | null;
 }
 
-const STEPS = ['About you', 'Details', 'Experience', 'Breadth'];
+const STEPS = ['About you', 'Details', 'Experience', 'Breadth', 'Extension', 'First Card'];
 
 export default function OnboardingWizard({
   onComplete,
   onSkip,
+  userId,
 }: OnboardingWizardProps): JSX.Element {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [showSpacedRepInfo, setShowSpacedRepInfo] = useState(false);
+  const [cardSaved, setCardSaved] = useState(false);
+  const [savingCard, setSavingCard] = useState(false);
+  const [cardError, setCardError] = useState<string | null>(null);
 
   // Form state
   const [primaryCategory, setPrimaryCategory] = useState<PrimaryCategory | null>(null);
@@ -97,6 +115,36 @@ export default function OnboardingWizard({
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSaveCard = async (): Promise<void> => {
+    setSavingCard(true);
+    setCardError(null);
+    try {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.from('cards').insert({
+        user_id: userId,
+        question: SAMPLE_CARD.question,
+        answer: SAMPLE_CARD.answer,
+        source_url: 'https://pluckk.app/onboarding',
+      });
+
+      if (error) {
+        console.error('Failed to save card:', error);
+        setCardError('Failed to save card. Please try again.');
+      } else {
+        setCardSaved(true);
+      }
+    } catch (error) {
+      console.error('Failed to save card:', error);
+      setCardError('Failed to save card. Please try again.');
+    } finally {
+      setSavingCard(false);
+    }
+  };
+
+  const handleExtensionClick = (): void => {
+    window.open(EXTENSION_URL, '_blank');
   };
 
   const toggleWorkField = (field: WorkField): void => {
@@ -491,6 +539,162 @@ export default function OnboardingWizard({
             </div>
           )}
 
+          {/* Step 5: Extension Download */}
+          {step === 4 && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Get the Chrome extension
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Turn any webpage into flashcards with one click
+                </p>
+              </div>
+
+              {/* Extension visual */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6 border border-gray-100 dark:border-dark-border">
+                <div className="flex items-center justify-center mb-6">
+                  {/* Chrome extension icon representation */}
+                  <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-2xl flex items-center justify-center shadow-sm">
+                    <svg
+                      className="w-8 h-8 text-gray-600 dark:text-gray-300"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Flow description */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300">
+                      1
+                    </span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      Highlight text on any webpage
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300">
+                      2
+                    </span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      Click the Pluckk icon or press{' '}
+                      <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">
+                        Cmd+Shift+M
+                      </kbd>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300">
+                      3
+                    </span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      Choose from generated flashcards
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Add to Chrome button */}
+              <button
+                onClick={handleExtensionClick}
+                className="w-full px-5 py-3 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-900 dark:hover:bg-white transition-colors flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0C8.21 0 4.831 1.757 2.632 4.501l3.953 6.848A5.454 5.454 0 0 1 12 6.545h10.691A12 12 0 0 0 12 0zM1.931 5.47A11.943 11.943 0 0 0 0 12c0 6.012 4.42 10.991 10.189 11.864l3.953-6.847a5.45 5.45 0 0 1-6.865-2.29zm13.342 2.166a5.446 5.446 0 0 1 1.45 7.09l.002.001h-.002l-3.952 6.848a12.014 12.014 0 0 0 9.171-5.977A11.943 11.943 0 0 0 24 12c0-.71-.062-1.41-.181-2.091h-7.907a5.443 5.443 0 0 1 .361 2.277 5.46 5.46 0 0 1-.64 2.5z" />
+                </svg>
+                Add to Chrome
+              </button>
+            </div>
+          )}
+
+          {/* Step 6: First Card */}
+          {step === 5 && (
+            <div className="space-y-5">
+              <div className="text-center">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Try it out
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Here's how it works — we highlighted some text for you
+                </p>
+              </div>
+
+              {/* Sample highlighted text */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-dark-border">
+                <p className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 font-medium mb-2">
+                  Highlighted text
+                </p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                  <span className="bg-yellow-100 dark:bg-yellow-900/30 px-0.5">
+                    {SAMPLE_TEXT}
+                  </span>
+                </p>
+              </div>
+
+              {/* Generated card */}
+              <div className="bg-white dark:bg-dark-surface rounded-xl border border-gray-200 dark:border-dark-border overflow-hidden">
+                <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-dark-border">
+                  <p className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 font-medium">
+                    Generated card
+                  </p>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 font-medium mb-1">
+                      Question
+                    </p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {SAMPLE_CARD.question}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 font-medium mb-1">
+                      Answer
+                    </p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      {SAMPLE_CARD.answer}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Save button or success state */}
+              {cardSaved ? (
+                <div className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400 py-2">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-sm font-medium">Card saved to your deck!</span>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={handleSaveCard}
+                    disabled={savingCard}
+                    className="w-full px-5 py-3 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-900 dark:hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {savingCard ? 'Saving...' : 'Save to my deck'}
+                  </button>
+                  {cardError && (
+                    <p className="text-sm text-red-600 dark:text-red-400 text-center">
+                      {cardError}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Footer */}
@@ -516,9 +720,13 @@ export default function OnboardingWizard({
               <button
                 onClick={handleNext}
                 disabled={!canProceed()}
-                className="px-5 py-2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-900 dark:hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  step === 4
+                    ? 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                    : 'bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 hover:bg-gray-900 dark:hover:bg-white'
+                }`}
               >
-                Continue
+                {step === 4 ? "I'll do this later" : 'Continue'}
               </button>
             ) : (
               <button

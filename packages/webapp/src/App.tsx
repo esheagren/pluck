@@ -80,6 +80,7 @@ export default function App(): JSX.Element {
         <OnboardingWizard
           onComplete={completeOnboarding}
           onSkip={skipOnboarding}
+          userId={user.id}
         />
       )}
       <div className={showOnboarding ? 'blur-sm pointer-events-none' : ''}>
