@@ -8,6 +8,7 @@
     "deploy": "vercel --prod"
   },
   "dependencies": {
+    "@pluckk/shared": "*",
     "@supabase/supabase-js": "^2.39.0",
     "stripe": "^14.0.0"
   },

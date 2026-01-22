@@ -2,7 +2,7 @@
   "version": 2,
   "framework": null,
   "buildCommand": "",
-  "installCommand": "npm install",
+  "installCommand": "cd ../.. && npm install",
   "headers": [
     {
       "source": "/api/(.*)",
