@@ -2,7 +2,7 @@
 // Proxies Claude API calls with server-side API key
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { buildPersonaPrompt } from '@pluckk/shared/constants';
+import { buildPersonaPrompt } from '../lib/prompts.js';
 import { authenticateRequest, checkUsageLimit, isAuthError } from '../lib/auth.js';
 import { incrementCardCount } from '../lib/supabase-admin.js';
 import type { GenerateCardsRequest, GeneratedCard, UserProfile } from '../lib/types.js';

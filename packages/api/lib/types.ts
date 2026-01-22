@@ -5,9 +5,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
-// Re-export Card types from shared package
-export type { Card, CardStyle, QACard, BidirectionalCard, ClozeCard, ClozeListCard } from '@pluckk/shared';
-
 /**
  * Vercel API handler type
  */
