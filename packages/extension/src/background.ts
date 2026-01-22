@@ -547,6 +547,10 @@ interface SendToMochiRequest extends ExtensionMessage {
   screenshotMimeType?: string;
   generateDiagram?: boolean;
   diagramPrompt?: string;
+  // Source context for storage
+  sourceSelection?: string;
+  sourceContext?: string;
+  sourceTitle?: string;
 }
 
 interface GenerateCardsFromImageRequest extends ExtensionMessage {
@@ -636,7 +640,10 @@ chrome.runtime.onMessage.addListener(
             req.sourceUrl,
             {
               userId: user.id,
-              accessToken: session?.access_token
+              accessToken: session?.access_token,
+              sourceSelection: req.sourceSelection,
+              sourceContext: req.sourceContext,
+              sourceTitle: req.sourceTitle
             }
           );
           supabaseCardId = result.cardId || null;

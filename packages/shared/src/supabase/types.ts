@@ -18,6 +18,9 @@ export interface Database {
           answer: string;
           source_url: string | null;
           image_url: string | null;
+          source_selection: string | null;
+          source_context: string | null;
+          source_title: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -28,6 +31,9 @@ export interface Database {
           answer: string;
           source_url?: string | null;
           image_url?: string | null;
+          source_selection?: string | null;
+          source_context?: string | null;
+          source_title?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -38,6 +44,9 @@ export interface Database {
           answer?: string;
           source_url?: string | null;
           image_url?: string | null;
+          source_selection?: string | null;
+          source_context?: string | null;
+          source_title?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -122,6 +131,12 @@ export interface SaveCardOptions {
   userId: string;
   /** User's access token for auth */
   accessToken?: string;
+  /** Original highlighted text */
+  sourceSelection?: string;
+  /** Surrounding context with [[SELECTED]] markers */
+  sourceContext?: string;
+  /** Page title where card was created */
+  sourceTitle?: string;
 }
 
 /**

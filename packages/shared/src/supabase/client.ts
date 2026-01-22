@@ -44,7 +44,7 @@ export function createSupabaseClient(options: SupabaseClientOptions = {}): Supab
       saveOptions: SaveCardOptions = { userId: '' }
     ): Promise<SaveCardResult> {
       try {
-        const { userId, accessToken } = saveOptions;
+        const { userId, accessToken, sourceSelection, sourceContext, sourceTitle } = saveOptions;
 
         // Require user_id for all card saves
         if (!userId) {
@@ -56,12 +56,23 @@ export function createSupabaseClient(options: SupabaseClientOptions = {}): Supab
           ? { ...headers, 'Authorization': `Bearer ${accessToken}` }
           : headers;
 
-        const cardData = {
+        const cardData: Record<string, unknown> = {
           question,
           answer,
           source_url: sourceUrl,
           user_id: userId
         };
+
+        // Add optional source context fields if provided
+        if (sourceSelection !== undefined) {
+          cardData.source_selection = sourceSelection;
+        }
+        if (sourceContext !== undefined) {
+          cardData.source_context = sourceContext;
+        }
+        if (sourceTitle !== undefined) {
+          cardData.source_title = sourceTitle;
+        }
 
         const response = await fetch(`${url}/rest/v1/cards`, {
           method: 'POST',

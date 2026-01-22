@@ -524,6 +524,9 @@ async function sendToMochi(): Promise<void> {
         screenshotMimeType?: string;
         generateDiagram?: boolean;
         diagramPrompt?: string;
+        sourceSelection?: string;
+        sourceContext?: string;
+        sourceTitle?: string;
       }
 
       const messageData: MessageData = {
@@ -531,7 +534,11 @@ async function sendToMochi(): Promise<void> {
         question: card.question,
         answer: card.answer,
         sourceUrl: sourceUrl,
-        tags: card.tags
+        tags: card.tags,
+        // Include source context for storage
+        sourceSelection: cachedSelectionData?.selection,
+        sourceContext: cachedSelectionData?.context,
+        sourceTitle: cachedSelectionData?.title
       };
 
       // Include screenshot data if we're in image mode

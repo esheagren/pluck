@@ -63,6 +63,10 @@ export interface SendToMochiMessage extends ExtensionMessage {
   screenshotMimeType?: string;
   generateDiagram?: boolean;
   diagramPrompt?: string;
+  // Source context for future features (Review Chat, QA analysis)
+  sourceSelection?: string;
+  sourceContext?: string;
+  sourceTitle?: string;
 }
 
 // Save to Supabase message
