@@ -735,16 +735,32 @@ async function resizeImage(
  */
 async function capturePageContext(): Promise<CapturedPageContext | null> {
   try {
+    console.log('[Pluckk] Capturing page context...');
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id) return null;
+    if (!tab?.id) {
+      console.log('[Pluckk] No active tab found');
+      return null;
+    }
 
     // Request DOM context from content script and viewport screenshot in parallel
     const [domContextResponse, viewportResponse] = await Promise.all([
-      chrome.tabs.sendMessage(tab.id, { action: 'getDOMContext' }).catch(() => null),
-      chrome.runtime.sendMessage({ action: 'captureViewport' }).catch(() => null)
+      chrome.tabs.sendMessage(tab.id, { action: 'getDOMContext' }).catch((e) => {
+        console.error('[Pluckk] getDOMContext failed:', e);
+        return null;
+      }),
+      chrome.runtime.sendMessage({ action: 'captureViewport' }).catch((e) => {
+        console.error('[Pluckk] captureViewport failed:', e);
+        return null;
+      })
     ]);
 
-    if (!domContextResponse) return null;
+    console.log('[Pluckk] DOM context response:', domContextResponse);
+    console.log('[Pluckk] Viewport response:', viewportResponse ? 'captured' : 'null');
+
+    if (!domContextResponse) {
+      console.log('[Pluckk] No DOM context received');
+      return null;
+    }
 
     const result: CapturedPageContext = {
       domContext: domContextResponse as CapturedPageContext['domContext']
@@ -754,9 +770,16 @@ async function capturePageContext(): Promise<CapturedPageContext | null> {
       result.viewportScreenshot = viewportResponse as CapturedPageContext['viewportScreenshot'];
     }
 
+    console.log('[Pluckk] Page context captured:', {
+      headings: result.domContext.headings,
+      visibleTextLength: result.domContext.visibleText?.length,
+      visibleTextPreview: result.domContext.visibleText?.substring(0, 200),
+      hasViewport: !!result.viewportScreenshot
+    });
+
     return result;
   } catch (error) {
-    console.error('Failed to capture page context:', error);
+    console.error('[Pluckk] Failed to capture page context:', error);
     return null;
   }
 }
@@ -785,8 +808,12 @@ async function handlePaste(e: ClipboardEvent): Promise<void> {
       // Capture page context BEFORE processing image (if toggle enabled)
       // Must do this while we're still on the page
       let pageContext: CapturedPageContext | null = null;
+      console.log('[Pluckk] Image pasted. includePageContext toggle:', includePageContext);
       if (includePageContext) {
         pageContext = await capturePageContext();
+        console.log('[Pluckk] Page context after capture:', pageContext ? 'captured' : 'null');
+      } else {
+        console.log('[Pluckk] Skipping page context capture (toggle OFF)');
       }
 
       // Convert to base64
@@ -874,6 +901,13 @@ async function generateCardsFromImage(focusText = '', isRetry = false): Promise<
     // Include page context if captured
     if (capturedPageContext) {
       message.pageContext = capturedPageContext;
+      console.log('[Pluckk] Sending page context with image generation:', {
+        headings: capturedPageContext.domContext.headings,
+        visibleTextLength: capturedPageContext.domContext.visibleText?.length,
+        hasViewport: !!capturedPageContext.viewportScreenshot
+      });
+    } else {
+      console.log('[Pluckk] No page context to send with image generation');
     }
 
     const response: GenerateCardsResponse = await chrome.runtime.sendMessage(message);

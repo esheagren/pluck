@@ -105,6 +105,14 @@ export default async function handler(
   // Add page context information if provided
   if (pageContext?.domContext) {
     const { domContext } = pageContext;
+    console.log('[generate-cards-from-image] Page context received:', {
+      title: domContext.title,
+      headings: domContext.headings,
+      visibleTextLength: domContext.visibleText?.length,
+      visibleTextPreview: domContext.visibleText?.substring(0, 200),
+      hasViewportScreenshot: !!pageContext.viewportScreenshot
+    });
+
     userMessage += '\n\n**Page Context (from where the screenshot was taken):**';
     if (domContext.title) {
       userMessage += `\nPage title: ${domContext.title}`;
@@ -116,6 +124,10 @@ export default async function handler(
       userMessage += `\nVisible text excerpt: ${domContext.visibleText.substring(0, 800)}`;
     }
     userMessage += '\n\nUse this context to understand what topic or concept the screenshot relates to.';
+
+    console.log('[generate-cards-from-image] Final user message with context:', userMessage);
+  } else {
+    console.log('[generate-cards-from-image] No page context provided');
   }
 
   // Build message content array
