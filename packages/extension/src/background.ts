@@ -343,7 +343,7 @@ async function generateAndAttachImage(
         originalContent += `\n\n---\nSource: ${sourceUrl}`;
       }
 
-      const attachResponse = await fetch(`${BACKEND_URL}/api/attach-mochi-image`, {
+      const attachResponse = await fetch(`${BACKEND_URL}/api/send-to-mochi`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
