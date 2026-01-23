@@ -80,12 +80,12 @@ export default function ReviewProgressBar({
   };
 
   const handleMouseLeave = () => {
-    // Start fade-out, then remove tooltip after transition
+    // Start fade-out, then remove tooltip after transition completes
     setIsTooltipVisible(false);
     fadeTimeoutRef.current = window.setTimeout(() => {
       setTooltip(null);
       fadeTimeoutRef.current = null;
-    }, 200); // Match the CSS transition duration
+    }, 250); // Slightly longer than the 200ms CSS transition to ensure it completes
   };
 
   return (
@@ -128,8 +128,8 @@ export default function ReviewProgressBar({
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="fixed z-50 px-2 py-1 text-xs text-white bg-gray-800 dark:bg-gray-200 dark:text-gray-900 rounded shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full transition-opacity duration-200"
-          style={{ left: tooltip.x, top: tooltip.y, opacity: isTooltipVisible ? 1 : 0 }}
+          className={`fixed z-50 px-2 py-1 text-xs text-white bg-gray-800 dark:bg-gray-200 dark:text-gray-900 rounded shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full transition-opacity duration-200 ${isTooltipVisible ? 'opacity-100' : 'opacity-0'}`}
+          style={{ left: tooltip.x, top: tooltip.y }}
         >
           <span className="font-medium">{tooltip.label}:</span> {tooltip.count}
         </div>
