@@ -664,7 +664,10 @@ html.dark .settings-drawer {
 
 /* Cards State */
 .cards-state {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .cards-list {
@@ -672,6 +675,9 @@ html.dark .settings-drawer {
   flex-direction: column;
   gap: 6px;
   margin-bottom: 16px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 /* Card Item */
@@ -779,6 +785,7 @@ html.dark .card-item.selected .card-checkbox::after {
   margin-bottom: 12px;
   font-size: 12px;
   color: var(--color-text-tertiary);
+  flex-shrink: 0;
 }
 
 .selection-count strong {
@@ -791,6 +798,7 @@ html.dark .card-item.selected .card-checkbox::after {
   display: flex;
   gap: 8px;
   margin-bottom: 14px;
+  flex-shrink: 0;
 }
 
 .actions .btn {
@@ -1153,6 +1161,12 @@ html.dark .card-item.selected .card-checkbox::after {
 /* Screenshot State */
 .screenshot-state {
   padding: 20px 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
 }
 
 .screenshot-preview {
@@ -1164,6 +1178,7 @@ html.dark .card-item.selected .card-checkbox::after {
   overflow: hidden;
   border: 1px solid var(--color-border-light);
   background: var(--color-surface-tertiary);
+  flex-shrink: 0;
 }
 
 .screenshot-preview img {
@@ -1203,6 +1218,7 @@ html.dark .card-item.selected .card-checkbox::after {
   font-size: 13px;
   margin-bottom: 16px;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .screenshot-focus-input {
@@ -1218,6 +1234,7 @@ html.dark .card-item.selected .card-checkbox::after {
   font-family: inherit;
   text-align: center;
   margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .screenshot-focus-input:focus {
@@ -1502,7 +1519,8 @@ html.dark .card-item.selected .card-checkbox::after {
 
 /* Review Card Container */
 .review-card-container {
-  margin: 8px 0;
+  margin-top: auto;
+  margin-bottom: 0;
   padding: 12px 14px;
   background: var(--color-surface-secondary);
   border-radius: 8px;
