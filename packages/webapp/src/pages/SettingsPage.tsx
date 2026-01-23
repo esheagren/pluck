@@ -70,6 +70,7 @@ export default function SettingsPage({
   const [selectedDeckIds, setSelectedDeckIds] = useState<Set<string>>(new Set());
   const [fetchingImportDecks, setFetchingImportDecks] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ current: number; total: number; deckName: string } | null>(null);
   const [importResult, setImportResult] = useState<MochiImportResult | null>(null);
   const [importStatus, setImportStatus] = useState<StatusMessage>({ type: '', message: '' });
 
@@ -365,7 +366,7 @@ export default function SettingsPage({
     });
   };
 
-  // Run import
+  // Run import - process decks one at a time to show progress
   const runImport = async (): Promise<void> => {
     if (selectedDeckIds.size === 0) {
       setImportStatus({ type: 'error', message: 'Select at least one deck to import' });
@@ -375,6 +376,19 @@ export default function SettingsPage({
     setImporting(true);
     setImportStatus({ type: '', message: '' });
     setImportResult(null);
+    setImportProgress(null);
+
+    const deckIds = Array.from(selectedDeckIds);
+    const deckMap = new Map(importDecks.map((d) => [d.id, d.name]));
+
+    // Accumulate results across all decks
+    const totalResult: MochiImportResult = {
+      success: true,
+      imported: 0,
+      skipped: 0,
+      foldersCreated: [],
+      errors: [],
+    };
 
     try {
       const accessToken = await getAccessToken();
@@ -383,32 +397,55 @@ export default function SettingsPage({
         return;
       }
 
-      const response = await fetch(`${BACKEND_URL}/api/import-from-mochi`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          deckIds: Array.from(selectedDeckIds),
-          createFolders: true,
-        }),
-      });
+      // Process each deck one at a time
+      for (let i = 0; i < deckIds.length; i++) {
+        const deckId = deckIds[i];
+        const deckName = deckMap.get(deckId) || 'Unknown';
 
-      const data = await response.json() as MochiImportResult;
-      setImportResult(data);
+        setImportProgress({ current: i + 1, total: deckIds.length, deckName });
 
-      if (data.success) {
-        setImportStatus({ type: 'success', message: `Imported ${data.imported} cards` });
+        try {
+          const response = await fetch(`${BACKEND_URL}/api/import-from-mochi`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({
+              deckIds: [deckId],
+              createFolders: true,
+            }),
+          });
+
+          const data = await response.json() as MochiImportResult;
+
+          // Accumulate results
+          totalResult.imported += data.imported;
+          totalResult.skipped += data.skipped;
+          totalResult.foldersCreated.push(...data.foldersCreated);
+          totalResult.errors.push(...data.errors);
+          if (!data.success) totalResult.success = false;
+        } catch (deckError) {
+          totalResult.errors.push(`Failed to import "${deckName}"`);
+          totalResult.success = false;
+        }
+      }
+
+      setImportResult(totalResult);
+      setImportProgress(null);
+
+      if (totalResult.success || totalResult.imported > 0) {
+        setImportStatus({ type: 'success', message: `Imported ${totalResult.imported} cards` });
         setSelectedDeckIds(new Set());
       } else {
-        setImportStatus({ type: 'error', message: data.errors?.[0] || 'Import failed' });
+        setImportStatus({ type: 'error', message: totalResult.errors?.[0] || 'Import failed' });
       }
     } catch (error) {
       console.error('Import failed:', error);
       setImportStatus({ type: 'error', message: 'Failed to import cards' });
     } finally {
       setImporting(false);
+      setImportProgress(null);
     }
   };
 
@@ -1051,13 +1088,18 @@ export default function SettingsPage({
                             disabled={importing || selectedDeckIds.size === 0}
                             className="flex-1 py-2.5 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-900 dark:hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {importing ? 'Importing...' : `Import ${selectedDeckIds.size} deck${selectedDeckIds.size !== 1 ? 's' : ''}`}
+                            {importing
+                              ? importProgress
+                                ? `Importing ${importProgress.current}/${importProgress.total}...`
+                                : 'Starting...'
+                              : `Import ${selectedDeckIds.size} deck${selectedDeckIds.size !== 1 ? 's' : ''}`}
                           </button>
                           <button
                             onClick={() => {
                               setImportDecks([]);
                               setSelectedDeckIds(new Set());
                               setImportResult(null);
+                              setImportProgress(null);
                               setImportStatus({ type: '', message: '' });
                             }}
                             className="px-4 py-2.5 text-gray-500 dark:text-gray-400 text-sm hover:text-gray-700 dark:hover:text-gray-200"
@@ -1065,6 +1107,22 @@ export default function SettingsPage({
                             Reset
                           </button>
                         </div>
+
+                        {/* Progress Indicator */}
+                        {importProgress && (
+                          <div className="mt-3 space-y-2">
+                            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                              <span>Importing: {importProgress.deckName}</span>
+                              <span>{importProgress.current} of {importProgress.total}</span>
+                            </div>
+                            <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gray-800 dark:bg-gray-200 transition-all duration-300"
+                                style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </>
                     )}
 
