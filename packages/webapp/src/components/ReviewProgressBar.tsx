@@ -1,4 +1,4 @@
-import { useMemo, useState, type JSX } from 'react';
+import { useMemo, useState, useRef, useEffect, type JSX } from 'react';
 import type { ReviewProgressBarProps } from '../types';
 
 interface SegmentTooltip {
@@ -13,6 +13,8 @@ export default function ReviewProgressBar({
   dueCards,
 }: ReviewProgressBarProps): JSX.Element | null {
   const [tooltip, setTooltip] = useState<SegmentTooltip | null>(null);
+  const [isTooltipVisible, setIsTooltipVisible] = useState(false);
+  const fadeTimeoutRef = useRef<number | null>(null);
 
   const segments = useMemo(() => {
     const totalCards = dueCards.length;
@@ -51,7 +53,22 @@ export default function ReviewProgressBar({
   const newEnd = reviewEnd + newPct;
   const againEnd = newEnd + againPct;
 
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (fadeTimeoutRef.current) {
+        clearTimeout(fadeTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>, label: string, count: number) => {
+    // Cancel any pending fade-out
+    if (fadeTimeoutRef.current) {
+      clearTimeout(fadeTimeoutRef.current);
+      fadeTimeoutRef.current = null;
+    }
+
     const rect = (e.target as HTMLElement).getBoundingClientRect();
     setTooltip({
       label,
@@ -59,9 +76,17 @@ export default function ReviewProgressBar({
       x: rect.left + rect.width / 2,
       y: rect.top - 8,
     });
+    setIsTooltipVisible(true);
   };
 
-  const handleMouseLeave = () => setTooltip(null);
+  const handleMouseLeave = () => {
+    // Start fade-out, then remove tooltip after transition
+    setIsTooltipVisible(false);
+    fadeTimeoutRef.current = window.setTimeout(() => {
+      setTooltip(null);
+      fadeTimeoutRef.current = null;
+    }, 200); // Match the CSS transition duration
+  };
 
   return (
     <>
@@ -103,8 +128,8 @@ export default function ReviewProgressBar({
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="fixed z-50 px-2 py-1 text-xs text-white bg-gray-800 dark:bg-gray-200 dark:text-gray-900 rounded shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full"
-          style={{ left: tooltip.x, top: tooltip.y }}
+          className="fixed z-50 px-2 py-1 text-xs text-white bg-gray-800 dark:bg-gray-200 dark:text-gray-900 rounded shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full transition-opacity duration-200"
+          style={{ left: tooltip.x, top: tooltip.y, opacity: isTooltipVisible ? 1 : 0 }}
         >
           <span className="font-medium">{tooltip.label}:</span> {tooltip.count}
         </div>
