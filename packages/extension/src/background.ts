@@ -92,6 +92,91 @@ async function getSelectionFromTab(tabId: number): Promise<SelectionData | null>
 }
 
 /**
+ * Capture viewport screenshot and resize/compress
+ */
+async function captureViewportScreenshot(): Promise<{ imageData: string; mimeType: string } | null> {
+  try {
+    // Capture the visible tab
+    const dataUrl = await chrome.tabs.captureVisibleTab({ format: 'jpeg', quality: 80 });
+
+    // Extract base64 data
+    const base64Data = dataUrl.split(',')[1];
+
+    // Resize if needed (max 1024px, target ~200KB)
+    const resized = await resizeImageInWorker(base64Data, 'image/jpeg', 1024, 200);
+
+    return {
+      imageData: resized.data,
+      mimeType: resized.mimeType
+    };
+  } catch (error) {
+    console.error('Failed to capture viewport:', error);
+    return null;
+  }
+}
+
+/**
+ * Resize an image using OffscreenCanvas (service worker compatible)
+ */
+async function resizeImageInWorker(
+  base64Data: string,
+  mimeType: string,
+  maxDimension = 1024,
+  targetSizeKB = 200
+): Promise<{ data: string; mimeType: string }> {
+  // Create blob from base64
+  const binary = atob(base64Data);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  const blob = new Blob([bytes], { type: mimeType });
+
+  // Create ImageBitmap
+  const imageBitmap = await createImageBitmap(blob);
+
+  // Calculate new dimensions
+  let { width, height } = imageBitmap;
+  if (width > maxDimension || height > maxDimension) {
+    if (width > height) {
+      height = Math.round((height / width) * maxDimension);
+      width = maxDimension;
+    } else {
+      width = Math.round((width / height) * maxDimension);
+      height = maxDimension;
+    }
+  }
+
+  // Use OffscreenCanvas for service worker
+  const canvas = new OffscreenCanvas(width, height);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('Failed to get canvas context');
+  }
+  ctx.drawImage(imageBitmap, 0, 0, width, height);
+
+  // Compress to target size
+  let quality = 0.85;
+  let resultBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality });
+
+  while (resultBlob.size > targetSizeKB * 1024 && quality > 0.1) {
+    quality -= 0.1;
+    resultBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality });
+  }
+
+  // Convert blob to base64
+  const arrayBuffer = await resultBlob.arrayBuffer();
+  const uint8Array = new Uint8Array(arrayBuffer);
+  let binaryStr = '';
+  for (const byte of uint8Array) {
+    binaryStr += String.fromCharCode(byte);
+  }
+  const data = btoa(binaryStr);
+
+  return { data, mimeType: 'image/jpeg' };
+}
+
+/**
  * Call backend API to generate cards
  */
 async function generateCards(selectionData: SelectionData, focusText = ''): Promise<GeneratedCard[]> {
@@ -553,11 +638,25 @@ interface SendToMochiRequest extends ExtensionMessage {
   sourceTitle?: string;
 }
 
+interface PageContext {
+  domContext: {
+    headings: string[];
+    visibleText: string;
+    url: string;
+    title: string;
+  };
+  viewportScreenshot?: {
+    imageData: string;
+    mimeType: string;
+  };
+}
+
 interface GenerateCardsFromImageRequest extends ExtensionMessage {
   action: 'generateCardsFromImage';
   imageData: string;
   mimeType: string;
   focusText?: string;
+  pageContext?: PageContext;
 }
 
 interface AnswerQuestionRequest extends ExtensionMessage {
@@ -581,7 +680,8 @@ type MessageRequest =
   | AnswerQuestionRequest
   | SaveToSupabaseRequest
   | { action: 'getMochiStatus' }
-  | { action: 'getAuthStatus' };
+  | { action: 'getAuthStatus' }
+  | { action: 'captureViewport' };
 
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener(
@@ -713,17 +813,31 @@ chrome.runtime.onMessage.addListener(
         }
 
         try {
+          interface RequestBody {
+            imageData: string;
+            mimeType: string;
+            focusText: string;
+            pageContext?: PageContext;
+          }
+
+          const body: RequestBody = {
+            imageData: req.imageData,
+            mimeType: req.mimeType,
+            focusText: req.focusText || ''
+          };
+
+          // Include page context if provided
+          if (req.pageContext) {
+            body.pageContext = req.pageContext;
+          }
+
           const response = await fetch(`${BACKEND_URL}/api/generate-cards-from-image`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${accessToken}`
             },
-            body: JSON.stringify({
-              imageData: req.imageData,
-              mimeType: req.mimeType,
-              focusText: req.focusText || ''
-            })
+            body: JSON.stringify(body)
           });
 
           if (!response.ok) {
@@ -885,6 +999,17 @@ chrome.runtime.onMessage.addListener(
           } as AuthStatusResponse);
         })
         .catch(error => sendResponse({ authenticated: false, error: (error as Error).message } as AuthStatusResponse));
+
+      return true;
+    }
+
+    if (request.action === 'captureViewport') {
+      captureViewportScreenshot()
+        .then(result => sendResponse(result))
+        .catch(error => {
+          console.error('Viewport capture failed:', error);
+          sendResponse(null);
+        });
 
       return true;
     }

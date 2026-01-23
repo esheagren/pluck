@@ -14,6 +14,8 @@ export type {
   SendToMochiMessage,
   SaveToSupabaseMessage,
   GetSelectionMessage,
+  GetDOMContextMessage,
+  CaptureViewportMessage,
   PingMessage,
   GenerateCardsResponse,
   MochiStatusResponse,
@@ -27,6 +29,9 @@ export type {
   UsageInfo,
   SelectionResponse,
   PingResponse,
+  DOMContextResponse,
+  ViewportScreenshotResponse,
+  PageContext,
 } from './messages';
 
 // Storage types

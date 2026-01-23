@@ -13,6 +13,8 @@ export type MessageAction =
   | 'getMochiStatus'
   | 'getAuthStatus'
   | 'getSelection'
+  | 'getDOMContext'
+  | 'captureViewport'
   | 'ping';
 
 // Selection data from content script
@@ -21,6 +23,8 @@ export interface SelectionData {
   context: string;
   url: string;
   title: string;
+  selector?: string;
+  textOffset?: number;
 }
 
 // Base message interface
@@ -42,6 +46,7 @@ export interface GenerateCardsFromImageMessage extends ExtensionMessage {
   imageData: string;
   mimeType: string;
   focusText?: string;
+  pageContext?: PageContext;
 }
 
 // Answer question message
@@ -67,6 +72,9 @@ export interface SendToMochiMessage extends ExtensionMessage {
   sourceSelection?: string;
   sourceContext?: string;
   sourceTitle?: string;
+  // Source anchoring for deep-linking
+  sourceSelector?: string;
+  sourceTextOffset?: number;
 }
 
 // Save to Supabase message
@@ -84,6 +92,14 @@ export interface GetSelectionMessage extends ExtensionMessage {
 
 export interface PingMessage extends ExtensionMessage {
   action: 'ping';
+}
+
+export interface GetDOMContextMessage extends ExtensionMessage {
+  action: 'getDOMContext';
+}
+
+export interface CaptureViewportMessage extends ExtensionMessage {
+  action: 'captureViewport';
 }
 
 // Response types
@@ -176,8 +192,30 @@ export interface SelectionResponse {
   context: string;
   url: string;
   title: string;
+  selector?: string;
+  textOffset?: number;
 }
 
 export interface PingResponse {
   pong: boolean;
+}
+
+// DOM context response for image-based card generation
+export interface DOMContextResponse {
+  headings: string[];
+  visibleText: string;
+  url: string;
+  title: string;
+}
+
+// Viewport screenshot response
+export interface ViewportScreenshotResponse {
+  imageData: string;
+  mimeType: string;
+}
+
+// Page context for image-based card generation (combines DOM text + viewport screenshot)
+export interface PageContext {
+  domContext: DOMContextResponse;
+  viewportScreenshot?: ViewportScreenshotResponse;
 }

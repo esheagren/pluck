@@ -54,6 +54,9 @@ const _questionInputContainer = document.getElementById('question-input-containe
 const questionInput = document.getElementById('question-input') as HTMLTextAreaElement | null;
 const questionSubmitBtn = document.getElementById('question-submit-btn') as HTMLButtonElement | null;
 
+// DOM Elements - Screenshot State
+const pageContextToggle = document.getElementById('page-context-toggle') as HTMLInputElement | null;
+
 // DOM Elements - Settings Drawer
 const settingsDrawer = document.getElementById('settings-drawer') as HTMLElement | null;
 const drawerAuthLoggedOut = document.getElementById('drawer-auth-logged-out') as HTMLElement | null;
@@ -108,6 +111,21 @@ let isImageMode = false;
 let pastedImageData: string | null = null; // Base64 image data
 let pastedImageMimeType: string | null = null; // e.g., 'image/png'
 
+// Page context state (captured when image is pasted with toggle enabled)
+interface CapturedPageContext {
+  domContext: {
+    headings: string[];
+    visibleText: string;
+    url: string;
+    title: string;
+  };
+  viewportScreenshot?: {
+    imageData: string;
+    mimeType: string;
+  };
+}
+let capturedPageContext: CapturedPageContext | null = null;
+
 // Question input mode state
 let _isQuestionMode = false;
 
@@ -117,6 +135,9 @@ let _userIsPro = false; // Track if user is Pro (for diagram feature)
 
 // Keep open preference
 let keepOpenAfterStoring = false;
+
+// Page context capture preference (for screenshot mode)
+let includePageContext = false;
 
 // Theme state
 let currentTheme: Theme = 'light';
@@ -608,6 +629,7 @@ async function sendToMochi(): Promise<void> {
   if (isImageMode) {
     pastedImageData = null;
     pastedImageMimeType = null;
+    capturedPageContext = null;
     isImageMode = false;
   }
 
@@ -706,6 +728,37 @@ async function resizeImage(
 }
 
 /**
+ * Capture page context (DOM text + viewport screenshot) from the active tab
+ */
+async function capturePageContext(): Promise<CapturedPageContext | null> {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) return null;
+
+    // Request DOM context from content script and viewport screenshot in parallel
+    const [domContextResponse, viewportResponse] = await Promise.all([
+      chrome.tabs.sendMessage(tab.id, { action: 'getDOMContext' }).catch(() => null),
+      chrome.runtime.sendMessage({ action: 'captureViewport' }).catch(() => null)
+    ]);
+
+    if (!domContextResponse) return null;
+
+    const result: CapturedPageContext = {
+      domContext: domContextResponse as CapturedPageContext['domContext']
+    };
+
+    if (viewportResponse) {
+      result.viewportScreenshot = viewportResponse as CapturedPageContext['viewportScreenshot'];
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Failed to capture page context:', error);
+    return null;
+  }
+}
+
+/**
  * Handle paste event to capture screenshots
  */
 async function handlePaste(e: ClipboardEvent): Promise<void> {
@@ -726,6 +779,13 @@ async function handlePaste(e: ClipboardEvent): Promise<void> {
       const blob = item.getAsFile();
       if (!blob) continue;
 
+      // Capture page context BEFORE processing image (if toggle enabled)
+      // Must do this while we're still on the page
+      let pageContext: CapturedPageContext | null = null;
+      if (includePageContext) {
+        pageContext = await capturePageContext();
+      }
+
       // Convert to base64
       const reader = new FileReader();
       reader.onload = async () => {
@@ -741,6 +801,9 @@ async function handlePaste(e: ClipboardEvent): Promise<void> {
           pastedImageData = data;
           pastedImageMimeType = mimeType;
           isImageMode = true;
+
+          // Store captured page context
+          capturedPageContext = pageContext;
 
           // Show screenshot preview
           showScreenshotPreview(data);
@@ -772,6 +835,7 @@ function showScreenshotPreview(base64Data: string): void {
 function clearScreenshot(): void {
   pastedImageData = null;
   pastedImageMimeType = null;
+  capturedPageContext = null;
   isImageMode = false;
   showState(noSelectionState);
 }
@@ -789,12 +853,27 @@ async function generateCardsFromImage(focusText = '', isRetry = false): Promise<
   await checkMochiStatus();
 
   try {
-    const response: GenerateCardsResponse = await chrome.runtime.sendMessage({
+    interface GenerateFromImageMessage {
+      action: string;
+      imageData: string;
+      mimeType: string;
+      focusText?: string;
+      pageContext?: CapturedPageContext;
+    }
+
+    const message: GenerateFromImageMessage = {
       action: 'generateCardsFromImage',
       imageData: pastedImageData,
       mimeType: pastedImageMimeType,
       focusText: focusText
-    });
+    };
+
+    // Include page context if captured
+    if (capturedPageContext) {
+      message.pageContext = capturedPageContext;
+    }
+
+    const response: GenerateCardsResponse = await chrome.runtime.sendMessage(message);
 
     if (response.error) {
       // If auth failed but we haven't retried yet, try refreshing session
@@ -1912,9 +1991,40 @@ async function saveKeepOpenPreference(value: boolean): Promise<void> {
   }
 }
 
+// Load page context preference
+async function loadPageContextPreference(): Promise<void> {
+  try {
+    interface PageContextResult {
+      includePageContext?: boolean;
+    }
+    const result: PageContextResult = await chrome.storage.sync.get(['includePageContext']);
+    includePageContext = result.includePageContext || false;
+    if (pageContextToggle) {
+      pageContextToggle.checked = includePageContext;
+    }
+  } catch (error) {
+    console.error('Failed to load page context preference:', error);
+  }
+}
+
+// Save page context preference
+async function savePageContextPreference(value: boolean): Promise<void> {
+  try {
+    await chrome.storage.sync.set({ includePageContext: value });
+    includePageContext = value;
+  } catch (error) {
+    console.error('Failed to save page context preference:', error);
+  }
+}
+
 // Wire up keep-open toggle (drawer)
 drawerKeepOpenToggle?.addEventListener('change', (e: Event) => {
   saveKeepOpenPreference((e.target as HTMLInputElement).checked);
+});
+
+// Wire up page context toggle (screenshot state)
+pageContextToggle?.addEventListener('change', (e: Event) => {
+  savePageContextPreference((e.target as HTMLInputElement).checked);
 });
 
 // Set version from manifest
@@ -1925,4 +2035,5 @@ if (drawerVersion) {
 
 // Load preferences and initialize panel
 loadKeepOpenPreference();
+loadPageContextPreference();
 initializePanel();

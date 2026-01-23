@@ -82,7 +82,7 @@ export default async function handler(
   }
 
   // Parse request body
-  const { imageData, mimeType, focusText } = req.body as GenerateCardsFromImageRequest;
+  const { imageData, mimeType, focusText, pageContext } = req.body as GenerateCardsFromImageRequest;
 
   if (!imageData || !mimeType) {
     res.status(400).json({ error: 'Missing image data or mime type' });
@@ -102,6 +102,68 @@ export default async function handler(
     userMessage += ` Focus on: ${focusText}`;
   }
 
+  // Add page context information if provided
+  if (pageContext?.domContext) {
+    const { domContext } = pageContext;
+    userMessage += '\n\n**Page Context (from where the screenshot was taken):**';
+    if (domContext.title) {
+      userMessage += `\nPage title: ${domContext.title}`;
+    }
+    if (domContext.headings.length > 0) {
+      userMessage += `\nVisible headings: ${domContext.headings.join(' > ')}`;
+    }
+    if (domContext.visibleText) {
+      userMessage += `\nVisible text excerpt: ${domContext.visibleText.substring(0, 800)}`;
+    }
+    userMessage += '\n\nUse this context to understand what topic or concept the screenshot relates to.';
+  }
+
+  // Build message content array
+  interface ImageContent {
+    type: 'image';
+    source: {
+      type: 'base64';
+      media_type: string;
+      data: string;
+    };
+  }
+
+  interface TextContent {
+    type: 'text';
+    text: string;
+  }
+
+  type MessageContent = ImageContent | TextContent;
+  const messageContent: MessageContent[] = [];
+
+  // Add the main screenshot
+  messageContent.push({
+    type: 'image',
+    source: {
+      type: 'base64',
+      media_type: mimeType,
+      data: imageData
+    }
+  });
+
+  // Add viewport screenshot if provided (shows the page context visually)
+  if (pageContext?.viewportScreenshot) {
+    messageContent.push({
+      type: 'image',
+      source: {
+        type: 'base64',
+        media_type: pageContext.viewportScreenshot.mimeType,
+        data: pageContext.viewportScreenshot.imageData
+      }
+    });
+  }
+
+  // Add the text message
+  messageContent.push({
+    type: 'text',
+    text: userMessage
+  });
+
   try {
     // Call Claude API with vision
     const claudeResponse = await fetch(CLAUDE_API_URL, {
@@ -118,20 +180,7 @@ export default async function handler(
         messages: [
           {
             role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: mimeType,
-                  data: imageData
-                }
-              },
-              {
-                type: 'text',
-                text: userMessage
-              }
-            ]
+            content: messageContent
           },
           {
             role: 'assistant',

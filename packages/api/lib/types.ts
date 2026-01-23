@@ -105,12 +105,29 @@ export interface GenerateCardsRequest {
 }
 
 /**
+ * Page context for image-based card generation
+ */
+export interface PageContext {
+  domContext: {
+    headings: string[];
+    visibleText: string;
+    url: string;
+    title: string;
+  };
+  viewportScreenshot?: {
+    imageData: string;
+    mimeType: string;
+  };
+}
+
+/**
  * Generate cards from image request body
  */
 export interface GenerateCardsFromImageRequest {
   imageData: string;
   mimeType: string;
   focusText?: string;
+  pageContext?: PageContext;
 }
 
 /**
