@@ -50,8 +50,11 @@ Support capturing highlights from PDFs in Zotero's web reader (zotero.org), with
 ### Source Context Storage
 Persist the exact highlighted text and surrounding context fed to the LLM at card creation time. Enables follow-up questions during review and QA on card generation quality. Prerequisite for Review Chat Interface.
 
-### Source Anchoring & Page Annotations
-Store DOM location (selector/XPath) when extracting text so clicking "source" in Pluckk deep-links to the exact position on the page. Additionally, inject in-page annotations showing cards created from that text - marginalia-style indicators visible while reading. Shows what knowledge has been captured from a page at a glance.
+### User-Filtered Page Annotations
+Page annotations currently show all users' cards for a URL, not just the current user's. While collisions are unlikely for MVP, this should be fixed for privacy and relevance as the user base grows.
+
+**Context:** See [Source Anchoring documentation](completed/source-anchoring/documentation.md) - Known Limitations section.
+**Suggested fix:** Pass user auth token to content script and filter Supabase query by `user_id`.
 
 ---
 

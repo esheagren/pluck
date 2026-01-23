@@ -92,6 +92,10 @@ Toggle added to options page under "Page Annotations" section.
 - `packages/webapp/src/pages/CardsPage.tsx` - Deep-link URL in modal
 
 ## Known Limitations
-- Annotations currently fetch cards for all users on a URL (not user-filtered) - this is acceptable for MVP since collisions are unlikely
+
+### User-Filtered Annotations (MEDIUM - deferred)
+Annotations currently fetch cards for all users on a URL, not just the current user's. This is acceptable for MVP since collisions are unlikely, but should be addressed as the user base grows. **Added to icebox** - see [User-Filtered Page Annotations](../../icebox.md#user-filtered-page-annotations).
+
+### Other Limitations
 - Selector may not work on dynamically loaded content (SPAs with heavy client-side routing)
 - Requires running migration 009 before use
