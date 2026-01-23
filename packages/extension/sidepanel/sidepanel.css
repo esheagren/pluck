@@ -434,6 +434,12 @@ html.dark .settings-drawer {
 }
 
 /* Loading State */
+.state.loading-state {
+  flex: 1;
+  min-height: 0;
+  padding: 0 24px;
+}
+
 .loading-state p {
   color: var(--color-text-secondary);
   margin-top: 16px;
@@ -1244,26 +1250,23 @@ html.dark .card-item.selected .card-checkbox::after {
   color: var(--color-text-tertiary);
 }
 
-/* Page Context Toggle */
-.page-context-toggle {
-  display: flex;
+/* Info Tooltip Icon */
+.info-tooltip {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  margin-top: 8px;
-  user-select: none;
+  justify-content: center;
+  margin-left: 4px;
+  color: var(--color-text-tertiary);
+  cursor: help;
+  vertical-align: middle;
 }
 
-.page-context-toggle input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
-  accent-color: var(--color-accent);
-  cursor: pointer;
-}
-
-.page-context-label {
-  font-size: 12px;
+.info-tooltip:hover {
   color: var(--color-text-secondary);
+}
+
+.info-tooltip svg {
+  display: block;
 }
 
 /* Compact Toggle Switch */
