@@ -2,6 +2,7 @@
 // Captures selected text and surrounding context from any webpage
 
 import type { ExtensionMessage, SelectionResponse, PingResponse, DOMContextResponse } from './types';
+import { injectAnnotations, listenForSettingChanges, handleDeepLink } from './annotations';
 
 (function(): void {
   'use strict';
@@ -317,5 +318,19 @@ import type { ExtensionMessage, SelectionResponse, PingResponse, DOMContextRespo
       return true; // Keep the message channel open for async response
     }
   );
+
+  // Initialize page annotations and handle deep links after DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      injectAnnotations();
+      handleDeepLink();
+    });
+  } else {
+    injectAnnotations();
+    handleDeepLink();
+  }
+
+  // Listen for setting changes to toggle annotations
+  listenForSettingChanges();
 
 })();

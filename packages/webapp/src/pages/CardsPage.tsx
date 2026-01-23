@@ -10,6 +10,7 @@ import {
   DragStartEvent,
   DragEndEvent,
 } from '@dnd-kit/core';
+import { snapCenterToCursor } from '@dnd-kit/modifiers';
 import { arrayMove } from '@dnd-kit/sortable';
 import CardGrid from '../components/CardGrid';
 import CreateFolderButton from '../components/CreateFolderButton';
@@ -397,7 +398,7 @@ export default function CardsPage({
         />
 
         {/* Drag overlay for visual feedback */}
-        <DragOverlay>
+        <DragOverlay modifiers={[snapCenterToCursor]}>
           {activeCard ? (
             <div className="bg-white dark:bg-dark-surface border-2 border-blue-500 rounded-xl p-4 shadow-xl w-[280px]">
               {selectedCount > 1 ? (
@@ -476,6 +477,20 @@ export default function CardsPage({
                   className="w-full p-3 border border-gray-200 dark:border-dark-border rounded-lg text-gray-800 dark:text-gray-200 bg-white dark:bg-dark-bg resize-none focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 overflow-hidden min-h-[60px]"
                 />
               </div>
+              {selectedCard.source_url && (
+                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-dark-border">
+                  <a
+                    href={selectedCard.source_selector
+                      ? `${selectedCard.source_url}${selectedCard.source_url.includes('?') ? '&' : '?'}pluckk_card=${selectedCard.id}`
+                      : selectedCard.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 hover:underline"
+                  >
+                    View source
+                  </a>
+                </div>
+              )}
               <div className="mt-6 flex gap-3">
                 {!isConfirmingDelete ? (
                   <>

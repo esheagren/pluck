@@ -381,7 +381,9 @@ export default function ReviewCard({
           </div>
           {card.source_url && (
             <a
-              href={card.source_url}
+              href={card.source_selector
+                ? `${card.source_url}${card.source_url.includes('?') ? '&' : '?'}pluckk_card=${card.id}`
+                : card.source_url}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}

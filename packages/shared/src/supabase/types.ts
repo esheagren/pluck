@@ -21,6 +21,8 @@ export interface Database {
           source_selection: string | null;
           source_context: string | null;
           source_title: string | null;
+          source_selector: string | null;
+          source_text_offset: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -34,6 +36,8 @@ export interface Database {
           source_selection?: string | null;
           source_context?: string | null;
           source_title?: string | null;
+          source_selector?: string | null;
+          source_text_offset?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -47,6 +51,8 @@ export interface Database {
           source_selection?: string | null;
           source_context?: string | null;
           source_title?: string | null;
+          source_selector?: string | null;
+          source_text_offset?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -137,6 +143,10 @@ export interface SaveCardOptions {
   sourceContext?: string;
   /** Page title where card was created */
   sourceTitle?: string;
+  /** CSS selector path to the element containing the selection */
+  sourceSelector?: string;
+  /** Character offset of selection start within the element */
+  sourceTextOffset?: number;
 }
 
 /**

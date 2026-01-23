@@ -39,6 +39,8 @@ export interface Card {
   image_url: string | null;
   folder_id: string | null;
   folder?: Folder | null;
+  source_selector: string | null;
+  source_text_offset: number | null;
   created_at: string;
   updated_at: string;
 }

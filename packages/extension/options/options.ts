@@ -9,7 +9,8 @@ import {
   getAccessToken,
   onAuthStateChange
 } from '../src/auth';
-import type { MochiDeck, SessionUser } from '../src/types';
+import { initializeTheme } from '../src/theme';
+import type { SessionUser } from '../src/types';
 
 // DOM Elements
 const loginSection = document.getElementById('login-section') as HTMLElement | null;
@@ -35,11 +36,8 @@ const saveBtn = document.getElementById('save-btn') as HTMLButtonElement | null;
 const statusEl = document.getElementById('status') as HTMLElement | null;
 const shortcutDisplay = document.getElementById('shortcut-display') as HTMLElement | null;
 const closePageBtn = document.getElementById('close-page-btn') as HTMLButtonElement | null;
+const showAnnotationsToggle = document.getElementById('show-annotations-toggle') as HTMLInputElement | null;
 
-// Mochi settings elements
-const mochiApiKeyInput = document.getElementById('mochi-api-key') as HTMLInputElement | null;
-const mochiDeckSelect = document.getElementById('mochi-deck') as HTMLSelectElement | null;
-const fetchDecksBtn = document.getElementById('fetch-decks-btn') as HTMLButtonElement | null;
 
 // State
 let _currentUser: SessionUser | null = null;
@@ -122,17 +120,13 @@ async function updateUserDisplay(user: SessionUser | null): Promise<void> {
 async function loadSettings(): Promise<void> {
   try {
     interface StorageResult {
-      mochiApiKey?: string;
-      mochiDeckId?: string;
-      mochiDecks?: MochiDeck[];
       systemPrompt?: string;
+      showPageAnnotations?: boolean;
     }
 
     const result: StorageResult = await chrome.storage.sync.get([
-      'mochiApiKey',
-      'mochiDeckId',
-      'mochiDecks',
-      'systemPrompt'
+      'systemPrompt',
+      'showPageAnnotations'
     ]);
 
     // Load system prompt (use default if not set)
@@ -140,13 +134,9 @@ async function loadSettings(): Promise<void> {
       systemPromptInput.value = result.systemPrompt || DEFAULT_SYSTEM_PROMPT;
     }
 
-    if (result.mochiApiKey && mochiApiKeyInput) {
-      mochiApiKeyInput.value = result.mochiApiKey;
-    }
-
-    // If we have cached decks, populate the dropdown
-    if (result.mochiDecks && result.mochiDecks.length > 0) {
-      populateDecks(result.mochiDecks, result.mochiDeckId || null);
+    // Load annotations toggle (default to false)
+    if (showAnnotationsToggle) {
+      showAnnotationsToggle.checked = result.showPageAnnotations === true;
     }
   } catch (error) {
     console.error('Failed to load settings:', error);
@@ -162,85 +152,6 @@ resetPromptBtn?.addEventListener('click', () => {
   }
   showStatus('Prompt reset to default', 'success');
 });
-
-/**
- * Populate deck dropdown
- */
-function populateDecks(decks: MochiDeck[], selectedId: string | null): void {
-  if (!mochiDeckSelect) return;
-
-  mochiDeckSelect.innerHTML = '<option value="">Select a deck</option>';
-  mochiDeckSelect.disabled = false;
-
-  decks.forEach(deck => {
-    const option = document.createElement('option');
-    option.value = deck.id;
-    option.textContent = deck.name;
-    if (deck.id === selectedId) {
-      option.selected = true;
-    }
-    mochiDeckSelect.appendChild(option);
-  });
-}
-
-/**
- * Fetch decks from Mochi API
- */
-async function fetchDecks(): Promise<void> {
-  const mochiApiKey = mochiApiKeyInput?.value.trim();
-
-  if (!mochiApiKey) {
-    showStatus('Enter Mochi API key first', 'error');
-    return;
-  }
-
-  if (fetchDecksBtn) {
-    fetchDecksBtn.disabled = true;
-    fetchDecksBtn.textContent = 'Fetching...';
-  }
-
-  try {
-    const response = await fetch('https://app.mochi.cards/api/decks/', {
-      method: 'GET',
-      headers: {
-        'Authorization': 'Basic ' + btoa(mochiApiKey + ':')
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    interface MochiApiDeck {
-      id: string;
-      name: string;
-    }
-
-    interface MochiApiResponse {
-      docs: MochiApiDeck[];
-    }
-
-    const data: MochiApiResponse = await response.json();
-    const decks: MochiDeck[] = data.docs.map(deck => ({
-      id: deck.id,
-      name: deck.name
-    }));
-
-    // Cache decks
-    await chrome.storage.sync.set({ mochiDecks: decks });
-
-    populateDecks(decks, null);
-    showStatus('Decks loaded!', 'success');
-  } catch (error) {
-    console.error('Failed to fetch decks:', error);
-    showStatus('Failed to fetch decks', 'error');
-  } finally {
-    if (fetchDecksBtn) {
-      fetchDecksBtn.disabled = false;
-      fetchDecksBtn.textContent = 'Fetch Decks';
-    }
-  }
-}
 
 /**
  * Show status message
@@ -408,19 +319,29 @@ async function handleManageSubscription(): Promise<void> {
 }
 
 // Event Listeners
-fetchDecksBtn?.addEventListener('click', fetchDecks);
 googleSignInBtn?.addEventListener('click', handleSignIn);
 signOutBtn?.addEventListener('click', handleSignOut);
 upgradeBtn?.addEventListener('click', handleUpgrade);
 manageSubscriptionBtn?.addEventListener('click', handleManageSubscription);
+
+// Save annotations toggle immediately when changed
+showAnnotationsToggle?.addEventListener('change', async () => {
+  try {
+    await chrome.storage.sync.set({
+      showPageAnnotations: showAnnotationsToggle.checked
+    });
+    showStatus(showAnnotationsToggle.checked ? 'Annotations enabled' : 'Annotations disabled', 'success');
+  } catch (error) {
+    console.error('Failed to save annotations setting:', error);
+    showStatus('Failed to save setting', 'error');
+  }
+});
 
 // Save settings
 form?.addEventListener('submit', async (e: SubmitEvent) => {
   e.preventDefault();
 
   const systemPrompt = systemPromptInput?.value.trim() || '';
-  const mochiApiKey = mochiApiKeyInput?.value.trim() || '';
-  const mochiDeckId = mochiDeckSelect?.value || '';
 
   if (saveBtn) {
     saveBtn.disabled = true;
@@ -429,9 +350,7 @@ form?.addEventListener('submit', async (e: SubmitEvent) => {
 
   try {
     await chrome.storage.sync.set({
-      systemPrompt: systemPrompt || null,
-      mochiApiKey: mochiApiKey || null,
-      mochiDeckId: mochiDeckId || null
+      systemPrompt: systemPrompt || null
     });
     showStatus('Settings saved!', 'success');
   } catch (error) {
@@ -454,6 +373,9 @@ closePageBtn?.addEventListener('click', () => {
  * Initialize the page
  */
 async function init(): Promise<void> {
+  // Initialize theme
+  await initializeTheme();
+
   // Check for existing session
   const { user } = await getSession();
 

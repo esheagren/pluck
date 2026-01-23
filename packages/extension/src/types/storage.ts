@@ -10,6 +10,7 @@ export interface SyncStorageData {
   mochiDecks?: MochiDeck[];
   systemPrompt?: string | null;
   keepOpenAfterStoring?: boolean;
+  showPageAnnotations?: boolean;
 }
 
 export interface MochiDeck {

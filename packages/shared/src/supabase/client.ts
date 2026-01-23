@@ -44,7 +44,7 @@ export function createSupabaseClient(options: SupabaseClientOptions = {}): Supab
       saveOptions: SaveCardOptions = { userId: '' }
     ): Promise<SaveCardResult> {
       try {
-        const { userId, accessToken, sourceSelection, sourceContext, sourceTitle } = saveOptions;
+        const { userId, accessToken, sourceSelection, sourceContext, sourceTitle, sourceSelector, sourceTextOffset } = saveOptions;
 
         // Require user_id for all card saves
         if (!userId) {
@@ -72,6 +72,13 @@ export function createSupabaseClient(options: SupabaseClientOptions = {}): Supab
         }
         if (sourceTitle !== undefined) {
           cardData.source_title = sourceTitle;
+        }
+        // Add source anchoring fields for deep-linking
+        if (sourceSelector !== undefined) {
+          cardData.source_selector = sourceSelector;
+        }
+        if (sourceTextOffset !== undefined) {
+          cardData.source_text_offset = sourceTextOffset;
         }
 
         const response = await fetch(`${url}/rest/v1/cards`, {

@@ -636,6 +636,9 @@ interface SendToMochiRequest extends ExtensionMessage {
   sourceSelection?: string;
   sourceContext?: string;
   sourceTitle?: string;
+  // Source anchoring for deep-linking
+  sourceSelector?: string;
+  sourceTextOffset?: number;
 }
 
 interface PageContext {
@@ -743,7 +746,9 @@ chrome.runtime.onMessage.addListener(
               accessToken: session?.access_token,
               sourceSelection: req.sourceSelection,
               sourceContext: req.sourceContext,
-              sourceTitle: req.sourceTitle
+              sourceTitle: req.sourceTitle,
+              sourceSelector: req.sourceSelector,
+              sourceTextOffset: req.sourceTextOffset
             }
           );
           supabaseCardId = result.cardId || null;
