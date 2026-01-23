@@ -677,11 +677,11 @@ chrome.runtime.onMessage.addListener(
             mochiResult = { mochi: result };
 
             // Determine if we should generate an image:
-            // - For diagram cards (has diagramPrompt): only if generateDiagram checkbox was checked
-            // - For regular cards: always generate
+            // - Only for diagram cards when generateDiagram checkbox was checked
+            // - Regular cards: no automatic image generation
             const isDiagramCard = !!req.diagramPrompt;
-            const shouldGenerateImage = isDiagramCard ? req.generateDiagram : true;
-            const diagramPrompt = shouldGenerateImage && isDiagramCard ? req.diagramPrompt : null;
+            const shouldGenerateImage = isDiagramCard && req.generateDiagram;
+            const diagramPrompt = shouldGenerateImage ? req.diagramPrompt : null;
 
             if (result.success && result.cardId && shouldGenerateImage) {
               // Fire-and-forget: generate AI image and attach to Mochi and Supabase
