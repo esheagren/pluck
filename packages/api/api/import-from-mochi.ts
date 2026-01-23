@@ -141,8 +141,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         })),
       });
     } catch (error) {
+      console.error('Error fetching Mochi decks:', error);
       const message = error instanceof Error ? error.message : 'Failed to fetch decks';
-      res.status(message.includes('Invalid Mochi API key') ? 401 : 500).json({ error: message });
+      if (message.includes('Invalid Mochi API key')) {
+        res.status(401).json({ error: 'Invalid Mochi API key. Please check your API key in Settings.' });
+      } else {
+        res.status(500).json({ error: `Failed to fetch decks: ${message}` });
+      }
     }
     return;
   }
