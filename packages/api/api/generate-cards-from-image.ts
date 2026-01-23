@@ -8,7 +8,7 @@ import type { GenerateCardsFromImageRequest, GeneratedCard } from '../lib/types.
 import type { ClaudeResponse } from '../lib/claude-types.js';
 
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
+const CLAUDE_MODEL = 'claude-opus-4-5-20251101';
 
 const VISION_SYSTEM_PROMPT = `You are a spaced repetition prompt generator that analyzes images (screenshots, diagrams, handwritten notes, textbook photos) to create effective flashcards.
 
