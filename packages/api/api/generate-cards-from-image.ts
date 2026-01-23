@@ -40,6 +40,12 @@ Users do not have access to the image that you are analyzing. Your questions mus
 - For textbook screenshots: identify the main concept being explained
 - Generate 4-8 cards that capture the key concepts thoroughly, depending on the complexity and richness of the content
 
+**Enrichment with your knowledge:**
+- When you recognize a person, place, concept, or event in the image, enrich the cards with relevant facts from your knowledge
+- For example: if you see a portrait of a historical figure, include cards about their significance, achievements, or historical context - not just what's visible in the image
+- Connect the visible content to broader context the user would benefit from learning
+- Always prioritize accuracy - only add information you're confident about
+
 **CRITICAL: Output ONLY valid JSON, nothing else. No explanations, no descriptions, no markdown.**
 
 Output format:
