@@ -56,17 +56,30 @@ async function ensureContentScriptInjected(tabId: number): Promise<boolean> {
   try {
     // Try to ping the content script first to see if it's already there
     await chrome.tabs.sendMessage(tabId, { action: 'ping' });
+    console.log('[Background] Content script already injected in tab', tabId);
     return true;
   } catch {
     // Content script not injected yet, inject it now
+    console.log('[Background] Content script not found, attempting injection in tab', tabId);
     try {
+      // Get tab info for debugging
+      const tab = await chrome.tabs.get(tabId);
+      console.log('[Background] Tab URL:', tab.url);
+
+      // Can't inject into chrome:// or edge:// pages
+      if (tab.url?.startsWith('chrome://') || tab.url?.startsWith('edge://') || tab.url?.startsWith('about:')) {
+        console.log('[Background] Cannot inject into browser page');
+        return false;
+      }
+
       await chrome.scripting.executeScript({
         target: { tabId },
         files: ['content.js']
       });
+      console.log('[Background] Content script injected successfully');
       return true;
     } catch (error) {
-      console.error('Failed to inject content script:', error);
+      console.error('[Background] Failed to inject content script:', error);
       return false;
     }
   }
@@ -1050,12 +1063,14 @@ chrome.runtime.onMessage.addListener(
       // Get DOM context from active tab (ensures content script is injected)
       chrome.tabs.query({ active: true, currentWindow: true })
         .then(async (tabs) => {
+          console.log('[Background] getDOMContext - found tabs:', tabs.length);
           const tab = tabs[0];
           if (!tab?.id) {
             console.log('[Background] No active tab for DOM context');
             sendResponse(null);
             return;
           }
+          console.log('[Background] getDOMContext - targeting tab:', tab.id, tab.url);
           const context = await getDOMContextFromTab(tab.id);
           sendResponse(context);
         })
