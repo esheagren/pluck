@@ -55,7 +55,7 @@ export default function InfoPage(): JSX.Element {
               <span className="flex-shrink-0 w-6 h-6 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center text-sm font-medium text-gray-700 dark:text-gray-300">
                 2
               </span>
-              <span>Pluckk generates 2-4 flashcard suggestions using AI</span>
+              <span>Pluckk generates 4-8 flashcard suggestions using AI</span>
             </li>
             <li className="flex gap-3">
               <span className="flex-shrink-0 w-6 h-6 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center text-sm font-medium text-gray-700 dark:text-gray-300">

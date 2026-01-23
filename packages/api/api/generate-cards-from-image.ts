@@ -38,7 +38,7 @@ Users do not have access to the image that you are analyzing. Your questions mus
 - For diagrams: focus on what the diagram teaches, not just labeling components
 - For handwritten notes: extract the key learnings
 - For textbook screenshots: identify the main concept being explained
-- Generate 2-4 cards that capture the most important knowledge
+- Generate 4-8 cards that capture the key concepts thoroughly, depending on the complexity and richness of the content
 
 **CRITICAL: Output ONLY valid JSON, nothing else. No explanations, no descriptions, no markdown.**
 
@@ -97,7 +97,7 @@ export default async function handler(
   }
 
   // Build user message
-  let userMessage = 'Analyze this image and generate 2-4 spaced repetition flashcards. Output ONLY JSON.';
+  let userMessage = 'Analyze this image and generate 4-8 spaced repetition flashcards depending on the complexity of the content. Output ONLY JSON.';
   if (focusText) {
     userMessage += ` Focus on: ${focusText}`;
   }
@@ -113,7 +113,7 @@ export default async function handler(
       },
       body: JSON.stringify({
         model: CLAUDE_MODEL,
-        max_tokens: 1024,
+        max_tokens: 2500,
         system: VISION_SYSTEM_PROMPT,
         messages: [
           {

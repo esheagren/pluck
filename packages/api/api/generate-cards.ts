@@ -50,7 +50,7 @@ ${personaPrompt}
    Example:
    {"style":"qa","question":"What type of chicken parts are used in stock?","answer":"Bones","tags":{"content_type":"fact","domain":"cooking","technicality":1}}
 
-2. **qa_bidirectional** - For DEFINITIONS where both directions are useful. Generates forward (term→definition) and reverse (definition→term). Counts as ONE card toward the 2-4 target.
+2. **qa_bidirectional** - For DEFINITIONS where both directions are useful. Generates forward (term→definition) and reverse (definition→term). Counts as ONE card toward the 4-8 target.
    ALWAYS use this style when the text defines a term, concept, or introduces vocabulary.
    Example:
    {"style":"qa_bidirectional","forward":{"question":"What is photosynthesis?","answer":"The process by which plants convert light energy into chemical energy"},"reverse":{"question":"What biological process describes plants converting light energy into chemical energy?","answer":"Photosynthesis"},"tags":{"content_type":"definition","domain":"biology","technicality":2}}
@@ -82,10 +82,10 @@ ${diagramStyle}
   - 4 = Graduate: expert precision, formulas, quantitative details, assumes deep background
 
 **Critical Rules:**
-- Generate 2-4 cards total (qa_bidirectional and cloze_list each count as ONE card)
+- Generate 4-8 cards total depending on the complexity and richness of the source material (qa_bidirectional and cloze_list each count as ONE card)
 - ALWAYS use qa_bidirectional when text contains a definition (X is Y, X means Y, X refers to Y)
 - Use cloze_list for enumerated lists with fixed membership
-- Prioritize the most important knowledge, not exhaustive coverage
+- Cover the key concepts thoroughly - aim for comprehensive extraction of learnable facts
 - Tags help organization - always include content_type, domain, and technicality
 
 **Output Format:**
@@ -146,7 +146,7 @@ export default async function handler(
 **Source URL:** ${url || 'Unknown'}
 **Page Title:** ${title || 'Unknown'}
 
-Generate 2-3 spaced repetition cards for the highlighted selection.`;
+Generate 4-8 spaced repetition cards for the highlighted selection, depending on the complexity and richness of the content.`;
 
   if (focusText) {
     userMessage += `\n\n**Focus:** Please focus the cards on: ${focusText}`;
@@ -169,7 +169,7 @@ Generate 2-3 spaced repetition cards for the highlighted selection.`;
       },
       body: JSON.stringify({
         model: CLAUDE_MODEL,
-        max_tokens: 1024,
+        max_tokens: 2500,
         system: systemPrompt,
         messages: [
           {

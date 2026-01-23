@@ -13,7 +13,7 @@ const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 const SYSTEM_PROMPT = `You are a knowledge assistant that generates spaced repetition flashcards from user questions.
 
 Your task:
-1. Generate 2-4 flashcards based on the user's question
+1. Generate 4-8 flashcards based on the user's question, depending on the complexity
 2. The FIRST card should directly answer what the user asked (optionally refined for clarity)
 3. Additional cards should explore RELATED aspects the user might find valuable:
    - Underlying concepts or principles
@@ -112,7 +112,7 @@ export default async function handler(
       },
       body: JSON.stringify({
         model: CLAUDE_MODEL,
-        max_tokens: 1024,
+        max_tokens: 2500,
         system: SYSTEM_PROMPT,
         messages: [
           {
