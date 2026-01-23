@@ -113,17 +113,21 @@ export default async function handler(
       hasViewportScreenshot: !!pageContext.viewportScreenshot
     });
 
-    userMessage += '\n\n**Page Context (from where the screenshot was taken):**';
+    // Build context-aware message
+    if (pageContext.viewportScreenshot) {
+      userMessage += '\n\n**IMPORTANT: You are receiving TWO images:**';
+      userMessage += '\n1. **First image**: The specific screenshot the user wants to create flashcards about';
+      userMessage += '\n2. **Second image**: A full viewport screenshot showing where the first image appears on the page';
+      userMessage += '\n\nUse the second image to find the first image within the page context. Look for labels, captions, or nearby text that identifies what the first image shows. The text immediately surrounding the image in the viewport is most relevant.';
+    }
+
+    userMessage += '\n\n**Page metadata:**';
     if (domContext.title) {
       userMessage += `\nPage title: ${domContext.title}`;
     }
     if (domContext.headings.length > 0) {
       userMessage += `\nVisible headings: ${domContext.headings.join(' > ')}`;
     }
-    if (domContext.visibleText) {
-      userMessage += `\nVisible text excerpt: ${domContext.visibleText.substring(0, 800)}`;
-    }
-    userMessage += '\n\nUse this context to understand what topic or concept the screenshot relates to.';
 
     console.log('[generate-cards-from-image] Final user message with context:', userMessage);
   } else {
