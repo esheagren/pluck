@@ -316,3 +316,51 @@ export interface UsernameCheckResponse {
   message?: string;
   username?: string;
 }
+
+/**
+ * Mochi card from API (uses kebab-case keys)
+ */
+export interface MochiCard {
+  id: string;
+  content: string;
+  'deck-id': string;
+  name?: string;
+  tags?: string[];
+  'created-at'?: string;
+  'updated-at'?: string;
+  archived?: boolean;
+  new?: boolean;
+  pos?: string;
+  'template-id'?: string;
+  fields?: Record<string, { id: string; value: string }>;
+}
+
+/**
+ * Mochi deck from API
+ */
+export interface MochiDeck {
+  id: string;
+  name: string;
+  'parent-id'?: string | null;
+  archived?: boolean;
+  sort?: number;
+}
+
+/**
+ * Import from Mochi request body
+ */
+export interface ImportFromMochiRequest {
+  deckIds: string[];
+  createFolders?: boolean;
+}
+
+/**
+ * Import result summary
+ */
+export interface ImportResult {
+  success: boolean;
+  imported: number;
+  skipped: number;
+  foldersCreated: string[];
+  errors: string[];
+}

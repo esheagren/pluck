@@ -13,6 +13,7 @@ import type {
   SpacedRepExperience,
   TechnicalityLevel,
   BreadthLevel,
+  MochiImportResult,
 } from '../types';
 import {
   STUDENT_LEVELS,
@@ -62,6 +63,15 @@ export default function SettingsPage({
   const [breadthPreference, setBreadthPreference] = useState<BreadthLevel | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileStatus, setProfileStatus] = useState<StatusMessage>({ type: '', message: '' });
+
+  // Mochi Import state
+  const [importOpen, setImportOpen] = useState(false);
+  const [importDecks, setImportDecks] = useState<MochiDeck[]>([]);
+  const [selectedDeckIds, setSelectedDeckIds] = useState<Set<string>>(new Set());
+  const [fetchingImportDecks, setFetchingImportDecks] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<MochiImportResult | null>(null);
+  const [importStatus, setImportStatus] = useState<StatusMessage>({ type: '', message: '' });
 
   useEffect(() => {
     loadSettings();
@@ -305,6 +315,126 @@ export default function SettingsPage({
     } finally {
       setSavingProfile(false);
     }
+  };
+
+  // Fetch decks for import selection
+  const fetchImportDecks = async (): Promise<void> => {
+    setFetchingImportDecks(true);
+    setImportStatus({ type: '', message: '' });
+    setImportResult(null);
+
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setImportStatus({ type: 'error', message: 'Not authenticated' });
+        return;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/import-from-mochi`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setImportDecks(data.decks || []);
+        setSelectedDeckIds(new Set());
+      } else if (response.status === 401) {
+        setImportStatus({ type: 'error', message: 'Invalid Mochi API key' });
+      } else {
+        const data = await response.json();
+        setImportStatus({ type: 'error', message: data.error || 'Failed to fetch decks' });
+      }
+    } catch (error) {
+      console.error('Failed to fetch import decks:', error);
+      setImportStatus({ type: 'error', message: 'Failed to connect to server' });
+    } finally {
+      setFetchingImportDecks(false);
+    }
+  };
+
+  // Toggle deck selection
+  const toggleDeckSelection = (deckId: string): void => {
+    setSelectedDeckIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(deckId)) {
+        next.delete(deckId);
+      } else {
+        next.add(deckId);
+      }
+      return next;
+    });
+  };
+
+  // Run import
+  const runImport = async (): Promise<void> => {
+    if (selectedDeckIds.size === 0) {
+      setImportStatus({ type: 'error', message: 'Select at least one deck to import' });
+      return;
+    }
+
+    setImporting(true);
+    setImportStatus({ type: '', message: '' });
+    setImportResult(null);
+
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setImportStatus({ type: 'error', message: 'Not authenticated' });
+        return;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/import-from-mochi`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          deckIds: Array.from(selectedDeckIds),
+          createFolders: true,
+        }),
+      });
+
+      const data = await response.json() as MochiImportResult;
+      setImportResult(data);
+
+      if (data.success) {
+        setImportStatus({ type: 'success', message: `Imported ${data.imported} cards` });
+        setSelectedDeckIds(new Set());
+      } else {
+        setImportStatus({ type: 'error', message: data.errors?.[0] || 'Import failed' });
+      }
+    } catch (error) {
+      console.error('Import failed:', error);
+      setImportStatus({ type: 'error', message: 'Failed to import cards' });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  // Build deck tree with indentation
+  const buildDeckTree = (): Array<{ deck: MochiDeck; depth: number }> => {
+    const children = new Map<string | null, MochiDeck[]>();
+
+    importDecks.forEach((deck) => {
+      const parentId = deck['parent-id'] || null;
+      if (!children.has(parentId)) children.set(parentId, []);
+      children.get(parentId)!.push(deck);
+    });
+
+    const result: Array<{ deck: MochiDeck; depth: number }> = [];
+
+    const traverse = (parentId: string | null, depth: number): void => {
+      const decks = children.get(parentId) || [];
+      decks.sort((a, b) => a.name.localeCompare(b.name));
+      decks.forEach((deck) => {
+        result.push({ deck, depth });
+        traverse(deck.id, depth + 1);
+      });
+    };
+
+    traverse(null, 0);
+    return result;
   };
 
   if (loading) {
@@ -849,6 +979,136 @@ export default function SettingsPage({
                 </p>
               )}
             </div>
+
+            {/* Import from Mochi Section */}
+            {mochiApiKey && (
+              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-dark-border">
+                <button
+                  onClick={() => setImportOpen(!importOpen)}
+                  className="flex items-center justify-between w-full text-left mb-3"
+                >
+                  <h4 className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                    Import from Mochi
+                  </h4>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className={`text-gray-400 dark:text-gray-500 transition-transform ${
+                      importOpen ? 'rotate-180' : ''
+                    }`}
+                  >
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+
+                {importOpen && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Import existing cards from your Mochi decks into Pluckk.
+                    </p>
+
+                    {/* Load Decks Button */}
+                    {importDecks.length === 0 && (
+                      <button
+                        onClick={fetchImportDecks}
+                        disabled={fetchingImportDecks}
+                        className="w-full py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {fetchingImportDecks ? 'Loading decks...' : 'Load Mochi Decks'}
+                      </button>
+                    )}
+
+                    {/* Deck Selection List */}
+                    {importDecks.length > 0 && (
+                      <>
+                        <div className="border border-gray-200 dark:border-dark-border rounded-lg max-h-64 overflow-y-auto">
+                          {buildDeckTree().map(({ deck, depth }) => (
+                            <label
+                              key={deck.id}
+                              className="flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer border-b border-gray-100 dark:border-dark-border last:border-b-0"
+                              style={{ paddingLeft: `${12 + depth * 16}px` }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedDeckIds.has(deck.id)}
+                                onChange={() => toggleDeckSelection(deck.id)}
+                                className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 focus:ring-gray-500 dark:focus:ring-gray-400"
+                              />
+                              <span className="ml-3 text-sm text-gray-700 dark:text-gray-300">
+                                {deck.name}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={runImport}
+                            disabled={importing || selectedDeckIds.size === 0}
+                            className="flex-1 py-2.5 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-900 dark:hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {importing ? 'Importing...' : `Import ${selectedDeckIds.size} deck${selectedDeckIds.size !== 1 ? 's' : ''}`}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setImportDecks([]);
+                              setSelectedDeckIds(new Set());
+                              setImportResult(null);
+                              setImportStatus({ type: '', message: '' });
+                            }}
+                            className="px-4 py-2.5 text-gray-500 dark:text-gray-400 text-sm hover:text-gray-700 dark:hover:text-gray-200"
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Import Result */}
+                    {importResult && (
+                      <div className={`p-3 rounded-lg text-sm ${
+                        importResult.success
+                          ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                          : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+                      }`}>
+                        <p className="font-medium">
+                          {importResult.success ? 'Import complete' : 'Import had issues'}
+                        </p>
+                        <ul className="mt-1 space-y-0.5 text-xs">
+                          <li>Cards imported: {importResult.imported}</li>
+                          <li>Duplicates skipped: {importResult.skipped}</li>
+                          {importResult.foldersCreated.length > 0 && (
+                            <li>Folders created: {importResult.foldersCreated.join(', ')}</li>
+                          )}
+                          {importResult.errors.length > 0 && (
+                            <li className="text-red-600 dark:text-red-400">
+                              Errors: {importResult.errors.join('; ')}
+                            </li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Import Status */}
+                    {importStatus.message && !importResult && (
+                      <p
+                        className={`text-sm text-center ${
+                          importStatus.type === 'success'
+                            ? 'text-green-600 dark:text-green-400'
+                            : 'text-red-600 dark:text-red-400'
+                        }`}
+                      >
+                        {importStatus.message}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

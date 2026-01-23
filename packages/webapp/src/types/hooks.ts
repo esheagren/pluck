@@ -567,11 +567,23 @@ export interface ProfilePageProps {
 }
 
 /**
- * Mochi deck from API
+ * Mochi deck from API (for import)
  */
 export interface MochiDeck {
   id: string;
   name: string;
+  'parent-id'?: string | null;
+}
+
+/**
+ * Import result from Mochi
+ */
+export interface MochiImportResult {
+  success: boolean;
+  imported: number;
+  skipped: number;
+  foldersCreated: string[];
+  errors: string[];
 }
 
 /**
