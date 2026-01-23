@@ -91,10 +91,6 @@
         </button>
       </div>
       <input type="text" id="screenshot-focus-input" class="screenshot-focus-input" placeholder="Focus on... (optional)" />
-      <label class="page-context-toggle" id="page-context-toggle-label">
-        <input type="checkbox" id="page-context-toggle" />
-        <span class="page-context-label">Include page context</span>
-      </label>
       <button class="btn-arrow" id="screenshot-generate-btn" title="Generate cards">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -205,6 +201,22 @@
           <span class="drawer-label">Keep open after storing</span>
           <label class="toggle-switch">
             <input type="checkbox" id="drawer-keep-open-toggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="drawer-row">
+          <span class="drawer-label">
+            Include page context
+            <span class="info-tooltip" title="When pasting screenshots, capture the visible page text and viewport to help the AI understand what the image refers to">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+            </span>
+          </span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="page-context-toggle">
             <span class="toggle-slider"></span>
           </label>
         </div>

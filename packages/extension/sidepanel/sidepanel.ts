@@ -54,9 +54,6 @@ const _questionInputContainer = document.getElementById('question-input-containe
 const questionInput = document.getElementById('question-input') as HTMLTextAreaElement | null;
 const questionSubmitBtn = document.getElementById('question-submit-btn') as HTMLButtonElement | null;
 
-// DOM Elements - Screenshot State
-const pageContextToggle = document.getElementById('page-context-toggle') as HTMLInputElement | null;
-
 // DOM Elements - Settings Drawer
 const settingsDrawer = document.getElementById('settings-drawer') as HTMLElement | null;
 const drawerAuthLoggedOut = document.getElementById('drawer-auth-logged-out') as HTMLElement | null;
@@ -72,6 +69,7 @@ const drawerProBtn = document.getElementById('drawer-pro-btn') as HTMLButtonElem
 const drawerVersion = document.getElementById('drawer-version') as HTMLElement | null;
 const drawerThemeToggle = document.getElementById('drawer-theme-toggle') as HTMLInputElement | null;
 const drawerKeepOpenToggle = document.getElementById('drawer-keep-open-toggle') as HTMLInputElement | null;
+const pageContextToggle = document.getElementById('page-context-toggle') as HTMLInputElement | null;
 // DOM Elements - Review Card
 const reviewCardContainer = document.getElementById('review-card-container') as HTMLElement | null;
 const reviewCard = document.getElementById('review-card') as HTMLElement | null;
@@ -548,6 +546,8 @@ async function sendToMochi(): Promise<void> {
         sourceSelection?: string;
         sourceContext?: string;
         sourceTitle?: string;
+        sourceSelector?: string;
+        sourceTextOffset?: number;
       }
 
       const messageData: MessageData = {
@@ -559,7 +559,10 @@ async function sendToMochi(): Promise<void> {
         // Include source context for storage
         sourceSelection: cachedSelectionData?.selection,
         sourceContext: cachedSelectionData?.context,
-        sourceTitle: cachedSelectionData?.title
+        sourceTitle: cachedSelectionData?.title,
+        // Include source anchoring for deep-linking
+        sourceSelector: cachedSelectionData?.selector,
+        sourceTextOffset: cachedSelectionData?.textOffset
       };
 
       // Include screenshot data if we're in image mode
