@@ -49,8 +49,8 @@
   "commands": {
     "_execute_action": {
       "suggested_key": {
-        "default": "Ctrl+Shift+M",
-        "mac": "Command+Shift+M"
+        "default": "Ctrl+Alt+P",
+        "mac": "Command+Alt+P"
       },
       "description": "Open Pluckk"
     }
