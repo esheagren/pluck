@@ -1,4 +1,5 @@
 {
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAq9ITp9FoiBaFO1NhAEOnEHQtZfof8FWcG0k/qdUVWyqHPpLXOMU96mtj2hdDCfVS5UdjMi3vp7icTrXjYO60S27tUlyG+n5bbplVJWoOx6thFOV4npJfs8EY4avGvwLQv0qP3lm0jQ/fpd5Hzwcaw5Pff3muLzKqHLEt6Cp75jfN8c1zow0SAvK+2O+dWgiHFnMw6XvKybV2fV2n/YruVm9TzEv3RFYSgcT9890Sd+PPIAGIDSlVUV4MpKabyMIsJac5XiZpMcXjgZhWAvE6HUEnjNneMmnE43AkbLVOxYh4RALWQk3xd9vpqhCNrhqee8jRRkKh1SwQVxVXr5l5RwIDAQAB",
   "manifest_version": 3,
   "name": "Pluckk",
   "version": "1.0.0",
@@ -13,6 +14,7 @@
     "scripting"
   ],
   "host_permissions": [
+    "<all_urls>",
     "https://api.anthropic.com/*",
     "https://app.mochi.cards/*",
     "https://generativelanguage.googleapis.com/*",
@@ -23,7 +25,6 @@
     "service_worker": "src/background.js",
     "type": "module"
   },
-  "_comment_content_scripts": "IMPORTANT: Do not remove content_scripts in favor of programmatic injection. The sidepanel polls for selection via chrome.tabs.sendMessage which requires the content script to already be injected. Programmatic injection (via chrome.scripting.executeScript in background.js) only runs when generating cards, not during selection polling. Removing this breaks selection detection.",
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

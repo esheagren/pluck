@@ -736,15 +736,11 @@ async function resizeImage(
 async function capturePageContext(): Promise<CapturedPageContext | null> {
   try {
     console.log('[Pluckk] Capturing page context...');
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id) {
-      console.log('[Pluckk] No active tab found');
-      return null;
-    }
 
-    // Request DOM context from content script and viewport screenshot in parallel
+    // Request DOM context and viewport screenshot through background worker
+    // (background ensures content script is injected first)
     const [domContextResponse, viewportResponse] = await Promise.all([
-      chrome.tabs.sendMessage(tab.id, { action: 'getDOMContext' }).catch((e) => {
+      chrome.runtime.sendMessage({ action: 'getDOMContext' }).catch((e) => {
         console.error('[Pluckk] getDOMContext failed:', e);
         return null;
       }),

@@ -92,6 +92,32 @@ async function getSelectionFromTab(tabId: number): Promise<SelectionData | null>
 }
 
 /**
+ * Get DOM context from the active tab's content script
+ */
+async function getDOMContextFromTab(tabId: number): Promise<{
+  headings: string[];
+  visibleText: string;
+  url: string;
+  title: string;
+} | null> {
+  try {
+    // Ensure content script is injected first
+    const injected = await ensureContentScriptInjected(tabId);
+    if (!injected) {
+      console.log('[Background] Content script injection failed for DOM context');
+      return null;
+    }
+
+    const response = await chrome.tabs.sendMessage(tabId, { action: 'getDOMContext' });
+    console.log('[Background] DOM context from content script:', response);
+    return response;
+  } catch (error) {
+    console.error('[Background] Failed to get DOM context:', error);
+    return null;
+  }
+}
+
+/**
  * Capture viewport screenshot and resize/compress
  */
 async function captureViewportScreenshot(): Promise<{ imageData: string; mimeType: string } | null> {
@@ -684,7 +710,8 @@ type MessageRequest =
   | SaveToSupabaseRequest
   | { action: 'getMochiStatus' }
   | { action: 'getAuthStatus' }
-  | { action: 'captureViewport' };
+  | { action: 'captureViewport' }
+  | { action: 'getDOMContext' };
 
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener(
@@ -1013,6 +1040,27 @@ chrome.runtime.onMessage.addListener(
         .then(result => sendResponse(result))
         .catch(error => {
           console.error('Viewport capture failed:', error);
+          sendResponse(null);
+        });
+
+      return true;
+    }
+
+    if (request.action === 'getDOMContext') {
+      // Get DOM context from active tab (ensures content script is injected)
+      chrome.tabs.query({ active: true, currentWindow: true })
+        .then(async (tabs) => {
+          const tab = tabs[0];
+          if (!tab?.id) {
+            console.log('[Background] No active tab for DOM context');
+            sendResponse(null);
+            return;
+          }
+          const context = await getDOMContextFromTab(tab.id);
+          sendResponse(context);
+        })
+        .catch(error => {
+          console.error('[Background] getDOMContext failed:', error);
           sendResponse(null);
         });
 
