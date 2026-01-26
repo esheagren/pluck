@@ -784,64 +784,68 @@ async function capturePageContext(): Promise<CapturedPageContext | null> {
  * Handle paste event to capture screenshots
  */
 async function handlePaste(e: ClipboardEvent): Promise<void> {
-  const target = e.target as HTMLElement;
-  // Skip if user is editing a card
-  if (target.isContentEditable || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
-    return;
-  }
-
   const items = e.clipboardData?.items;
   if (!items) return;
 
-  // Look for image in clipboard
+  // Check for image in clipboard FIRST (before checking target element)
+  let imageItem: DataTransferItem | null = null;
   for (const item of items) {
     if (item.type.startsWith('image/')) {
-      e.preventDefault();
-
-      const blob = item.getAsFile();
-      if (!blob) continue;
-
-      // Capture page context BEFORE processing image (if toggle enabled)
-      // Must do this while we're still on the page
-      let pageContext: CapturedPageContext | null = null;
-      console.log('[Pluckk] Image pasted. includePageContext toggle:', includePageContext);
-      if (includePageContext) {
-        pageContext = await capturePageContext();
-        console.log('[Pluckk] Page context after capture:', pageContext ? 'captured' : 'null');
-      } else {
-        console.log('[Pluckk] Skipping page context capture (toggle OFF)');
-      }
-
-      // Convert to base64
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64WithPrefix = reader.result as string;
-        const [prefix, rawData] = base64WithPrefix.split(',');
-        const originalMimeType = prefix.match(/data:(.*);base64/)?.[1] || 'image/png';
-
-        try {
-          // Resize and compress the image
-          const { data, mimeType } = await resizeImage(rawData, originalMimeType);
-
-          // Store the screenshot data
-          pastedImageData = data;
-          pastedImageMimeType = mimeType;
-          isImageMode = true;
-
-          // Store captured page context
-          capturedPageContext = pageContext;
-
-          // Show screenshot preview
-          showScreenshotPreview(data);
-        } catch (error) {
-          console.error('Failed to process screenshot:', error);
-          showError('Failed to process screenshot. Please try again.');
-        }
-      };
-      reader.readAsDataURL(blob);
-      break; // Only handle first image
+      imageItem = item;
+      break;
     }
   }
+
+  // If no image, allow normal text paste behavior (in inputs, textareas, etc.)
+  if (!imageItem) {
+    return;
+  }
+
+  // Image found - always handle it, regardless of focus
+  // (Images can't be pasted into text inputs anyway)
+  e.preventDefault();
+
+  const blob = imageItem.getAsFile();
+  if (!blob) return;
+
+  // Capture page context BEFORE processing image (if toggle enabled)
+  // Must do this while we're still on the page
+  let pageContext: CapturedPageContext | null = null;
+  console.log('[Pluckk] Image pasted. includePageContext toggle:', includePageContext);
+  if (includePageContext) {
+    pageContext = await capturePageContext();
+    console.log('[Pluckk] Page context after capture:', pageContext ? 'captured' : 'null');
+  } else {
+    console.log('[Pluckk] Skipping page context capture (toggle OFF)');
+  }
+
+  // Convert to base64
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const base64WithPrefix = reader.result as string;
+    const [prefix, rawData] = base64WithPrefix.split(',');
+    const originalMimeType = prefix.match(/data:(.*);base64/)?.[1] || 'image/png';
+
+    try {
+      // Resize and compress the image
+      const { data, mimeType } = await resizeImage(rawData, originalMimeType);
+
+      // Store the screenshot data
+      pastedImageData = data;
+      pastedImageMimeType = mimeType;
+      isImageMode = true;
+
+      // Store captured page context
+      capturedPageContext = pageContext;
+
+      // Show screenshot preview
+      showScreenshotPreview(data);
+    } catch (error) {
+      console.error('Failed to process screenshot:', error);
+      showError('Failed to process screenshot. Please try again.');
+    }
+  };
+  reader.readAsDataURL(blob);
 }
 
 /**
