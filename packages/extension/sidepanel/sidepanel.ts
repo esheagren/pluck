@@ -1407,6 +1407,27 @@ async function updateReviewCard(): Promise<void> {
  * Initialize panel and start selection monitoring
  */
 async function initializePanel(): Promise<void> {
+  // Check for selection FIRST to minimize delay when text is highlighted
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id) {
+      const selectionData: SelectionResponse = await chrome.tabs.sendMessage(tab.id, { action: 'getSelection' });
+      if (selectionData?.selection) {
+        // Text is selected - skip ready state, go straight to generating
+        generateCards();
+        // Load other UI elements in background
+        checkMochiStatus();
+        updateAuthDisplay();
+        updateReviewCard().catch(err => console.error('Failed to load activity grid:', err));
+        return;
+      }
+    }
+  } catch (error) {
+    // Content script not available - continue to normal flow
+    console.log('Auto-generate check failed:', error);
+  }
+
+  // No selection - do normal initialization
   await checkMochiStatus();
   await updateAuthDisplay();
   updateReviewCard().catch(err => console.error('Failed to load activity grid:', err));
@@ -1415,27 +1436,8 @@ async function initializePanel(): Promise<void> {
   generateBtn?.classList.add('hidden');
   if (readyHint) readyHint.textContent = 'Select text or paste screenshot';
 
-  // Show ready state (this also starts polling)
+  // Show ready state and start polling
   showState(noSelectionState);
-
-  // Check if text is already selected and auto-generate
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab?.id) {
-      const selectionData: SelectionResponse = await chrome.tabs.sendMessage(tab.id, { action: 'getSelection' });
-      if (selectionData?.selection) {
-        // Text is selected - automatically start generating
-        stopSelectionPolling();
-        generateCards();
-        return;
-      }
-    }
-  } catch (error) {
-    // Content script not available - continue to ready state
-    console.log('Auto-generate check failed:', error);
-  }
-
-  // No selection - do normal selection polling
   await checkSelectionState();
 }
 
