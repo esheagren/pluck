@@ -1418,7 +1418,24 @@ async function initializePanel(): Promise<void> {
   // Show ready state (this also starts polling)
   showState(noSelectionState);
 
-  // Do initial selection check
+  // Check if text is already selected and auto-generate
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id) {
+      const selectionData: SelectionResponse = await chrome.tabs.sendMessage(tab.id, { action: 'getSelection' });
+      if (selectionData?.selection) {
+        // Text is selected - automatically start generating
+        stopSelectionPolling();
+        generateCards();
+        return;
+      }
+    }
+  } catch (error) {
+    // Content script not available - continue to ready state
+    console.log('Auto-generate check failed:', error);
+  }
+
+  // No selection - do normal selection polling
   await checkSelectionState();
 }
 
