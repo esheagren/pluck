@@ -7,6 +7,7 @@ export type PrimaryCategory = 'student' | 'worker' | 'researcher';
 export type StudentLevel = 'high_school' | 'college' | 'medical_school' | 'law_school' | 'graduate_school' | 'other';
 export type WorkField = 'consulting' | 'engineering' | 'product' | 'finance' | 'marketing' | 'design' | 'sales' | 'operations' | 'legal' | 'healthcare' | 'education' | 'other';
 export type YearsExperience = '1-2' | '3-5' | '6-10' | '10+';
+export type SpacedRepExperience = 'none' | 'tried' | 'regular' | 'power_user';
 export type TechnicalityLevel = 1 | 2 | 3 | 4;
 export type BreadthLevel = 1 | 2 | 3 | 4;
 
@@ -21,6 +22,7 @@ export interface LearningProfileForPrompt {
   researchYearsExperience?: YearsExperience | null;
   additionalInterests?: string[] | null;
   additionalInterestsOther?: string | null;
+  spacedRepExperience?: SpacedRepExperience | null;
   technicalityPreference?: TechnicalityLevel | null;
   breadthPreference?: BreadthLevel | null;
 }
