@@ -12,6 +12,7 @@ import {
   type Modifier,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
+import { getEventCoordinates } from '@dnd-kit/utilities';
 import CardGrid from '../components/CardGrid';
 import CreateFolderButton from '../components/CreateFolderButton';
 import FolderList from '../components/FolderList';
@@ -29,13 +30,26 @@ interface LastMoveAction {
   cardMoves: CardMove[];
 }
 
-// Custom modifier that positions the drag overlay with a small offset from cursor
-// instead of centering the entire preview under the cursor
-const snapTopLeftToCursor: Modifier = ({ transform }) => {
+// Positions the drag overlay so its top-left corner follows near the cursor,
+// rather than centering the full-width preview under it (snapCenterToCursor).
+const snapTopLeftToCursor: Modifier = ({ transform, activatorEvent, draggingNodeRect }) => {
+  if (!activatorEvent || !draggingNodeRect) {
+    return transform;
+  }
+
+  const activatorCoordinates = getEventCoordinates(activatorEvent);
+  if (!activatorCoordinates) {
+    return transform;
+  }
+
+  // How far into the element the cursor was when dragging started
+  const offsetX = activatorCoordinates.x - draggingNodeRect.left;
+  const offsetY = activatorCoordinates.y - draggingNodeRect.top;
+
   return {
     ...transform,
-    x: transform.x + 8, // Small offset to the right of cursor
-    y: transform.y + 8, // Small offset below cursor
+    x: transform.x + offsetX + 8,
+    y: transform.y + offsetY + 8,
   };
 };
 
