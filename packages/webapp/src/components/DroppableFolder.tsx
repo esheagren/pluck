@@ -12,16 +12,16 @@ export default function DroppableFolder({
     id: id,
   });
 
-  // Expanded mode: larger targets during drag
+  // Expanded mode: slightly larger targets during drag
   const expandedClass = expanded
-    ? 'px-6 py-4 min-w-[120px] text-center bg-white border border-gray-200 shadow-sm'
+    ? 'px-4 py-3 min-w-[100px] text-center border border-gray-200 dark:border-dark-border'
     : '';
 
   // Hover feedback
   const hoverClass = isOver
-    ? 'ring-2 ring-blue-500 bg-blue-50 scale-105'
+    ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/30 scale-105'
     : expanded
-    ? 'hover:border-gray-300'
+    ? 'hover:border-gray-300 dark:hover:border-gray-600'
     : '';
 
   return (
