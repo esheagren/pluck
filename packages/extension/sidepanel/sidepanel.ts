@@ -363,34 +363,25 @@ function renderDiagramCard(cardEl: HTMLElement, card: GeneratedCard, index: numb
 }
 
 /**
- * Render a list card (shows all cloze prompts with one item blank + final all-blank)
+ * Render a list card (compact chip-based design showing items)
  */
 function renderListCard(cardEl: HTMLElement, card: GeneratedCard, _index: number, _edited: EditedCard): void {
   const listName = card.list_name || 'List';
-  const prompts = card.prompts || [];
-  const itemCount = (card.items || []).length;
+  const items = card.items || [];
+  const promptCount = (card.prompts || []).length;
 
-  // Build HTML for each prompt preview
-  const promptsHtml = prompts.map((prompt, i) => {
-    const isAllBlank = i === prompts.length - 1; // Last one is "recall all"
-    const label = isAllBlank ? 'Recall all:' : `Item ${i + 1}:`;
-    return `
-      <div class="list-prompt-preview">
-        <span class="list-prompt-label">${label}</span>
-        <span class="list-prompt-question">${escapeHtml(prompt.question)}</span>
-        <span class="list-prompt-answer">${escapeHtml(prompt.answer)}</span>
-      </div>
-    `;
-  }).join('');
+  // Build chips for each item
+  const itemChipsHtml = items.map(item =>
+    `<span class="list-item-chip">${escapeHtml(item)}</span>`
+  ).join('');
 
   cardEl.innerHTML = `
     <div class="card-checkbox"></div>
     <div class="card-content">
-      <div class="card-style-label">List (${itemCount} items - ${prompts.length} cards)</div>
+      <div class="card-style-label">List (${promptCount} cards)</div>
       <div class="list-name">${escapeHtml(listName)}</div>
-      <div class="list-prompts">
-        ${promptsHtml}
-      </div>
+      <div class="list-items-preview">${itemChipsHtml}</div>
+      <div class="list-cards-note">Each item tested individually + recall all</div>
     </div>
   `;
 }
@@ -657,6 +648,7 @@ async function sendToMochi(): Promise<void> {
       editedCards = {};
       cachedSelectionData = null;
       showState(noSelectionState);
+      checkSelectionState();
     }, 1200);
   }
 }
