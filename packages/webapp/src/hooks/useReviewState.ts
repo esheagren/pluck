@@ -55,9 +55,9 @@ function loadSession(): SavedSession | null {
 
     const session: SavedSession = JSON.parse(saved);
 
-    // Invalidate sessions older than 24 hours
-    const maxAge = 24 * 60 * 60 * 1000;
-    if (Date.now() - session.timestamp > maxAge) {
+    // Invalidate sessions from a previous day (midnight boundary)
+    const todayStart = new Date(new Date().toDateString()).getTime();
+    if (session.timestamp < todayStart) {
       sessionStorage.removeItem(SESSION_KEY);
       return null;
     }
