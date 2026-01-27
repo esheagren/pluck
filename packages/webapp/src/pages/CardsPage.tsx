@@ -9,8 +9,8 @@ import {
   closestCenter,
   DragStartEvent,
   DragEndEvent,
+  type Modifier,
 } from '@dnd-kit/core';
-import { snapCenterToCursor } from '@dnd-kit/modifiers';
 import { arrayMove } from '@dnd-kit/sortable';
 import CardGrid from '../components/CardGrid';
 import CreateFolderButton from '../components/CreateFolderButton';
@@ -28,6 +28,16 @@ interface CardMove {
 interface LastMoveAction {
   cardMoves: CardMove[];
 }
+
+// Custom modifier that positions the drag overlay with a small offset from cursor
+// instead of centering the entire preview under the cursor
+const snapTopLeftToCursor: Modifier = ({ transform }) => {
+  return {
+    ...transform,
+    x: transform.x + 8, // Small offset to the right of cursor
+    y: transform.y + 8, // Small offset below cursor
+  };
+};
 
 export default function CardsPage({
   cards,
@@ -398,7 +408,7 @@ export default function CardsPage({
         />
 
         {/* Drag overlay for visual feedback */}
-        <DragOverlay modifiers={[snapCenterToCursor]}>
+        <DragOverlay modifiers={[snapTopLeftToCursor]}>
           {activeCard ? (
             <div className="bg-white dark:bg-dark-surface border-2 border-blue-500 rounded-xl p-4 shadow-xl w-[280px]">
               {selectedCount > 1 ? (
