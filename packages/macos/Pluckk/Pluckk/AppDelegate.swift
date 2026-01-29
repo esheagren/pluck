@@ -108,6 +108,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleDoubleTap() {
+        // If panel is expanded, collapse it
+        if panel.isExpanded {
+            panel.collapse()
+            return
+        }
+
         // Try to get selected text via Accessibility API
         if let selectedText = selectionReader.getSelectedText(), !selectedText.isEmpty {
             let context = selectionReader.getSourceContext()

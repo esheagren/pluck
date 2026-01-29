@@ -10,7 +10,6 @@ class PluckkPanel: NSPanel {
 
     private(set) var isExpanded = false
     private var hostingView: NSHostingView<SidebarView>?
-    private var keyMonitor: Any?
 
     override init(contentRect: NSRect, styleMask style: NSWindow.StyleMask, backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
         super.init(contentRect: contentRect, styleMask: style, backing: backingStoreType, defer: flag)
@@ -113,12 +112,10 @@ class PluckkPanel: NSPanel {
         }
 
         updateHostingView()
-        startKeyMonitor()
     }
 
     func collapse() {
         guard isExpanded else { return }
-        stopKeyMonitor()
         isExpanded = false
 
         guard let screen = NSScreen.main else { return }
@@ -154,24 +151,4 @@ class PluckkPanel: NSPanel {
         hostingView?.rootView = SidebarView(isExpanded: isExpanded)
     }
 
-    // MARK: - Command Key to Close
-
-    private func startKeyMonitor() {
-        stopKeyMonitor()  // Remove any existing monitor
-
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            // Check if Command key is pressed (and held)
-            if event.modifierFlags.contains(.command) {
-                self?.collapse()
-            }
-            return event
-        }
-    }
-
-    private func stopKeyMonitor() {
-        if let monitor = keyMonitor {
-            NSEvent.removeMonitor(monitor)
-            keyMonitor = nil
-        }
-    }
 }
