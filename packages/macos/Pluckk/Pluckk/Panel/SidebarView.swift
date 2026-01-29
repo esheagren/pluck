@@ -114,15 +114,17 @@ struct ResizeHandle: View {
     }
 
     var body: some View {
-        // Invisible hit area with visible pill indicator
+        // Invisible hit area with pill indicator on hover
         Color.clear
             .frame(width: 12)
             .contentShape(Rectangle())
             .overlay(
-                // Vertical pill indicator
+                // Vertical pill indicator - only visible on hover/drag
                 RoundedRectangle(cornerRadius: 2)
                     .fill(handleColor)
                     .frame(width: 4, height: 40)
+                    .opacity(isHovering || isDragging ? 1 : 0)
+                    .animation(.easeInOut(duration: 0.15), value: isHovering)
             )
             .onHover { hovering in
                 isHovering = hovering
