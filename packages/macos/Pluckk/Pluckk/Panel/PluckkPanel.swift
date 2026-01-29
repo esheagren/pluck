@@ -12,6 +12,13 @@ class PluckkPanel: NSPanel {
         super.init(contentRect: contentRect, styleMask: style, backing: backingStoreType, defer: flag)
     }
 
+    // Allow panel to become key window for button clicks
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
+
+    // Accept first mouse click without requiring activation
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
     func setup() {
         guard let screen = NSScreen.main else { return }
         let screenFrame = screen.visibleFrame
@@ -34,7 +41,8 @@ class PluckkPanel: NSPanel {
         hasShadow = true
         hidesOnDeactivate = false
         isFloatingPanel = true
-        becomesKeyOnlyIfNeeded = true
+        becomesKeyOnlyIfNeeded = false  // Allow becoming key to receive clicks
+        acceptsMouseMovedEvents = true
 
         // Allow panel to appear on all spaces and work with full-screen apps
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
@@ -95,6 +103,9 @@ class PluckkPanel: NSPanel {
             context.duration = 0.25
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             self.animator().setFrame(newFrame, display: true)
+        } completionHandler: {
+            // Make panel key so buttons receive clicks
+            self.makeKey()
         }
 
         updateHostingView()
