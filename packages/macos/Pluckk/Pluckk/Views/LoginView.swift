@@ -20,6 +20,12 @@ struct LoginView: View {
         VStack(spacing: 0) {
             Spacer()
 
+            // Welcome text above logo
+            Text("Welcome to")
+                .font(.system(size: PluckkTheme.FontSize.body))
+                .foregroundColor(textSecondary)
+                .padding(.bottom, PluckkTheme.Spacing.md)
+
             // Logo - using the actual PNG from extension
             if let logoImage = NSImage(named: "icon-128") {
                 Image(nsImage: logoImage)
@@ -33,11 +39,11 @@ struct LoginView: View {
                     .opacity(0.8)
             }
 
-            // Hint text
-            Text("Select text or paste screenshot")
-                .font(.system(size: PluckkTheme.FontSize.small))
-                .foregroundColor(textSecondary)
-                .padding(.top, PluckkTheme.Spacing.lg)
+            // App name below logo
+            Text("Pluckk")
+                .font(.system(size: PluckkTheme.FontSize.title, weight: .semibold))
+                .foregroundColor(textPrimary)
+                .padding(.top, PluckkTheme.Spacing.md)
 
             Spacer()
 
