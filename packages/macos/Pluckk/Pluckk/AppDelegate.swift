@@ -112,15 +112,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleDoubleTap() {
+        print("AppDelegate: handleDoubleTap called, panel.isExpanded=\(panel.isExpanded)")
+
         // If panel is expanded, collapse it
         if panel.isExpanded {
+            print("AppDelegate: Panel is expanded, collapsing")
             panel.collapse()
             return
         }
 
         // Capture the target window BEFORE we do anything else
         // This ensures we get the right window before Pluckk takes focus
+        print("AppDelegate: About to capture target window")
         WindowResizer.shared.captureTargetWindow()
+        print("AppDelegate: Capture complete, continuing with content detection")
 
         // Try to get selected text via Accessibility API
         if let selectedText = selectionReader.getSelectedText(), !selectedText.isEmpty {
@@ -155,7 +160,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Nothing captured - show panel with prompt
         appState.capturedContent = nil
         appState.currentView = .generate
+        print("AppDelegate: About to expand panel")
         panel.expand()
+        print("AppDelegate: Panel expand called")
     }
 
     // MARK: - Permissions
