@@ -26,7 +26,7 @@ class PluckkPanel: NSPanel {
         PluckkPanel.shared = self
 
         guard let screen = NSScreen.main else { return }
-        let screenFrame = screen.visibleFrame
+        let screenFrame = screen.frame
 
         // Initial frame - collapsed on right edge
         let frame = NSRect(
@@ -77,7 +77,7 @@ class PluckkPanel: NSPanel {
 
     private func repositionToActiveScreen() {
         guard let screen = NSScreen.main else { return }
-        let screenFrame = screen.visibleFrame
+        let screenFrame = screen.frame
         let currentWidth = isExpanded ? expandedWidth : collapsedWidth
 
         let newFrame = NSRect(
@@ -99,7 +99,7 @@ class PluckkPanel: NSPanel {
         WindowResizer.shared.makeRoomForPanel(panelWidth: expandedWidth - collapsedWidth)
 
         guard let screen = NSScreen.main else { return }
-        let screenFrame = screen.visibleFrame
+        let screenFrame = screen.frame
 
         let newFrame = NSRect(
             x: screenFrame.maxX - expandedWidth,
@@ -128,7 +128,7 @@ class PluckkPanel: NSPanel {
         WindowResizer.shared.restoreWindow()
 
         guard let screen = NSScreen.main else { return }
-        let screenFrame = screen.visibleFrame
+        let screenFrame = screen.frame
 
         let newFrame = NSRect(
             x: screenFrame.maxX - collapsedWidth,
@@ -167,7 +167,7 @@ class PluckkPanel: NSPanel {
         expandedWidth = newWidth
 
         guard let screen = NSScreen.main else { return }
-        let screenFrame = screen.visibleFrame
+        let screenFrame = screen.frame
 
         let newFrame = NSRect(
             x: screenFrame.maxX - newWidth,
