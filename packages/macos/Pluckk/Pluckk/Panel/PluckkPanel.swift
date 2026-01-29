@@ -94,6 +94,10 @@ class PluckkPanel: NSPanel {
         guard !isExpanded else { return }
         isExpanded = true
 
+        // Resize the frontmost window to make room for panel
+        // Account for the collapsed strip width that's already there
+        WindowResizer.shared.makeRoomForPanel(panelWidth: expandedWidth - collapsedWidth)
+
         guard let screen = NSScreen.main else { return }
         let screenFrame = screen.visibleFrame
 
@@ -119,6 +123,9 @@ class PluckkPanel: NSPanel {
     func collapse() {
         guard isExpanded else { return }
         isExpanded = false
+
+        // Restore the previously resized window
+        WindowResizer.shared.restoreWindow()
 
         guard let screen = NSScreen.main else { return }
         let screenFrame = screen.visibleFrame
