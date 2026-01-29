@@ -82,16 +82,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showBrowse() {
         appState.currentView = .browse
+        WindowResizer.shared.captureTargetWindow()
         panel.expand()
     }
 
     @objc private func showReview() {
         appState.currentView = .review
+        WindowResizer.shared.captureTargetWindow()
         panel.expand()
     }
 
     @objc private func showSettings() {
         appState.currentView = .settings
+        WindowResizer.shared.captureTargetWindow()
         panel.expand()
     }
 
@@ -103,6 +106,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if panel.isExpanded {
             panel.collapse()
         } else {
+            WindowResizer.shared.captureTargetWindow()
             panel.expand()
         }
     }
@@ -113,6 +117,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             panel.collapse()
             return
         }
+
+        // Capture the target window BEFORE we do anything else
+        // This ensures we get the right window before Pluckk takes focus
+        WindowResizer.shared.captureTargetWindow()
 
         // Try to get selected text via Accessibility API
         if let selectedText = selectionReader.getSelectedText(), !selectedText.isEmpty {

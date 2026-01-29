@@ -12,30 +12,34 @@ class WindowResizer {
     /// The window element we resized (for verification)
     private var resizedWindowElement: AXUIElement?
 
+    /// Captured target window (captured before panel expands)
+    private var capturedWindowElement: AXUIElement?
+    private var capturedAppPID: pid_t?
+
     private init() {}
 
-    /// Shrinks the frontmost window to make room for Pluckk panel
-    /// - Parameter panelWidth: The width of the Pluckk panel to make room for
-    func makeRoomForPanel(panelWidth: CGFloat) {
-        print("WindowResizer: makeRoomForPanel called with width \(panelWidth)")
-
+    /// Call this BEFORE expanding the panel to capture the current frontmost window
+    func captureTargetWindow() {
         guard let frontApp = NSWorkspace.shared.frontmostApplication else {
-            print("WindowResizer: No frontmost application")
+            print("WindowResizer: captureTargetWindow - No frontmost application")
+            capturedWindowElement = nil
+            capturedAppPID = nil
             return
         }
 
-        print("WindowResizer: Frontmost app: \(frontApp.localizedName ?? "unknown") (\(frontApp.bundleIdentifier ?? "no bundle id"))")
-
-        // Don't resize our own app
+        // Don't capture our own app
         if frontApp.bundleIdentifier == Bundle.main.bundleIdentifier {
-            print("WindowResizer: Frontmost is Pluckk, skipping")
+            print("WindowResizer: captureTargetWindow - Frontmost is Pluckk, not capturing")
+            capturedWindowElement = nil
+            capturedAppPID = nil
             return
         }
+
+        print("WindowResizer: captureTargetWindow - Capturing \(frontApp.localizedName ?? "unknown")")
 
         let pid = frontApp.processIdentifier
         let appElement = AXUIElementCreateApplication(pid)
 
-        // Get the focused window
         var focusedWindow: CFTypeRef?
         let windowResult = AXUIElementCopyAttributeValue(
             appElement,
@@ -43,13 +47,29 @@ class WindowResizer {
             &focusedWindow
         )
 
-        guard windowResult == .success,
-              let window = focusedWindow else {
-            print("WindowResizer: Could not get focused window, error: \(windowResult.rawValue)")
+        if windowResult == .success, let window = focusedWindow {
+            capturedWindowElement = (window as! AXUIElement)
+            capturedAppPID = pid
+            print("WindowResizer: captureTargetWindow - Successfully captured window")
+        } else {
+            print("WindowResizer: captureTargetWindow - Could not get focused window, error: \(windowResult.rawValue)")
+            capturedWindowElement = nil
+            capturedAppPID = nil
+        }
+    }
+
+    /// Shrinks the previously captured window to make room for Pluckk panel
+    /// - Parameter panelWidth: The width of the Pluckk panel to make room for
+    func makeRoomForPanel(panelWidth: CGFloat) {
+        print("WindowResizer: makeRoomForPanel called with width \(panelWidth)")
+
+        guard let windowElement = capturedWindowElement,
+              let pid = capturedAppPID else {
+            print("WindowResizer: No captured window to resize")
             return
         }
 
-        let windowElement = window as! AXUIElement
+        print("WindowResizer: Using previously captured window (PID: \(pid))")
 
         // Get current window frame
         guard let currentFrame = getWindowFrame(windowElement) else {
