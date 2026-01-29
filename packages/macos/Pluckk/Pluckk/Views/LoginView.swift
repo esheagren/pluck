@@ -49,7 +49,7 @@ struct LoginView: View {
                         googleLogo
                             .frame(width: 16, height: 16)
 
-                        Text("Sign in with Google")
+                        Text("Sign In")
                             .font(.system(size: PluckkTheme.FontSize.body, weight: .medium))
                     }
                     .frame(maxWidth: .infinity)
