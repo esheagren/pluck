@@ -2,6 +2,9 @@ import AppKit
 import SwiftUI
 
 class PluckkPanel: NSPanel {
+    // Shared instance for easy access from SwiftUI views
+    static var shared: PluckkPanel?
+
     private let collapsedWidth: CGFloat = 10
     private let expandedWidth: CGFloat = 340
 
@@ -17,6 +20,9 @@ class PluckkPanel: NSPanel {
     override var canBecomeMain: Bool { false }
 
     func setup() {
+        // Set shared instance for access from SwiftUI views
+        PluckkPanel.shared = self
+
         guard let screen = NSScreen.main else { return }
         let screenFrame = screen.visibleFrame
 

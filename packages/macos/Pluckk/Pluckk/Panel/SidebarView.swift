@@ -124,16 +124,7 @@ struct SidebarView: View {
     }
 
     private func collapsePanel() {
-        print("DEBUG: X button clicked")
-        DispatchQueue.main.async {
-            print("DEBUG: In main queue")
-            if let appDelegate = NSApp.delegate as? AppDelegate {
-                print("DEBUG: Got AppDelegate, calling collapse")
-                appDelegate.panel.collapse()
-            } else {
-                print("DEBUG: Failed to get AppDelegate")
-            }
-        }
+        PluckkPanel.shared?.collapse()
     }
 }
 
