@@ -39,81 +39,84 @@ struct SidebarView: View {
 
     @ViewBuilder
     private var expandedContent: some View {
-        HStack(spacing: 0) {
-            // Glowing silver border on far left edge - gaseous/diffuse effect
-            ZStack {
-                // Outer diffuse glow
-                Rectangle()
-                    .fill(Color.white.opacity(0.08))
-                    .frame(width: 8)
-                    .blur(radius: 4)
+        ZStack(alignment: .leading) {
+            // Main content HStack
+            HStack(spacing: 0) {
+                // Glowing silver border on far left edge - gaseous/diffuse effect
+                ZStack {
+                    // Outer diffuse glow
+                    Rectangle()
+                        .fill(Color.white.opacity(0.08))
+                        .frame(width: 8)
+                        .blur(radius: 4)
 
-                // Middle glow layer
-                Rectangle()
-                    .fill(Color.white.opacity(0.15))
-                    .frame(width: 4)
-                    .blur(radius: 2)
+                    // Middle glow layer
+                    Rectangle()
+                        .fill(Color.white.opacity(0.15))
+                        .frame(width: 4)
+                        .blur(radius: 2)
 
-                // Inner core
-                Rectangle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.5),
-                                Color.white.opacity(0.25),
-                                Color.white.opacity(0.05)
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
+                    // Inner core
+                    Rectangle()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.5),
+                                    Color.white.opacity(0.25),
+                                    Color.white.opacity(0.05)
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
                         )
-                    )
-                    .frame(width: 1)
-            }
-            .frame(width: 8)
-
-            // Main content area with resize handle overlaid
-            ZStack(alignment: .leading) {
-                // Background color
-                backgroundColor.ignoresSafeArea()
-
-                // Sand animation background (full panel)
-                // allowsHitTesting(false) ensures clicks pass through to buttons
-                SandAnimationView()
-                    .allowsHitTesting(false)
-
-                // Content
-                VStack(spacing: 0) {
-                    // Main content based on current view
-                    Group {
-                        switch appState.currentView {
-                        case .generate:
-                            if appState.isAuthenticated {
-                                CardGenerationView()
-                            } else {
-                                LoginView()
-                            }
-                        case .browse:
-                            if appState.isAuthenticated {
-                                CardBrowserView()
-                            } else {
-                                LoginView()
-                            }
-                        case .review:
-                            if appState.isAuthenticated {
-                                ReviewSessionView()
-                            } else {
-                                LoginView()
-                            }
-                        case .settings:
-                            SettingsView()
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(width: 1)
                 }
+                .frame(width: 8)
 
-                // Resize handle overlaid on left edge (on top of animation)
-                ResizeHandle()
+                // Main content area
+                ZStack {
+                    // Background color
+                    backgroundColor.ignoresSafeArea()
+
+                    // Sand animation background (full panel)
+                    // allowsHitTesting(false) ensures clicks pass through to buttons
+                    SandAnimationView()
+                        .allowsHitTesting(false)
+
+                    // Content
+                    VStack(spacing: 0) {
+                        // Main content based on current view
+                        Group {
+                            switch appState.currentView {
+                            case .generate:
+                                if appState.isAuthenticated {
+                                    CardGenerationView()
+                                } else {
+                                    LoginView()
+                                }
+                            case .browse:
+                                if appState.isAuthenticated {
+                                    CardBrowserView()
+                                } else {
+                                    LoginView()
+                                }
+                            case .review:
+                                if appState.isAuthenticated {
+                                    ReviewSessionView()
+                                } else {
+                                    LoginView()
+                                }
+                            case .settings:
+                                SettingsView()
+                            }
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                }
             }
+
+            // Resize handle overlaid directly on top of gaseous border
+            ResizeHandle()
         }
     }
 }
