@@ -17,9 +17,18 @@ class WindowResizer {
     /// Shrinks the frontmost window to make room for Pluckk panel
     /// - Parameter panelWidth: The width of the Pluckk panel to make room for
     func makeRoomForPanel(panelWidth: CGFloat) {
-        guard let frontApp = NSWorkspace.shared.frontmostApplication,
-              frontApp.bundleIdentifier != Bundle.main.bundleIdentifier else {
-            // Don't resize our own app
+        print("WindowResizer: makeRoomForPanel called with width \(panelWidth)")
+
+        guard let frontApp = NSWorkspace.shared.frontmostApplication else {
+            print("WindowResizer: No frontmost application")
+            return
+        }
+
+        print("WindowResizer: Frontmost app: \(frontApp.localizedName ?? "unknown") (\(frontApp.bundleIdentifier ?? "no bundle id"))")
+
+        // Don't resize our own app
+        if frontApp.bundleIdentifier == Bundle.main.bundleIdentifier {
+            print("WindowResizer: Frontmost is Pluckk, skipping")
             return
         }
 
@@ -36,7 +45,7 @@ class WindowResizer {
 
         guard windowResult == .success,
               let window = focusedWindow else {
-            print("WindowResizer: Could not get focused window")
+            print("WindowResizer: Could not get focused window, error: \(windowResult.rawValue)")
             return
         }
 
@@ -48,19 +57,15 @@ class WindowResizer {
             return
         }
 
-        // Get screen bounds to check if window is on the right edge
-        guard let screen = NSScreen.main else { return }
-        let screenFrame = screen.frame
+        print("WindowResizer: Current window frame: \(currentFrame)")
 
-        // Only resize if window extends to (or near) the right edge
-        let windowRightEdge = currentFrame.origin.x + currentFrame.width
-        let screenRightEdge = screenFrame.origin.x + screenFrame.width
-        let threshold: CGFloat = 50 // Within 50px of right edge
-
-        guard screenRightEdge - windowRightEdge < threshold else {
-            print("WindowResizer: Window not near right edge, skipping resize")
+        // Get screen bounds
+        guard let screen = NSScreen.main else {
+            print("WindowResizer: No main screen")
             return
         }
+        let screenFrame = screen.frame
+        print("WindowResizer: Screen frame: \(screenFrame)")
 
         // Store original frame for restoration
         originalFrame = currentFrame
@@ -71,7 +76,7 @@ class WindowResizer {
         let newWidth = currentFrame.width - panelWidth
         guard newWidth > 200 else {
             // Don't make window too small
-            print("WindowResizer: Window would be too small, skipping resize")
+            print("WindowResizer: Window would be too small (\(newWidth)), skipping resize")
             originalFrame = nil
             resizedAppPID = nil
             resizedWindowElement = nil
@@ -86,16 +91,28 @@ class WindowResizer {
             height: currentFrame.height
         )
 
-        setWindowFrame(windowElement, frame: newFrame)
-        print("WindowResizer: Resized window from \(currentFrame.width) to \(newWidth)")
+        let success = setWindowFrame(windowElement, frame: newFrame)
+        if success {
+            print("WindowResizer: Successfully resized window from \(currentFrame.width) to \(newWidth)")
+        } else {
+            print("WindowResizer: Failed to resize window")
+            originalFrame = nil
+            resizedAppPID = nil
+            resizedWindowElement = nil
+        }
     }
 
     /// Restores the previously resized window to its original size
     func restoreWindow() {
+        print("WindowResizer: restoreWindow called")
+
         guard let originalFrame = originalFrame,
               let pid = resizedAppPID else {
+            print("WindowResizer: No window to restore")
             return
         }
+
+        print("WindowResizer: Restoring window for PID \(pid) to frame \(originalFrame)")
 
         // Try to find the same window again
         let appElement = AXUIElementCreateApplication(pid)
@@ -109,8 +126,14 @@ class WindowResizer {
 
         if windowResult == .success, let window = focusedWindow {
             let windowElement = window as! AXUIElement
-            setWindowFrame(windowElement, frame: originalFrame)
-            print("WindowResizer: Restored window to original size \(originalFrame.width)")
+            let success = setWindowFrame(windowElement, frame: originalFrame)
+            if success {
+                print("WindowResizer: Successfully restored window to original size \(originalFrame.width)")
+            } else {
+                print("WindowResizer: Failed to restore window")
+            }
+        } else {
+            print("WindowResizer: Could not find window to restore, error: \(windowResult.rawValue)")
         }
 
         // Clear stored state
@@ -161,25 +184,44 @@ class WindowResizer {
         return CGRect(origin: position, size: size)
     }
 
-    private func setWindowFrame(_ window: AXUIElement, frame: CGRect) {
-        // Set position
-        var position = frame.origin
-        if let positionValue = AXValueCreate(.cgPoint, &position) {
-            AXUIElementSetAttributeValue(
-                window,
-                kAXPositionAttribute as CFString,
-                positionValue
-            )
-        }
+    @discardableResult
+    private func setWindowFrame(_ window: AXUIElement, frame: CGRect) -> Bool {
+        var success = true
 
-        // Set size
+        // Set size first (some apps behave better this way)
         var size = frame.size
         if let sizeValue = AXValueCreate(.cgSize, &size) {
-            AXUIElementSetAttributeValue(
+            let sizeResult = AXUIElementSetAttributeValue(
                 window,
                 kAXSizeAttribute as CFString,
                 sizeValue
             )
+            if sizeResult != .success {
+                print("WindowResizer: Failed to set size, error: \(sizeResult.rawValue)")
+                success = false
+            }
+        } else {
+            print("WindowResizer: Failed to create size AXValue")
+            success = false
         }
+
+        // Set position
+        var position = frame.origin
+        if let positionValue = AXValueCreate(.cgPoint, &position) {
+            let posResult = AXUIElementSetAttributeValue(
+                window,
+                kAXPositionAttribute as CFString,
+                positionValue
+            )
+            if posResult != .success {
+                print("WindowResizer: Failed to set position, error: \(posResult.rawValue)")
+                success = false
+            }
+        } else {
+            print("WindowResizer: Failed to create position AXValue")
+            success = false
+        }
+
+        return success
     }
 }
