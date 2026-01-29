@@ -20,14 +20,16 @@ struct SidebarView: View {
     var body: some View {
         HStack(spacing: 0) {
             if isExpanded {
+                // Full expanded panel (strip transforms into this)
                 expandedContent
-                    .frame(width: 330)
+                    .frame(width: 340)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+            } else {
+                // Thin strip only when collapsed
+                AmbientStripView(state: stripState)
+                    .frame(width: 10)
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             }
-
-            // Always-visible thin strip with ambient animation
-            AmbientStripView(state: stripState)
-                .frame(width: 10)
         }
         .frame(maxHeight: .infinity)
         .animation(.easeInOut(duration: PluckkTheme.Animation.slow), value: isExpanded)
