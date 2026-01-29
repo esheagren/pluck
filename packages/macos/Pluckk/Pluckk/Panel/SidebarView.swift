@@ -101,19 +101,31 @@ struct SidebarView: View {
             Spacer()
 
             // Close/collapse button (X icon like extension)
-            Button(action: collapse) {
+            Button {
+                collapsePanel()
+            } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(textSecondary)
-                    .frame(width: 24, height: 24)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.borderless)
+            .onHover { hovering in
+                if hovering {
+                    NSCursor.pointingHand.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
         }
     }
 
-    private func collapse() {
-        if let appDelegate = NSApp.delegate as? AppDelegate {
-            appDelegate.panel.collapse()
+    private func collapsePanel() {
+        DispatchQueue.main.async {
+            if let appDelegate = NSApp.delegate as? AppDelegate {
+                appDelegate.panel.collapse()
+            }
         }
     }
 }
