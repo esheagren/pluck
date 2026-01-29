@@ -42,36 +42,10 @@ struct SidebarView: View {
         ZStack(alignment: .leading) {
             // Main content HStack
             HStack(spacing: 0) {
-                // Glowing silver border on far left edge - gaseous/diffuse effect
-                ZStack {
-                    // Outer diffuse glow
-                    Rectangle()
-                        .fill(Color.white.opacity(0.08))
-                        .frame(width: 8)
-                        .blur(radius: 4)
-
-                    // Middle glow layer
-                    Rectangle()
-                        .fill(Color.white.opacity(0.15))
-                        .frame(width: 4)
-                        .blur(radius: 2)
-
-                    // Inner core
-                    Rectangle()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.5),
-                                    Color.white.opacity(0.25),
-                                    Color.white.opacity(0.05)
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: 1)
-                }
-                .frame(width: 8)
+                // Thin border on far left edge
+                Rectangle()
+                    .fill(Color.white.opacity(0.15))
+                    .frame(width: 1)
 
                 // Main content area
                 ZStack {
@@ -115,7 +89,7 @@ struct SidebarView: View {
                 }
             }
 
-            // Resize handle overlaid directly on top of gaseous border
+            // Resize handle overlaid on left edge
             ResizeHandle()
         }
     }
