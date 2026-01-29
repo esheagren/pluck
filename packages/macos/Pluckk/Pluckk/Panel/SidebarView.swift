@@ -9,14 +9,6 @@ struct SidebarView: View {
         colorScheme == .dark ? PluckkTheme.Dark.background : PluckkTheme.Light.background
     }
 
-    private var textPrimary: Color {
-        colorScheme == .dark ? PluckkTheme.Dark.textPrimary : PluckkTheme.Light.textPrimary
-    }
-
-    private var textSecondary: Color {
-        colorScheme == .dark ? PluckkTheme.Dark.textSecondary : PluckkTheme.Light.textSecondary
-    }
-
     var body: some View {
         HStack(spacing: 0) {
             if isExpanded {
@@ -57,12 +49,6 @@ struct SidebarView: View {
 
             // Content
             VStack(spacing: 0) {
-                // Header matching extension design
-                headerView
-                    .padding(.horizontal, PluckkTheme.Spacing.lg)
-                    .padding(.top, PluckkTheme.Spacing.lg)
-                    .padding(.bottom, PluckkTheme.Spacing.md)
-
                 // Main content based on current view
                 Group {
                     switch appState.currentView {
@@ -91,40 +77,6 @@ struct SidebarView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-    }
-
-    private var headerView: some View {
-        HStack {
-            // Logo text matching extension
-            Text("Pluckk")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(textPrimary)
-
-            Spacer()
-
-            // Close/collapse button (X icon like extension)
-            Button {
-                collapsePanel()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(textSecondary)
-                    .frame(width: 28, height: 28)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.borderless)
-            .onHover { hovering in
-                if hovering {
-                    NSCursor.pointingHand.push()
-                } else {
-                    NSCursor.pop()
-                }
-            }
-        }
-    }
-
-    private func collapsePanel() {
-        PluckkPanel.shared?.collapse()
     }
 }
 
