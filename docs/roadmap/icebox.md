@@ -63,6 +63,9 @@ Page annotations currently show all users' cards for a URL, not just the current
 ### Media File Support
 Support for various file types in cards including audio clips, images, and visual diagrams.
 
+### Audio Pronunciation for Language Cards
+Generate TTS audio for non-English text on flashcards using ElevenLabs (or similar). Attach audio to both Supabase and Mochi cards. Requires: new `audio_url` column on cards table, `card-audio` Supabase storage bucket, TTS backend endpoint, and audio playback in the review UI. Mirrors the existing image attachment pipeline.
+
 ### LaTeX / Mathematical Notation
 Render mathematical expressions and equations using LaTeX syntax.
 
@@ -141,6 +144,21 @@ Mobile version for practicing on phone. Consider native app for better performan
 
 ### Offline Mode
 Enable reviewing cards without an internet connection, syncing progress when back online.
+
+### macOS App Polish
+Improve the macOS app first-launch experience and add missing features:
+- Onboarding flow for permissions and login
+- Panel state persistence across restarts
+- Menu bar badge when cards are due
+- Strip animation customization
+- Automatic token refresh
+
+**Context:** See [macOS App documentation](completed/macos-app/documentation.md) - Known Limitations section.
+
+### macOS App Distribution
+Code signing, notarization, and DMG installer for the macOS app. Currently users must bypass Gatekeeper.
+
+**Context:** See [macOS App documentation](completed/macos-app/documentation.md).
 
 ---
 
