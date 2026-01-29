@@ -9,14 +9,6 @@ struct SidebarView: View {
         colorScheme == .dark ? PluckkTheme.Dark.background : PluckkTheme.Light.background
     }
 
-    private var surfaceColor: Color {
-        colorScheme == .dark ? PluckkTheme.Dark.surface : PluckkTheme.Light.surface
-    }
-
-    private var borderColor: Color {
-        colorScheme == .dark ? PluckkTheme.Dark.border : PluckkTheme.Light.border
-    }
-
     private var textPrimary: Color {
         colorScheme == .dark ? PluckkTheme.Dark.textPrimary : PluckkTheme.Light.textPrimary
     }
@@ -33,7 +25,7 @@ struct SidebarView: View {
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             }
 
-            // Always-visible thin strip with sand animation
+            // Always-visible thin strip with ambient animation
             AmbientStripView(state: stripState)
                 .frame(width: 10)
         }
@@ -52,101 +44,69 @@ struct SidebarView: View {
 
     @ViewBuilder
     private var expandedContent: some View {
-        VStack(spacing: 0) {
-            // Header with tabs
-            headerView
-                .padding(.horizontal, PluckkTheme.Spacing.lg)
-                .padding(.top, PluckkTheme.Spacing.lg)
-                .padding(.bottom, PluckkTheme.Spacing.md)
+        ZStack {
+            // Background color
+            backgroundColor.ignoresSafeArea()
 
-            // Divider
-            Rectangle()
-                .fill(borderColor)
-                .frame(height: 1)
+            // Sand animation background (full panel)
+            SandAnimationView()
 
-            // Main content based on current view
-            Group {
-                switch appState.currentView {
-                case .generate:
-                    if appState.isAuthenticated {
-                        CardGenerationView()
-                    } else {
-                        LoginView()
+            // Content
+            VStack(spacing: 0) {
+                // Header matching extension design
+                headerView
+                    .padding(.horizontal, PluckkTheme.Spacing.lg)
+                    .padding(.top, PluckkTheme.Spacing.lg)
+                    .padding(.bottom, PluckkTheme.Spacing.md)
+
+                // Main content based on current view
+                Group {
+                    switch appState.currentView {
+                    case .generate:
+                        if appState.isAuthenticated {
+                            CardGenerationView()
+                        } else {
+                            LoginView()
+                        }
+                    case .browse:
+                        if appState.isAuthenticated {
+                            CardBrowserView()
+                        } else {
+                            LoginView()
+                        }
+                    case .review:
+                        if appState.isAuthenticated {
+                            ReviewSessionView()
+                        } else {
+                            LoginView()
+                        }
+                    case .settings:
+                        SettingsView()
                     }
-                case .browse:
-                    if appState.isAuthenticated {
-                        CardBrowserView()
-                    } else {
-                        LoginView()
-                    }
-                case .review:
-                    if appState.isAuthenticated {
-                        ReviewSessionView()
-                    } else {
-                        LoginView()
-                    }
-                case .settings:
-                    SettingsView()
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .background(backgroundColor)
     }
 
     private var headerView: some View {
-        HStack(spacing: PluckkTheme.Spacing.xxs) {
-            // View switcher tabs
-            HStack(spacing: PluckkTheme.Spacing.xxs) {
-                headerButton(view: .generate, icon: "plus.circle", label: "Create")
-                headerButton(view: .browse, icon: "rectangle.stack", label: "Browse")
-                headerButton(view: .review, icon: "brain", label: "Review")
-            }
+        HStack {
+            // Logo text matching extension
+            Text("Pluckk")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(textPrimary)
 
             Spacer()
 
-            // Settings button
-            Button(action: { appState.currentView = .settings }) {
-                Image(systemName: "gear")
-                    .font(.system(size: 14))
-                    .foregroundColor(appState.currentView == .settings ? textPrimary : textSecondary)
-            }
-            .buttonStyle(.plain)
-
-            // Collapse button
+            // Close/collapse button (X icon like extension)
             Button(action: collapse) {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundColor(textSecondary)
+                    .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
-            .padding(.leading, PluckkTheme.Spacing.sm)
         }
-    }
-
-    private func headerButton(view: PanelView, icon: String, label: String) -> some View {
-        let isSelected = appState.currentView == view
-
-        return Button(action: { appState.currentView = view }) {
-            HStack(spacing: PluckkTheme.Spacing.xxs) {
-                Image(systemName: icon)
-                    .font(.system(size: PluckkTheme.FontSize.tiny))
-                Text(label)
-                    .font(.system(size: PluckkTheme.FontSize.tiny, weight: .medium))
-            }
-            .padding(.horizontal, PluckkTheme.Spacing.sm)
-            .padding(.vertical, PluckkTheme.Spacing.xxs)
-            .background(
-                isSelected
-                    ? (colorScheme == .dark
-                        ? PluckkTheme.Dark.surfaceSecondary
-                        : PluckkTheme.Light.surfaceSecondary)
-                    : Color.clear
-            )
-            .foregroundColor(isSelected ? textPrimary : textSecondary)
-            .cornerRadius(PluckkTheme.Radius.medium)
-        }
-        .buttonStyle(.plain)
     }
 
     private func collapse() {

@@ -21,10 +21,12 @@ class SelectionReader {
         )
 
         guard focusResult == .success,
-              let focused = focusedElement,
-              let focusedAX = focused as? AXUIElement else {
+              let focused = focusedElement else {
             return nil
         }
+
+        // AXUIElement is a CFTypeRef, cast is always valid when API succeeds
+        let focusedAX = focused as! AXUIElement
 
         // Try to get selected text directly
         var selectedText: CFTypeRef?
@@ -127,8 +129,9 @@ class SelectionReader {
 
         var windowTitle = ""
         if windowResult == .success,
-           let window = focusedWindow,
-           let windowAX = window as? AXUIElement {
+           let window = focusedWindow {
+            // AXUIElement is a CFTypeRef, cast is always valid when API succeeds
+            let windowAX = window as! AXUIElement
             var title: CFTypeRef?
             let titleResult = AXUIElementCopyAttributeValue(
                 windowAX,

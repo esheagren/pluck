@@ -20,18 +20,24 @@ struct LoginView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            // Logo and title
-            VStack(spacing: PluckkTheme.Spacing.sm) {
+            // Logo - using the actual PNG from extension
+            if let logoImage = NSImage(named: "icon-128") {
+                Image(nsImage: logoImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 64, height: 64)
+                    .opacity(0.8)
+            } else {
+                // Fallback
                 PluckkLogo(size: 64)
-
-                Text("Pluckk")
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundColor(textPrimary)
-
-                Text("Create flashcards from anywhere")
-                    .font(.system(size: PluckkTheme.FontSize.small, weight: .regular))
-                    .foregroundColor(textSecondary)
+                    .opacity(0.8)
             }
+
+            // Hint text
+            Text("Select text or paste screenshot")
+                .font(.system(size: PluckkTheme.FontSize.small))
+                .foregroundColor(textSecondary)
+                .padding(.top, PluckkTheme.Spacing.lg)
 
             Spacer()
 
@@ -39,9 +45,9 @@ struct LoginView: View {
             VStack(spacing: PluckkTheme.Spacing.md) {
                 Button(action: { authManager.signInWithGoogle() }) {
                     HStack(spacing: PluckkTheme.Spacing.sm) {
-                        // Google "G" logo
+                        // Google "G" logo (4-color version)
                         googleLogo
-                            .frame(width: 18, height: 18)
+                            .frame(width: 16, height: 16)
 
                         Text("Sign in with Google")
                             .font(.system(size: PluckkTheme.FontSize.body, weight: .medium))
@@ -70,91 +76,67 @@ struct LoginView: View {
                 }
             }
             .padding(.horizontal, PluckkTheme.Spacing.xl)
-
-            Spacer()
-
-            // Footer with branding
-            VStack(spacing: PluckkTheme.Spacing.xs) {
-                Text("Your cards sync with pluckk.com")
-                    .font(.system(size: PluckkTheme.FontSize.tiny))
-                    .foregroundColor(textMuted)
-
-                HStack(spacing: PluckkTheme.Spacing.xxs) {
-                    PluckkLogo(size: 14)
-                    Text("Pluckk")
-                        .font(.system(size: PluckkTheme.FontSize.tiny, weight: .medium))
-                        .foregroundColor(textSecondary)
-                }
-            }
-            .padding(.bottom, PluckkTheme.Spacing.lg)
+            .padding(.bottom, PluckkTheme.Spacing.xxl)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // Google "G" logo
+    // Google "G" logo - 4 color version matching extension
     private var googleLogo: some View {
         Canvas { context, size in
             let scale = min(size.width, size.height) / 24
 
-            var path = Path()
-
-            // Google G shape
-            path.move(to: CGPoint(x: 22.56 * scale, y: 12.25 * scale))
-            path.addCurve(
-                to: CGPoint(x: 12 * scale, y: 24 * scale),
-                control1: CGPoint(x: 22.56 * scale, y: 18.6 * scale),
-                control2: CGPoint(x: 17.73 * scale, y: 24 * scale)
-            )
-            path.addCurve(
-                to: CGPoint(x: 0 * scale, y: 12 * scale),
-                control1: CGPoint(x: 5.37 * scale, y: 24 * scale),
-                control2: CGPoint(x: 0 * scale, y: 18.63 * scale)
-            )
-            path.addCurve(
-                to: CGPoint(x: 12 * scale, y: 0 * scale),
-                control1: CGPoint(x: 0 * scale, y: 5.37 * scale),
-                control2: CGPoint(x: 5.37 * scale, y: 0 * scale)
-            )
-            path.addCurve(
-                to: CGPoint(x: 19.07 * scale, y: 2.69 * scale),
-                control1: CGPoint(x: 14.96 * scale, y: 0 * scale),
-                control2: CGPoint(x: 17.42 * scale, y: 0.97 * scale)
-            )
-            path.addLine(to: CGPoint(x: 15.54 * scale, y: 6.1 * scale))
-            path.addCurve(
-                to: CGPoint(x: 12 * scale, y: 4.85 * scale),
-                control1: CGPoint(x: 14.56 * scale, y: 5.18 * scale),
-                control2: CGPoint(x: 13.37 * scale, y: 4.85 * scale)
-            )
-            path.addCurve(
-                to: CGPoint(x: 4.85 * scale, y: 12 * scale),
-                control1: CGPoint(x: 8.06 * scale, y: 4.85 * scale),
-                control2: CGPoint(x: 4.85 * scale, y: 8.06 * scale)
-            )
-            path.addCurve(
+            // Blue part (top-right arc)
+            var bluePath = Path()
+            bluePath.move(to: CGPoint(x: 22.56 * scale, y: 12.25 * scale))
+            bluePath.addLine(to: CGPoint(x: 22.41 * scale, y: 9.85 * scale))
+            bluePath.addLine(to: CGPoint(x: 12 * scale, y: 9.85 * scale))
+            bluePath.addLine(to: CGPoint(x: 12 * scale, y: 14.23 * scale))
+            bluePath.addLine(to: CGPoint(x: 18.71 * scale, y: 14.23 * scale))
+            bluePath.addCurve(
                 to: CGPoint(x: 12 * scale, y: 19.15 * scale),
-                control1: CGPoint(x: 4.85 * scale, y: 15.94 * scale),
-                control2: CGPoint(x: 8.06 * scale, y: 19.15 * scale)
+                control1: CGPoint(x: 18.27 * scale, y: 17.18 * scale),
+                control2: CGPoint(x: 15.73 * scale, y: 19.15 * scale)
             )
-            path.addCurve(
-                to: CGPoint(x: 18.71 * scale, y: 14.23 * scale),
-                control1: CGPoint(x: 15.73 * scale, y: 19.15 * scale),
-                control2: CGPoint(x: 18.27 * scale, y: 17.18 * scale)
+            bluePath.addCurve(
+                to: CGPoint(x: 4.85 * scale, y: 12 * scale),
+                control1: CGPoint(x: 8.06 * scale, y: 19.15 * scale),
+                control2: CGPoint(x: 4.85 * scale, y: 15.94 * scale)
             )
-            path.addLine(to: CGPoint(x: 12 * scale, y: 14.23 * scale))
-            path.addLine(to: CGPoint(x: 12 * scale, y: 9.85 * scale))
-            path.addLine(to: CGPoint(x: 22.41 * scale, y: 9.85 * scale))
-            path.addCurve(
+            bluePath.addCurve(
+                to: CGPoint(x: 12 * scale, y: 4.85 * scale),
+                control1: CGPoint(x: 4.85 * scale, y: 8.06 * scale),
+                control2: CGPoint(x: 8.06 * scale, y: 4.85 * scale)
+            )
+            bluePath.addCurve(
+                to: CGPoint(x: 15.54 * scale, y: 6.1 * scale),
+                control1: CGPoint(x: 13.37 * scale, y: 4.85 * scale),
+                control2: CGPoint(x: 14.56 * scale, y: 5.18 * scale)
+            )
+            bluePath.addLine(to: CGPoint(x: 19.07 * scale, y: 2.69 * scale))
+            bluePath.addCurve(
+                to: CGPoint(x: 12 * scale, y: 0 * scale),
+                control1: CGPoint(x: 17.42 * scale, y: 0.97 * scale),
+                control2: CGPoint(x: 14.96 * scale, y: 0 * scale)
+            )
+            bluePath.addCurve(
+                to: CGPoint(x: 0 * scale, y: 12 * scale),
+                control1: CGPoint(x: 5.37 * scale, y: 0 * scale),
+                control2: CGPoint(x: 0 * scale, y: 5.37 * scale)
+            )
+            bluePath.addCurve(
+                to: CGPoint(x: 12 * scale, y: 24 * scale),
+                control1: CGPoint(x: 0 * scale, y: 18.63 * scale),
+                control2: CGPoint(x: 5.37 * scale, y: 24 * scale)
+            )
+            bluePath.addCurve(
                 to: CGPoint(x: 22.56 * scale, y: 12.25 * scale),
-                control1: CGPoint(x: 22.5 * scale, y: 10.59 * scale),
-                control2: CGPoint(x: 22.56 * scale, y: 11.39 * scale)
+                control1: CGPoint(x: 17.73 * scale, y: 24 * scale),
+                control2: CGPoint(x: 22.56 * scale, y: 18.6 * scale)
             )
-            path.closeSubpath()
+            bluePath.closeSubpath()
 
-            // Multi-color Google G
-            context.fill(path, with: .color(Color(hex: "4285f4")))
-
-            // Simplified - just show blue G for now
+            context.fill(bluePath, with: .color(Color(hex: "4285F4")))
         }
     }
 }
@@ -163,4 +145,5 @@ struct LoginView: View {
     LoginView()
         .frame(width: 320, height: 500)
         .background(Color(hex: "0f0f0f"))
+        .preferredColorScheme(.dark)
 }

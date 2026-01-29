@@ -69,10 +69,11 @@ struct AmbientStripView: View {
             }
             .onChange(of: geometry.size) { newSize in
                 initializeParticles(in: newSize)
+                startAnimation(in: newSize)  // Fix: restart timer with new size
             }
             .onChange(of: colorScheme) { _ in
                 // Reinitialize particles with new colors when theme changes
-                initializeParticles(in: geometry.size)
+                reinitializeParticleColors()
             }
         }
     }
@@ -137,6 +138,12 @@ struct AmbientStripView: View {
         }
 
         return colors.randomElement() ?? colors[0]
+    }
+
+    private func reinitializeParticleColors() {
+        for i in particles.indices {
+            particles[i].color = randomParticleColor()
+        }
     }
 
     private func startAnimation(in size: CGSize) {

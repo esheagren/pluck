@@ -26,6 +26,7 @@
 		017 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119 /* Config.swift */; };
 		018 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120 /* Theme.swift */; };
 		019 /* PluckkLogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 121 /* PluckkLogo.swift */; };
+		020 /* SandAnimationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 122 /* SandAnimationView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -51,6 +52,7 @@
 		119 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		120 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		121 /* PluckkLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluckkLogo.swift; sourceTree = "<group>"; };
+		122 /* SandAnimationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SandAnimationView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,6 +114,7 @@
 				104 /* PluckkPanel.swift */,
 				105 /* SidebarView.swift */,
 				106 /* AmbientStripView.swift */,
+				122 /* SandAnimationView.swift */,
 			);
 			path = Panel;
 			sourceTree = "<group>";
@@ -251,6 +254,7 @@
 				017 /* Config.swift in Sources */,
 				018 /* Theme.swift in Sources */,
 				019 /* PluckkLogo.swift in Sources */,
+				020 /* SandAnimationView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -28,31 +28,58 @@ struct CardGenerationView: View {
         }
     }
 
-    // MARK: - Empty State
+    // MARK: - Empty State (matches extension no-selection-state)
 
     private var emptyState: some View {
         VStack(spacing: 16) {
             Spacer()
 
-            Image(systemName: "text.cursor")
-                .font(.system(size: 40))
-                .foregroundColor(.secondary.opacity(0.5))
-
-            VStack(spacing: 8) {
-                Text("Select text or copy content")
-                    .font(.headline)
-                    .foregroundColor(.secondary)
-
-                Text("Double-tap ⌘ to capture")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary.opacity(0.7))
+            // Logo icon - using the actual PNG from extension
+            if let logoImage = NSImage(named: "icon-128") {
+                Image(nsImage: logoImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 64, height: 64)
+                    .opacity(0.8)
+            } else {
+                // Fallback to PluckkLogo if PNG not found
+                PluckkLogo(size: 64)
+                    .opacity(0.8)
             }
+
+            // Hint text matching extension
+            Text("Select text or paste screenshot")
+                .font(.system(size: PluckkTheme.FontSize.small))
+                .foregroundColor(colorScheme == .dark
+                    ? PluckkTheme.Dark.textSecondary
+                    : PluckkTheme.Light.textSecondary)
+
+            // Question input placeholder (matches extension's "..." input)
+            TextField("...", text: .constant(""))
+                .textFieldStyle(.plain)
+                .font(.system(size: PluckkTheme.FontSize.body))
+                .foregroundColor(colorScheme == .dark
+                    ? PluckkTheme.Dark.textSecondary
+                    : PluckkTheme.Light.textSecondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 200)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: PluckkTheme.Radius.medium)
+                        .stroke(colorScheme == .dark
+                            ? PluckkTheme.Dark.border
+                            : PluckkTheme.Light.border, lineWidth: 1)
+                )
+                .disabled(true)
 
             Spacer()
         }
         .frame(maxWidth: .infinity)
         .padding()
     }
+
+    @Environment(\.colorScheme) var colorScheme
 
     // MARK: - Loading State
 
