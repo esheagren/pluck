@@ -40,21 +40,36 @@ struct SidebarView: View {
     @ViewBuilder
     private var expandedContent: some View {
         HStack(spacing: 0) {
-            // Glowing silver border on far left edge
-            Rectangle()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.6),
-                            Color.white.opacity(0.3),
-                            Color.white.opacity(0.1)
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
+            // Glowing silver border on far left edge - gaseous/diffuse effect
+            ZStack {
+                // Outer diffuse glow
+                Rectangle()
+                    .fill(Color.white.opacity(0.08))
+                    .frame(width: 8)
+                    .blur(radius: 4)
+
+                // Middle glow layer
+                Rectangle()
+                    .fill(Color.white.opacity(0.15))
+                    .frame(width: 4)
+                    .blur(radius: 2)
+
+                // Inner core
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.5),
+                                Color.white.opacity(0.25),
+                                Color.white.opacity(0.05)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
                     )
-                )
-                .frame(width: 1)
-                .shadow(color: Color.white.opacity(0.5), radius: 2, x: 0, y: 0)
+                    .frame(width: 1)
+            }
+            .frame(width: 8)
 
             // Main content area with resize handle overlaid
             ZStack(alignment: .leading) {
