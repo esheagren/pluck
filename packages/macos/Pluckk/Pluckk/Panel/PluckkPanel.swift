@@ -16,9 +16,6 @@ class PluckkPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 
-    // Accept first mouse click without requiring activation
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-
     func setup() {
         guard let screen = NSScreen.main else { return }
         let screenFrame = screen.visibleFrame
