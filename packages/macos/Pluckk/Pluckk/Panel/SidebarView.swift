@@ -40,6 +40,22 @@ struct SidebarView: View {
     @ViewBuilder
     private var expandedContent: some View {
         HStack(spacing: 0) {
+            // Glowing silver border on far left edge
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.6),
+                            Color.white.opacity(0.3),
+                            Color.white.opacity(0.1)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(width: 1)
+                .shadow(color: Color.white.opacity(0.5), radius: 2, x: 0, y: 0)
+
             // Resize handle on the left edge
             ResizeHandle()
 
