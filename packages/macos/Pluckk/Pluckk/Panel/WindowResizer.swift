@@ -16,36 +16,58 @@ class WindowResizer {
     private var capturedWindowElement: AXUIElement?
     private var capturedAppPID: pid_t?
 
-    private init() {}
+    /// Continuously tracked last external (non-Pluckk) frontmost app
+    private var lastExternalAppPID: pid_t?
+    private var lastExternalAppName: String?
+
+    private init() {
+        // Start tracking frontmost app changes
+        startTrackingFrontmostApp()
+    }
+
+    /// Continuously monitors frontmost app and remembers the last non-Pluckk app
+    private func startTrackingFrontmostApp() {
+        // Observe app activation changes
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            self?.updateLastExternalApp()
+        }
+
+        // Also do an initial check
+        updateLastExternalApp()
+    }
+
+    private func updateLastExternalApp() {
+        guard let frontApp = NSWorkspace.shared.frontmostApplication else { return }
+
+        let bundleId = frontApp.bundleIdentifier ?? ""
+        let myBundleId = Bundle.main.bundleIdentifier ?? ""
+
+        // Only track non-Pluckk apps
+        if bundleId != myBundleId {
+            lastExternalAppPID = frontApp.processIdentifier
+            lastExternalAppName = frontApp.localizedName
+            print("WindowResizer: Tracking external app: '\(lastExternalAppName ?? "unknown")' (PID: \(lastExternalAppPID ?? 0))")
+        }
+    }
 
     /// Call this BEFORE expanding the panel to capture the current frontmost window
+    /// Uses the continuously tracked last external app since Pluckk may already be frontmost
     func captureTargetWindow() {
         print("WindowResizer: === captureTargetWindow START ===")
+        print("WindowResizer: Last tracked external app: '\(lastExternalAppName ?? "none")' (PID: \(lastExternalAppPID ?? 0))")
 
-        guard let frontApp = NSWorkspace.shared.frontmostApplication else {
-            print("WindowResizer: FAIL - No frontmost application")
+        guard let pid = lastExternalAppPID else {
+            print("WindowResizer: FAIL - No tracked external app")
             capturedWindowElement = nil
             capturedAppPID = nil
             return
         }
 
-        let appName = frontApp.localizedName ?? "unknown"
-        let bundleId = frontApp.bundleIdentifier ?? "no-bundle-id"
-        let myBundleId = Bundle.main.bundleIdentifier ?? "no-bundle-id"
-
-        print("WindowResizer: Frontmost: '\(appName)' (\(bundleId))")
-        print("WindowResizer: My bundle: \(myBundleId)")
-
-        // Don't capture our own app
-        if bundleId == myBundleId {
-            print("WindowResizer: FAIL - Frontmost is Pluckk itself")
-            capturedWindowElement = nil
-            capturedAppPID = nil
-            return
-        }
-
-        let pid = frontApp.processIdentifier
-        print("WindowResizer: Getting window for PID \(pid)")
+        print("WindowResizer: Using tracked PID \(pid) for '\(lastExternalAppName ?? "unknown")'")
 
         let appElement = AXUIElementCreateApplication(pid)
 
@@ -59,7 +81,7 @@ class WindowResizer {
         if windowResult == .success, let window = focusedWindow {
             capturedWindowElement = (window as! AXUIElement)
             capturedAppPID = pid
-            print("WindowResizer: SUCCESS - Captured window for '\(appName)'")
+            print("WindowResizer: SUCCESS - Captured window for '\(lastExternalAppName ?? "unknown")'")
         } else {
             print("WindowResizer: FAIL - Could not get focused window, AX error: \(windowResult.rawValue)")
             capturedWindowElement = nil
