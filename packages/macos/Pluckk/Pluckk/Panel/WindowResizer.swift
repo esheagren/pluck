@@ -60,14 +60,32 @@ class WindowResizer {
         print("WindowResizer: === captureTargetWindow START ===")
         print("WindowResizer: Last tracked external app: '\(lastExternalAppName ?? "none")' (PID: \(lastExternalAppPID ?? 0))")
 
-        guard let pid = lastExternalAppPID else {
-            print("WindowResizer: FAIL - No tracked external app")
+        var targetPID: pid_t?
+        var targetName: String?
+
+        // First try: use tracked external app
+        if let pid = lastExternalAppPID {
+            targetPID = pid
+            targetName = lastExternalAppName
+            print("WindowResizer: Using tracked app")
+        } else {
+            // Fallback: find an active external app from running applications
+            print("WindowResizer: No tracked app, searching running applications...")
+            if let found = findActiveExternalApp() {
+                targetPID = found.pid
+                targetName = found.name
+                print("WindowResizer: Found fallback app: '\(found.name)' (PID: \(found.pid))")
+            }
+        }
+
+        guard let pid = targetPID else {
+            print("WindowResizer: FAIL - No external app found")
             capturedWindowElement = nil
             capturedAppPID = nil
             return
         }
 
-        print("WindowResizer: Using tracked PID \(pid) for '\(lastExternalAppName ?? "unknown")'")
+        print("WindowResizer: Capturing window for '\(targetName ?? "unknown")' (PID: \(pid))")
 
         let appElement = AXUIElementCreateApplication(pid)
 
@@ -81,7 +99,7 @@ class WindowResizer {
         if windowResult == .success, let window = focusedWindow {
             capturedWindowElement = (window as! AXUIElement)
             capturedAppPID = pid
-            print("WindowResizer: SUCCESS - Captured window for '\(lastExternalAppName ?? "unknown")'")
+            print("WindowResizer: SUCCESS - Captured window for '\(targetName ?? "unknown")'")
         } else {
             print("WindowResizer: FAIL - Could not get focused window, AX error: \(windowResult.rawValue)")
             capturedWindowElement = nil
@@ -90,6 +108,41 @@ class WindowResizer {
 
         // Final state check
         print("WindowResizer: === captureTargetWindow END === captured=\(capturedWindowElement != nil), pid=\(capturedAppPID ?? 0)")
+    }
+
+    /// Fallback: find an active external app that has a window
+    private func findActiveExternalApp() -> (pid: pid_t, name: String)? {
+        let myBundleId = Bundle.main.bundleIdentifier ?? ""
+
+        // Get all running apps that are regular apps (not background)
+        let runningApps = NSWorkspace.shared.runningApplications.filter {
+            $0.activationPolicy == .regular &&
+            $0.bundleIdentifier != myBundleId &&
+            !$0.isTerminated
+        }
+
+        print("WindowResizer: Found \(runningApps.count) regular external apps")
+
+        // Try each app to find one with a focusable window
+        for app in runningApps {
+            let pid = app.processIdentifier
+            let appElement = AXUIElementCreateApplication(pid)
+
+            var focusedWindow: CFTypeRef?
+            let result = AXUIElementCopyAttributeValue(
+                appElement,
+                kAXFocusedWindowAttribute as CFString,
+                &focusedWindow
+            )
+
+            if result == .success && focusedWindow != nil {
+                let name = app.localizedName ?? "unknown"
+                print("WindowResizer: App '\(name)' has a focused window")
+                return (pid, name)
+            }
+        }
+
+        return nil
     }
 
     /// Shrinks the previously captured window to make room for Pluckk panel
