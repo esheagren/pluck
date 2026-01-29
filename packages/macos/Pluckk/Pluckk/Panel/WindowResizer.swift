@@ -103,15 +103,10 @@ class WindowResizer {
             return
         }
 
-        // Set new frame (keep position, reduce width)
-        let newFrame = CGRect(
-            x: currentFrame.origin.x,
-            y: currentFrame.origin.y,
-            width: newWidth,
-            height: currentFrame.height
-        )
+        // Only change the width - don't touch position
+        let newSize = CGSize(width: newWidth, height: currentFrame.height)
 
-        let success = setWindowFrame(windowElement, frame: newFrame)
+        let success = setWindowSize(windowElement, size: newSize)
         if success {
             print("WindowResizer: Successfully resized window from \(currentFrame.width) to \(newWidth)")
         } else {
@@ -146,7 +141,8 @@ class WindowResizer {
 
         if windowResult == .success, let window = focusedWindow {
             let windowElement = window as! AXUIElement
-            let success = setWindowFrame(windowElement, frame: originalFrame)
+            let originalSize = CGSize(width: originalFrame.width, height: originalFrame.height)
+            let success = setWindowSize(windowElement, size: originalSize)
             if success {
                 print("WindowResizer: Successfully restored window to original size \(originalFrame.width)")
             } else {
@@ -205,43 +201,24 @@ class WindowResizer {
     }
 
     @discardableResult
-    private func setWindowFrame(_ window: AXUIElement, frame: CGRect) -> Bool {
-        var success = true
-
-        // Set size first (some apps behave better this way)
-        var size = frame.size
-        if let sizeValue = AXValueCreate(.cgSize, &size) {
-            let sizeResult = AXUIElementSetAttributeValue(
-                window,
-                kAXSizeAttribute as CFString,
-                sizeValue
-            )
-            if sizeResult != .success {
-                print("WindowResizer: Failed to set size, error: \(sizeResult.rawValue)")
-                success = false
-            }
-        } else {
+    private func setWindowSize(_ window: AXUIElement, size: CGSize) -> Bool {
+        var mutableSize = size
+        guard let sizeValue = AXValueCreate(.cgSize, &mutableSize) else {
             print("WindowResizer: Failed to create size AXValue")
-            success = false
+            return false
         }
 
-        // Set position
-        var position = frame.origin
-        if let positionValue = AXValueCreate(.cgPoint, &position) {
-            let posResult = AXUIElementSetAttributeValue(
-                window,
-                kAXPositionAttribute as CFString,
-                positionValue
-            )
-            if posResult != .success {
-                print("WindowResizer: Failed to set position, error: \(posResult.rawValue)")
-                success = false
-            }
-        } else {
-            print("WindowResizer: Failed to create position AXValue")
-            success = false
+        let result = AXUIElementSetAttributeValue(
+            window,
+            kAXSizeAttribute as CFString,
+            sizeValue
+        )
+
+        if result != .success {
+            print("WindowResizer: Failed to set size, error: \(result.rawValue)")
+            return false
         }
 
-        return success
+        return true
     }
 }
