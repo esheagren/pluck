@@ -6,7 +6,9 @@ class PluckkPanel: NSPanel {
     static var shared: PluckkPanel?
 
     private let collapsedWidth: CGFloat = 10
-    private let expandedWidth: CGFloat = 340
+    private let minExpandedWidth: CGFloat = 280
+    private let maxExpandedWidth: CGFloat = 500
+    private(set) var expandedWidth: CGFloat = 340
 
     private(set) var isExpanded = false
     private var hostingView: NSHostingView<SidebarView>?
@@ -51,7 +53,7 @@ class PluckkPanel: NSPanel {
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
 
         // Set up content view
-        let sidebarView = SidebarView(isExpanded: isExpanded)
+        let sidebarView = SidebarView(isExpanded: isExpanded, panelWidth: expandedWidth)
         hostingView = NSHostingView(rootView: sidebarView)
         hostingView?.frame = contentView?.bounds ?? .zero
         hostingView?.autoresizingMask = [.width, .height]
@@ -148,7 +150,26 @@ class PluckkPanel: NSPanel {
     }
 
     private func updateHostingView() {
-        hostingView?.rootView = SidebarView(isExpanded: isExpanded)
+        hostingView?.rootView = SidebarView(isExpanded: isExpanded, panelWidth: expandedWidth)
     }
 
+    func resize(to width: CGFloat) {
+        guard isExpanded else { return }
+
+        let newWidth = min(max(width, minExpandedWidth), maxExpandedWidth)
+        expandedWidth = newWidth
+
+        guard let screen = NSScreen.main else { return }
+        let screenFrame = screen.visibleFrame
+
+        let newFrame = NSRect(
+            x: screenFrame.maxX - newWidth,
+            y: screenFrame.minY,
+            width: newWidth,
+            height: screenFrame.height
+        )
+
+        setFrame(newFrame, display: true)
+        updateHostingView()
+    }
 }
