@@ -41,7 +41,7 @@ struct LoginView: View {
 
             // App name below logo
             Text("Pluckk")
-                .font(.system(size: PluckkTheme.FontSize.title, weight: .semibold))
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundColor(textPrimary)
                 .padding(.top, PluckkTheme.Spacing.md)
 
