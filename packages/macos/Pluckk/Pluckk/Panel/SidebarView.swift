@@ -56,11 +56,8 @@ struct SidebarView: View {
                 .frame(width: 1)
                 .shadow(color: Color.white.opacity(0.5), radius: 2, x: 0, y: 0)
 
-            // Resize handle on the left edge
-            ResizeHandle()
-
-            // Main content area
-            ZStack {
+            // Main content area with resize handle overlaid
+            ZStack(alignment: .leading) {
                 // Background color
                 backgroundColor.ignoresSafeArea()
 
@@ -98,6 +95,9 @@ struct SidebarView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+
+                // Resize handle overlaid on left edge (on top of animation)
+                ResizeHandle()
             }
         }
     }
