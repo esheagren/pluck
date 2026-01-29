@@ -7,23 +7,25 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		001 /* PluckkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101; };
-		002 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 102; };
-		003 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 103; };
-		004 /* PluckkPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104; };
-		005 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 105; };
-		006 /* AmbientStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 106; };
-		007 /* DoubleCmdDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 107; };
-		008 /* SelectionReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 108; };
-		009 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109; };
-		010 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110; };
-		011 /* PluckkAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111; };
-		012 /* CardGenerationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 112; };
-		013 /* CardBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113; };
-		014 /* ReviewSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114; };
-		015 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115; };
-		016 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 116; };
-		017 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119; };
+		001 /* PluckkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101 /* PluckkApp.swift */; };
+		002 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 102 /* AppDelegate.swift */; };
+		003 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 103 /* AppState.swift */; };
+		004 /* PluckkPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104 /* PluckkPanel.swift */; };
+		005 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 105 /* SidebarView.swift */; };
+		006 /* AmbientStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 106 /* AmbientStripView.swift */; };
+		007 /* DoubleCmdDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 107 /* DoubleCmdDetector.swift */; };
+		008 /* SelectionReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 108 /* SelectionReader.swift */; };
+		009 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109 /* AuthManager.swift */; };
+		010 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110 /* LoginView.swift */; };
+		011 /* PluckkAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111 /* PluckkAPI.swift */; };
+		012 /* CardGenerationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 112 /* CardGenerationView.swift */; };
+		013 /* CardBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113 /* CardBrowserView.swift */; };
+		014 /* ReviewSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114 /* ReviewSessionView.swift */; };
+		015 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115 /* SettingsView.swift */; };
+		016 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 116 /* Assets.xcassets */; };
+		017 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119 /* Config.swift */; };
+		018 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120 /* Theme.swift */; };
+		019 /* PluckkLogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 121 /* PluckkLogo.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,6 +49,8 @@
 		117 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		118 /* Pluckk.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Pluckk.entitlements; sourceTree = "<group>"; };
 		119 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
+		120 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		121 /* PluckkLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluckkLogo.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,6 +78,7 @@
 				101 /* PluckkApp.swift */,
 				102 /* AppDelegate.swift */,
 				119 /* Config.swift */,
+				120 /* Theme.swift */,
 				303 /* Models */,
 				304 /* Panel */,
 				305 /* Selection */,
@@ -144,6 +149,7 @@
 				113 /* CardBrowserView.swift */,
 				114 /* ReviewSessionView.swift */,
 				115 /* SettingsView.swift */,
+				121 /* PluckkLogo.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -163,7 +169,7 @@
 /* Begin PBXNativeTarget section */
 		400 /* Pluckk */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 500;
+			buildConfigurationList = 500 /* Build configuration list for PBXNativeTarget "Pluckk" */;
 			buildPhases = (
 				401 /* Sources */,
 				200 /* Frameworks */,
@@ -193,7 +199,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 601;
+			buildConfigurationList = 601 /* Build configuration list for PBXProject "Pluckk" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -243,6 +249,8 @@
 				014 /* ReviewSessionView.swift in Sources */,
 				015 /* SettingsView.swift in Sources */,
 				017 /* Config.swift in Sources */,
+				018 /* Theme.swift in Sources */,
+				019 /* PluckkLogo.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -376,7 +384,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = V88D4HZVDB;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Pluckk/Resources/Info.plist;
@@ -404,7 +412,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = V88D4HZVDB;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Pluckk/Resources/Info.plist;

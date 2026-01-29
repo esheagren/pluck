@@ -1,5 +1,7 @@
 import SwiftUI
 
+/// Sand/particle animation strip that matches the Chrome extension's sand-animation.ts
+/// Uses warm ochre tones in dark mode, gray tones in light mode
 struct AmbientStripView: View {
     enum State {
         case idle
@@ -10,23 +12,23 @@ struct AmbientStripView: View {
 
     let state: State
 
+    @Environment(\.colorScheme) var colorScheme
     @SwiftUI.State private var particles: [Particle] = []
     @SwiftUI.State private var animationTimer: Timer?
 
-    private let particleCount = 60
-    private let baseSpeed: CGFloat = 0.5
+    private let particleCount = 80
+    private let baseSpeed: CGFloat = 0.4
 
     var body: some View {
         GeometryReader { geometry in
             Canvas { context, size in
-                // Draw subtle background
-                let bgGradient = Gradient(colors: [
-                    Color.black.opacity(0.3),
-                    Color.black.opacity(0.4)
-                ])
+                // Draw background - matches extension's dark theme
+                let bgColor = colorScheme == .dark
+                    ? PluckkTheme.Dark.surface
+                    : PluckkTheme.Light.surfaceSecondary
                 context.fill(
                     Path(CGRect(origin: .zero, size: size)),
-                    with: .linearGradient(bgGradient, startPoint: .leading, endPoint: .trailing)
+                    with: .color(bgColor)
                 )
 
                 // Draw particles
@@ -43,15 +45,19 @@ struct AmbientStripView: View {
                     )
                 }
 
-                // Draw edge highlight
+                // Draw subtle edge highlight based on state
                 let edgeGradient = Gradient(colors: [
-                    stateColor.opacity(0.1),
+                    stateColor.opacity(0.15),
                     stateColor.opacity(0.02)
                 ])
-                let edgeRect = CGRect(x: 0, y: 0, width: 3, height: size.height)
+                let edgeRect = CGRect(x: 0, y: 0, width: 2, height: size.height)
                 context.fill(
                     Path(edgeRect),
-                    with: .linearGradient(edgeGradient, startPoint: .leading, endPoint: .trailing)
+                    with: .linearGradient(
+                        edgeGradient,
+                        startPoint: CGPoint(x: 0, y: size.height / 2),
+                        endPoint: CGPoint(x: 2, y: size.height / 2)
+                    )
                 )
             }
             .onAppear {
@@ -64,12 +70,16 @@ struct AmbientStripView: View {
             .onChange(of: geometry.size) { newSize in
                 initializeParticles(in: newSize)
             }
+            .onChange(of: colorScheme) { _ in
+                // Reinitialize particles with new colors when theme changes
+                initializeParticles(in: geometry.size)
+            }
         }
     }
 
     private var stateColor: Color {
         switch state {
-        case .idle: return .gray
+        case .idle: return colorScheme == .dark ? PluckkTheme.accentLight : Color.gray
         case .generating: return .blue
         case .ready: return .green
         case .syncing: return .orange
@@ -92,26 +102,41 @@ struct AmbientStripView: View {
             Particle(
                 x: CGFloat.random(in: 0...size.width),
                 y: CGFloat.random(in: 0...size.height),
-                size: CGFloat.random(in: 1...2.5),
+                size: CGFloat.random(in: 1.5...3),
                 speed: CGFloat.random(in: 0.3...1.0),
-                opacity: Double.random(in: 0.2...0.5),
-                color: particleColor,
+                opacity: Double.random(in: 0.3...0.6),
+                color: randomParticleColor(),
                 direction: Bool.random() ? 1 : -1
             )
         }
     }
 
-    private var particleColor: Color {
-        switch state {
-        case .idle:
-            return [Color(white: 0.7), Color(white: 0.8), Color(white: 0.75)].randomElement()!
-        case .generating:
-            return [Color.blue.opacity(0.8), Color.cyan.opacity(0.7), Color(white: 0.8)].randomElement()!
-        case .ready:
-            return [Color.green.opacity(0.7), Color.mint.opacity(0.6), Color(white: 0.8)].randomElement()!
-        case .syncing:
-            return [Color.orange.opacity(0.7), Color.yellow.opacity(0.6), Color(white: 0.8)].randomElement()!
+    /// Returns particle colors matching the extension's sand animation
+    /// Dark mode: warm ochre/cream tones
+    /// Light mode: gray tones
+    private func randomParticleColor() -> Color {
+        let colors: [Color]
+
+        if colorScheme == .dark {
+            // Warm ochre/cream particles for dark mode (matches extension)
+            colors = [
+                Color(red: 220/255, green: 215/255, blue: 200/255), // cream
+                Color(red: 200/255, green: 185/255, blue: 160/255), // warm cream
+                Color(red: 180/255, green: 165/255, blue: 140/255), // ochre/tan
+                Color(red: 210/255, green: 200/255, blue: 180/255), // light ochre
+                PluckkTheme.accentLight                               // brand accent
+            ]
+        } else {
+            // Gray particles for light mode (matches extension)
+            colors = [
+                Color(white: 0.24),  // dark gray
+                Color(white: 0.28),  // slightly lighter
+                Color(white: 0.20),  // darker
+                Color(white: 0.31)   // lighter
+            ]
         }
+
+        return colors.randomElement() ?? colors[0]
     }
 
     private func startAnimation(in size: CGSize) {
@@ -125,27 +150,29 @@ struct AmbientStripView: View {
         guard size.height > 0 else { return }
 
         for i in particles.indices {
-            // Move particle vertically
+            // Move particle vertically (like sand falling)
             particles[i].y += particles[i].speed * animationSpeed * CGFloat(particles[i].direction)
 
-            // Add slight horizontal drift
-            particles[i].x += CGFloat.random(in: -0.1...0.1)
+            // Add slight horizontal drift for organic movement
+            particles[i].x += CGFloat.random(in: -0.15...0.15)
             particles[i].x = max(0, min(size.width, particles[i].x))
 
             // Wrap around vertically
             if particles[i].y > size.height + 5 {
                 particles[i].y = -5
                 particles[i].x = CGFloat.random(in: 0...size.width)
-                particles[i].color = particleColor
+                particles[i].color = randomParticleColor()
+                particles[i].opacity = Double.random(in: 0.3...0.6)
             } else if particles[i].y < -5 {
                 particles[i].y = size.height + 5
                 particles[i].x = CGFloat.random(in: 0...size.width)
-                particles[i].color = particleColor
+                particles[i].color = randomParticleColor()
+                particles[i].opacity = Double.random(in: 0.3...0.6)
             }
 
             // Subtle opacity pulsing
-            particles[i].opacity += Double.random(in: -0.01...0.01)
-            particles[i].opacity = max(0.15, min(0.5, particles[i].opacity))
+            particles[i].opacity += Double.random(in: -0.015...0.015)
+            particles[i].opacity = max(0.2, min(0.6, particles[i].opacity))
         }
     }
 }
@@ -164,25 +191,30 @@ private struct Particle {
     HStack(spacing: 20) {
         VStack {
             Text("Idle")
+                .foregroundColor(.white)
             AmbientStripView(state: .idle)
                 .frame(width: 10, height: 200)
         }
         VStack {
             Text("Generating")
+                .foregroundColor(.white)
             AmbientStripView(state: .generating)
                 .frame(width: 10, height: 200)
         }
         VStack {
             Text("Ready")
+                .foregroundColor(.white)
             AmbientStripView(state: .ready)
                 .frame(width: 10, height: 200)
         }
         VStack {
             Text("Syncing")
+                .foregroundColor(.white)
             AmbientStripView(state: .syncing)
                 .frame(width: 10, height: 200)
         }
     }
     .padding()
-    .background(Color.black)
+    .background(Color(hex: "0f0f0f"))
+    .preferredColorScheme(.dark)
 }
