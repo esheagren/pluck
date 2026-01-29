@@ -926,9 +926,23 @@ async function generateCardsFromImage(focusText = '', isRetry = false): Promise<
 
     // Flatten any cloze_list cards into individual cards
     cards = flattenCards(response.cards);
-    sourceUrl = ''; // Screenshots don't have a source URL
     selectedIndices = new Set();
     editedCards = {};
+
+    // Use page context for source URL and title if available
+    if (capturedPageContext) {
+      sourceUrl = capturedPageContext.domContext.url;
+      cachedSelectionData = {
+        selection: '', // No text selection for screenshots
+        context: '', // No surrounding context for screenshots
+        url: capturedPageContext.domContext.url,
+        title: capturedPageContext.domContext.title
+        // Note: selector and textOffset are undefined - screenshots can't have DOM location
+      };
+    } else {
+      sourceUrl = '';
+      cachedSelectionData = null;
+    }
 
     // Update usage display if included in response
     if (response.usage) {

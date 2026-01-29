@@ -66,8 +66,23 @@ function getOrCreateContainer(): HTMLElement {
  */
 function findTargetElement(selector: string): Element | null {
   try {
-    return document.querySelector(selector);
-  } catch {
+    const element = document.querySelector(selector);
+    if (!element) {
+      console.log('[Pluckk] Selector did not match:', selector);
+      // Try to help debug by checking partial selectors
+      const parts = selector.split(' > ');
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const partialSelector = parts.slice(0, i + 1).join(' > ');
+        const partialMatch = document.querySelector(partialSelector);
+        if (partialMatch) {
+          console.log('[Pluckk] Partial selector matched at depth', i + 1, ':', partialSelector);
+          break;
+        }
+      }
+    }
+    return element;
+  } catch (error) {
+    console.error('[Pluckk] Invalid selector syntax:', selector, error);
     return null;
   }
 }
@@ -296,6 +311,8 @@ export async function handleDeepLink(): Promise<void> {
 
   if (!cardId) return;
 
+  console.log('[Pluckk] Deep link detected, card ID:', cardId);
+
   try {
     // Fetch the specific card
     const response = await fetch(
@@ -309,7 +326,7 @@ export async function handleDeepLink(): Promise<void> {
     );
 
     if (!response.ok) {
-      console.error('Failed to fetch card for deep link:', response.statusText);
+      console.error('[Pluckk] Failed to fetch card for deep link:', response.statusText);
       return;
     }
 
@@ -320,38 +337,62 @@ export async function handleDeepLink(): Promise<void> {
     }>;
 
     const card = cards[0];
+    console.log('[Pluckk] Card data retrieved:', {
+      hasSelector: !!card?.source_selector,
+      selector: card?.source_selector,
+      textOffset: card?.source_text_offset,
+      selectionLength: card?.source_selection?.length
+    });
+
     if (!card || !card.source_selector) {
+      console.warn('[Pluckk] No card found or missing selector');
       return;
     }
 
     const targetElement = findTargetElement(card.source_selector);
+    console.log('[Pluckk] Target element lookup:', {
+      selector: card.source_selector,
+      found: !!targetElement,
+      elementTag: targetElement?.tagName,
+      elementId: targetElement?.id,
+      elementClasses: targetElement?.className
+    });
 
     if (!targetElement) {
       // Selector no longer matches - just scroll to top
+      console.warn('[Pluckk] Selector did not match any element, scrolling to top');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
     // Scroll to the element
+    console.log('[Pluckk] Scrolling to element');
     targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-    // Highlight the source text briefly
+    // Highlight the source text
     highlightSourceText(targetElement, card.source_selection, card.source_text_offset);
   } catch (error) {
-    console.error('Error handling deep link:', error);
+    console.error('[Pluckk] Error handling deep link:', error);
   }
 }
 
 /**
- * Temporarily highlight the source text in the target element
+ * Highlight the source text in the target element (persistent)
  */
 function highlightSourceText(
   element: Element,
   sourceSelection: string | null,
   textOffset: number | null
 ): void {
+  console.log('[Pluckk] highlightSourceText called:', {
+    hasSelection: !!sourceSelection,
+    selectionPreview: sourceSelection?.substring(0, 50),
+    textOffset
+  });
+
   if (!sourceSelection || textOffset === null) {
     // Fallback: highlight the entire element
+    console.log('[Pluckk] Missing selection or offset, highlighting entire element');
     highlightElement(element);
     return;
   }
@@ -360,14 +401,34 @@ function highlightSourceText(
   const treeWalker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
   let currentOffset = 0;
   let node: Text | null = null;
+  let nodeIndex = 0;
 
   while ((node = treeWalker.nextNode() as Text | null)) {
     const nodeLength = node.textContent?.length || 0;
+    nodeIndex++;
 
     if (currentOffset + nodeLength > textOffset) {
       // Found the node containing the start of our selection
       const localOffset = textOffset - currentOffset;
       const range = document.createRange();
+
+      console.log('[Pluckk] Found target text node:', {
+        nodeIndex,
+        nodeLength,
+        currentOffset,
+        localOffset,
+        nodeTextPreview: node.textContent?.substring(0, 100)
+      });
+
+      // Verify the text at this location matches what we expect
+      const textAtOffset = element.textContent?.substring(textOffset, textOffset + sourceSelection.length);
+      if (textAtOffset !== sourceSelection) {
+        console.warn('[Pluckk] Text mismatch at offset:', {
+          expected: sourceSelection.substring(0, 50),
+          found: textAtOffset?.substring(0, 50),
+          match: textAtOffset === sourceSelection
+        });
+      }
 
       try {
         range.setStart(node, localOffset);
@@ -397,29 +458,15 @@ function highlightSourceText(
           background: linear-gradient(120deg, #fef08a 0%, #fde047 100%);
           padding: 2px 0;
           border-radius: 2px;
-          transition: background 0.5s ease;
         `;
 
         range.surroundContents(highlight);
-
-        // Fade out the highlight after a delay
-        setTimeout(() => {
-          highlight.style.background = 'transparent';
-          setTimeout(() => {
-            // Unwrap the highlight span
-            const parent = highlight.parentNode;
-            if (parent) {
-              while (highlight.firstChild) {
-                parent.insertBefore(highlight.firstChild, highlight);
-              }
-              parent.removeChild(highlight);
-            }
-          }, 500);
-        }, 2000);
+        console.log('[Pluckk] Successfully highlighted specific text');
 
         return;
-      } catch {
+      } catch (error) {
         // Range manipulation failed, fall back to element highlight
+        console.warn('[Pluckk] Range manipulation failed, falling back to element highlight:', error);
         break;
       }
     }
@@ -428,20 +475,15 @@ function highlightSourceText(
   }
 
   // Fallback: highlight the entire element
+  console.log('[Pluckk] Could not find text at offset, highlighting entire element. Final offset:', currentOffset);
   highlightElement(element);
 }
 
 /**
- * Highlight an entire element temporarily
+ * Highlight an entire element (persistent)
  */
 function highlightElement(element: Element): void {
   const htmlElement = element as HTMLElement;
-  const originalBackground = htmlElement.style.background;
-
   htmlElement.style.background = 'linear-gradient(120deg, #fef08a 0%, #fde047 100%)';
-  htmlElement.style.transition = 'background 0.5s ease';
-
-  setTimeout(() => {
-    htmlElement.style.background = originalBackground;
-  }, 2000);
+  console.log('[Pluckk] Highlighted entire element:', htmlElement.tagName);
 }
