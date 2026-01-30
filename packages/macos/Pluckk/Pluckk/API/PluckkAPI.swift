@@ -60,53 +60,55 @@ class PluckkAPI {
     }
 
     func fetchUser(token: String) async throws -> User {
-        let url = URL(string: "\(baseURL)/api/user/me")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = timeout
+        return try await executeWithTokenRefresh(token: token) { currentToken in
+            let url = URL(string: "\(self.baseURL)/api/user/me")!
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            request.setValue("Bearer \(currentToken)", forHTTPHeaderField: "Authorization")
+            request.timeoutInterval = self.timeout
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try validateResponse(response, data: data)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            try self.validateResponse(response, data: data)
 
-        // Debug: print raw response
-        if let jsonString = String(data: data, encoding: .utf8) {
-            print("PluckkAPI: /api/user/me response: \(jsonString.prefix(500))")
-        }
-
-        let meResponse: UserMeResponse
-        do {
-            meResponse = try JSONDecoder().decode(UserMeResponse.self, from: data)
-        } catch let decodingError as DecodingError {
-            switch decodingError {
-            case .keyNotFound(let key, let context):
-                print("PluckkAPI: Decoding error - missing key '\(key.stringValue)' at path: \(context.codingPath)")
-            case .typeMismatch(let type, let context):
-                print("PluckkAPI: Decoding error - type mismatch for \(type) at path: \(context.codingPath)")
-            case .valueNotFound(let type, let context):
-                print("PluckkAPI: Decoding error - value not found for \(type) at path: \(context.codingPath)")
-            case .dataCorrupted(let context):
-                print("PluckkAPI: Decoding error - data corrupted at path: \(context.codingPath)")
-            @unknown default:
-                print("PluckkAPI: Unknown decoding error: \(decodingError)")
+            // Debug: print raw response
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("PluckkAPI: /api/user/me response: \(jsonString.prefix(500))")
             }
-            throw decodingError
-        } catch {
-            print("PluckkAPI: Other error: \(error)")
-            throw error
-        }
 
-        // Map to User model
-        return User(
-            id: meResponse.user.id,
-            email: meResponse.user.email ?? "",
-            username: meResponse.user.username,
-            displayName: meResponse.user.displayName,
-            subscriptionStatus: meResponse.subscription?.status,
-            mochiApiKey: meResponse.settings?.mochiApiKey,
-            mochiDeckId: meResponse.settings?.mochiDeckId,
-            cardsGeneratedThisMonth: meResponse.usage?.cardsThisMonth
-        )
+            let meResponse: UserMeResponse
+            do {
+                meResponse = try JSONDecoder().decode(UserMeResponse.self, from: data)
+            } catch let decodingError as DecodingError {
+                switch decodingError {
+                case .keyNotFound(let key, let context):
+                    print("PluckkAPI: Decoding error - missing key '\(key.stringValue)' at path: \(context.codingPath)")
+                case .typeMismatch(let type, let context):
+                    print("PluckkAPI: Decoding error - type mismatch for \(type) at path: \(context.codingPath)")
+                case .valueNotFound(let type, let context):
+                    print("PluckkAPI: Decoding error - value not found for \(type) at path: \(context.codingPath)")
+                case .dataCorrupted(let context):
+                    print("PluckkAPI: Decoding error - data corrupted at path: \(context.codingPath)")
+                @unknown default:
+                    print("PluckkAPI: Unknown decoding error: \(decodingError)")
+                }
+                throw decodingError
+            } catch {
+                print("PluckkAPI: Other error: \(error)")
+                throw error
+            }
+
+            // Map to User model
+            return User(
+                id: meResponse.user.id,
+                email: meResponse.user.email ?? "",
+                username: meResponse.user.username,
+                displayName: meResponse.user.displayName,
+                subscriptionStatus: meResponse.subscription?.status,
+                mochiApiKey: meResponse.settings?.mochiApiKey,
+                mochiDeckId: meResponse.settings?.mochiDeckId,
+                cardsGeneratedThisMonth: meResponse.usage?.cardsThisMonth
+            )
+        }
     }
 
     func updateUser(token: String, updates: [String: Any]) async throws -> User {
@@ -141,7 +143,7 @@ class PluckkAPI {
 
         struct Usage: Decodable {
             let remaining: RemainingValue
-            let limit: Int
+            let limit: Int?  // Optional - Pro users have unlimited (no limit field)
             let subscription: String?
 
             enum RemainingValue: Decodable {
@@ -162,89 +164,143 @@ class PluckkAPI {
         }
     }
 
+    /// API card format - supports multiple card styles from the backend
     struct APICard: Decodable {
         let style: String
-        let question: String
-        let answer: String
+        // Simple cards (qa, cloze, explanation, application)
+        let question: String?
+        let answer: String?
+        // Bidirectional cards
+        let forward: QAPair?
+        let reverse: QAPair?
+        // Cloze list cards
+        let list_name: String?
+        let items: [String]?
+        let prompts: [QAPair]?
+        // Diagram cards
+        let diagram_prompt: String?
+
+        struct QAPair: Decodable {
+            let question: String
+            let answer: String
+        }
+
+        /// Flatten this API card into one or more GeneratedCards
+        func toGeneratedCards() -> [GeneratedCard] {
+            var result: [GeneratedCard] = []
+            let cardStyle = CardStyle(rawValue: style) ?? .qa
+
+            switch style {
+            case "qa_bidirectional":
+                // Create two cards from forward and reverse
+                if let fwd = forward {
+                    result.append(GeneratedCard(style: .qa, question: fwd.question, answer: fwd.answer))
+                }
+                if let rev = reverse {
+                    result.append(GeneratedCard(style: .qa, question: rev.question, answer: rev.answer))
+                }
+
+            case "cloze_list":
+                // Expand prompts into individual cloze cards
+                if let prompts = prompts {
+                    for prompt in prompts {
+                        result.append(GeneratedCard(style: .cloze, question: prompt.question, answer: prompt.answer))
+                    }
+                }
+
+            default:
+                // Simple card types (qa, cloze, explanation, application, diagram)
+                if let q = question, let a = answer {
+                    result.append(GeneratedCard(style: cardStyle, question: q, answer: a))
+                }
+            }
+
+            return result
+        }
     }
 
     func generateCards(token: String, request: GenerateCardsRequest) async throws -> (cards: [GeneratedCard], usage: Int?) {
-        let url = URL(string: "\(baseURL)/api/generate-cards")!
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
-        urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        urlRequest.httpBody = try JSONEncoder().encode(request)
-        urlRequest.timeoutInterval = timeout
+        return try await executeWithTokenRefresh(token: token) { currentToken in
+            let url = URL(string: "\(self.baseURL)/api/generate-cards")!
+            var urlRequest = URLRequest(url: url)
+            urlRequest.httpMethod = "POST"
+            urlRequest.setValue("Bearer \(currentToken)", forHTTPHeaderField: "Authorization")
+            urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            urlRequest.httpBody = try JSONEncoder().encode(request)
+            urlRequest.timeoutInterval = self.timeout
 
-        let (data, response) = try await URLSession.shared.data(for: urlRequest)
-        try validateResponse(response, data: data)
+            let (data, response) = try await URLSession.shared.data(for: urlRequest)
+            try self.validateResponse(response, data: data)
 
-        let apiResponse = try JSONDecoder().decode(GenerateCardsResponse.self, from: data)
-
-        let cards = apiResponse.cards.map { apiCard in
-            GeneratedCard(
-                style: CardStyle(rawValue: apiCard.style) ?? .qa,
-                question: apiCard.question,
-                answer: apiCard.answer
-            )
-        }
-
-        var remaining: Int? = nil
-        if let usage = apiResponse.usage {
-            switch usage.remaining {
-            case .number(let num):
-                remaining = num
-            case .unlimited:
-                remaining = nil
+            // Debug: log raw response for troubleshooting
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("PluckkAPI: /api/generate-cards response: \(jsonString.prefix(500))")
             }
-        }
 
-        return (cards, remaining)
+            let apiResponse = try JSONDecoder().decode(GenerateCardsResponse.self, from: data)
+
+            // Flatten all card types into simple GeneratedCards
+            let cards = apiResponse.cards.flatMap { $0.toGeneratedCards() }
+
+            var remaining: Int? = nil
+            if let usage = apiResponse.usage {
+                switch usage.remaining {
+                case .number(let num):
+                    remaining = num
+                case .unlimited:
+                    remaining = nil
+                }
+            }
+
+            return (cards, remaining)
+        }
     }
 
     // MARK: - Card Generation from Image
 
     func generateCardsFromImage(token: String, imageData: Data, context: SourceContext?) async throws -> (cards: [GeneratedCard], usage: Int?) {
-        let url = URL(string: "\(baseURL)/api/generate-cards-from-image")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = timeout
+        let contextString = context?.displayString ?? ""
+        return try await executeWithTokenRefresh(token: token) { currentToken in
+            let url = URL(string: "\(self.baseURL)/api/generate-cards-from-image")!
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("Bearer \(currentToken)", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.timeoutInterval = self.timeout
 
-        let base64Image = imageData.base64EncodedString()
-        let body: [String: Any] = [
-            "imageData": base64Image,
-            "mimeType": "image/png",
-            "context": context?.displayString ?? ""
-        ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            let base64Image = imageData.base64EncodedString()
+            let body: [String: Any] = [
+                "imageData": base64Image,
+                "mimeType": "image/png",
+                "context": contextString
+            ]
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try validateResponse(response, data: data)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            try self.validateResponse(response, data: data)
 
-        let apiResponse = try JSONDecoder().decode(GenerateCardsResponse.self, from: data)
-
-        let cards = apiResponse.cards.map { apiCard in
-            GeneratedCard(
-                style: CardStyle(rawValue: apiCard.style) ?? .qa,
-                question: apiCard.question,
-                answer: apiCard.answer
-            )
-        }
-
-        var remaining: Int? = nil
-        if let usage = apiResponse.usage {
-            switch usage.remaining {
-            case .number(let num):
-                remaining = num
-            case .unlimited:
-                remaining = nil
+            // Debug: log raw response for troubleshooting
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("PluckkAPI: /api/generate-cards-from-image response: \(jsonString.prefix(500))")
             }
-        }
 
-        return (cards, remaining)
+            let apiResponse = try JSONDecoder().decode(GenerateCardsResponse.self, from: data)
+
+            // Flatten all card types into simple GeneratedCards
+            let cards = apiResponse.cards.flatMap { $0.toGeneratedCards() }
+
+            var remaining: Int? = nil
+            if let usage = apiResponse.usage {
+                switch usage.remaining {
+                case .number(let num):
+                    remaining = num
+                case .unlimited:
+                    remaining = nil
+                }
+            }
+
+            return (cards, remaining)
+        }
     }
 
     // MARK: - Send to Mochi / Save Card
@@ -275,56 +331,85 @@ class PluckkAPI {
     }
 
     func sendCard(token: String, card: GeneratedCard, sourceUrl: String, deckId: String?) async throws -> SendCardResponse {
-        let url = URL(string: "\(baseURL)/api/send-to-mochi")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = timeout
-
         let body = SendCardRequest(
             question: card.question,
             answer: card.answer,
             sourceUrl: sourceUrl,
             deckId: deckId
         )
-        request.httpBody = try JSONEncoder().encode(body)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try validateResponse(response, data: data)
+        // Log the request details
+        print("PluckkAPI: sendCard - Sending card:")
+        print("  Question: \(card.question.prefix(100))...")
+        print("  Answer: \(card.answer.prefix(100))...")
+        print("  Source URL: \(sourceUrl)")
+        print("  Deck ID: \(deckId ?? "none")")
 
-        return try JSONDecoder().decode(SendCardResponse.self, from: data)
+        return try await executeWithTokenRefresh(token: token) { currentToken in
+            let url = URL(string: "\(self.baseURL)/api/send-to-mochi")!
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("Bearer \(currentToken)", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.timeoutInterval = self.timeout
+            request.httpBody = try JSONEncoder().encode(body)
+
+            print("PluckkAPI: sendCard - Making request to \(url)")
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            // Log the raw response
+            if let httpResponse = response as? HTTPURLResponse {
+                print("PluckkAPI: sendCard - Response status: \(httpResponse.statusCode)")
+            }
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("PluckkAPI: sendCard - Response body: \(jsonString)")
+            }
+
+            try self.validateResponse(response, data: data)
+
+            let decoded = try JSONDecoder().decode(SendCardResponse.self, from: data)
+            print("PluckkAPI: sendCard - Success! Card ID: \(decoded.cardId ?? "nil"), Mochi Card ID: \(decoded.mochiCardId ?? "nil")")
+
+            return decoded
+        }
     }
 
     // MARK: - Decks
 
     func fetchDecks(token: String) async throws -> [Deck] {
-        // Query Supabase directly for user's decks/folders
-        let supabaseUrl = supabaseURL
-        let url = URL(string: "\(supabaseUrl)/rest/v1/folders?select=*")!
+        return try await executeWithTokenRefresh(token: token) { currentToken in
+            // Query Supabase directly for user's decks/folders
+            let url = URL(string: "\(self.supabaseURL)/rest/v1/folders?select=*")!
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue(supabaseKey, forHTTPHeaderField: "apikey")
-        request.timeoutInterval = timeout
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            request.setValue("Bearer \(currentToken)", forHTTPHeaderField: "Authorization")
+            request.setValue(self.supabaseKey, forHTTPHeaderField: "apikey")
+            request.timeoutInterval = self.timeout
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await URLSession.shared.data(for: request)
 
-        // Supabase returns 200 even for empty results
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
-            return []
+            // Check for 401 specifically
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 401 {
+                throw APIError.unauthorized
+            }
+
+            // Supabase returns 200 even for empty results
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
+                return []
+            }
+
+            struct Folder: Decodable {
+                let id: String
+                let name: String
+                let user_id: String?
+            }
+
+            let folders = try JSONDecoder().decode([Folder].self, from: data)
+            return folders.map { Deck(id: $0.id, name: $0.name, userId: $0.user_id, cardCount: nil) }
         }
-
-        struct Folder: Decodable {
-            let id: String
-            let name: String
-            let user_id: String?
-        }
-
-        let folders = try JSONDecoder().decode([Folder].self, from: data)
-        return folders.map { Deck(id: $0.id, name: $0.name, userId: $0.user_id, cardCount: nil) }
     }
 
     // MARK: - Cards
@@ -477,12 +562,48 @@ class PluckkAPI {
             throw APIError.invalidResponse
         }
 
+        // Check for 401 Unauthorized specifically
+        if httpResponse.statusCode == 401 {
+            throw APIError.unauthorized
+        }
+
         guard httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
             // Try to parse error message
             if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
                 throw APIError.serverError(errorResponse.error ?? errorResponse.message ?? "Unknown error")
             }
             throw APIError.httpError(httpResponse.statusCode)
+        }
+    }
+
+    /// Execute a request with automatic token refresh on 401
+    /// - Parameters:
+    ///   - token: The current access token
+    ///   - isRetry: Internal flag to prevent infinite retry loops
+    ///   - operation: The async operation to execute
+    private func executeWithTokenRefresh<T>(
+        token: String,
+        isRetry: Bool = false,
+        operation: (String) async throws -> T
+    ) async throws -> T {
+        do {
+            return try await operation(token)
+        } catch APIError.unauthorized {
+            // Prevent infinite retry loops
+            guard !isRetry else {
+                print("PluckkAPI: Token refresh retry also got 401, giving up")
+                throw APIError.unauthorized
+            }
+
+            // Try to refresh the token
+            print("PluckkAPI: Got 401, attempting token refresh")
+            if let newToken = await AuthManager.shared.refreshAccessToken() {
+                print("PluckkAPI: Token refreshed, retrying request")
+                return try await executeWithTokenRefresh(token: newToken, isRetry: true, operation: operation)
+            } else {
+                print("PluckkAPI: Token refresh failed")
+                throw APIError.unauthorized
+            }
         }
     }
 
@@ -496,6 +617,7 @@ enum APIError: LocalizedError {
     case invalidResponse
     case httpError(Int)
     case serverError(String)
+    case unauthorized
 
     var errorDescription: String? {
         switch self {
@@ -505,6 +627,8 @@ enum APIError: LocalizedError {
             return "HTTP error: \(code)"
         case .serverError(let message):
             return message
+        case .unauthorized:
+            return "Session expired. Please sign in again."
         }
     }
 }

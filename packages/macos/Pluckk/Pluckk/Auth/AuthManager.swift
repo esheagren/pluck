@@ -70,6 +70,72 @@ class AuthManager: NSObject, ObservableObject {
         handleAuthCallback(callbackURL: url, error: nil)
     }
 
+    /// Refresh the access token using the stored refresh token
+    /// Returns the new access token on success, nil on failure
+    /// Only signs out on auth failures (401/403), not on network errors
+    @MainActor
+    func refreshAccessToken() async -> String? {
+        guard let refreshToken = loadFromKeychain(key: refreshTokenKey) else {
+            print("AuthManager: No refresh token available, signing out")
+            signOut()
+            return nil
+        }
+
+        let url = URL(string: "\(Config.supabaseURL)/auth/v1/token?grant_type=refresh_token")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")
+
+        let body: [String: String] = ["refresh_token": refreshToken]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                print("AuthManager: Token refresh - invalid response")
+                return nil // Network error, don't sign out
+            }
+
+            // Sign out only on authentication failures
+            if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                print("AuthManager: Refresh token invalid (status \(httpResponse.statusCode)), signing out")
+                signOut()
+                return nil
+            }
+
+            // Other errors (5xx, etc.) - don't sign out, just return nil
+            guard httpResponse.statusCode == 200 else {
+                print("AuthManager: Token refresh failed with status: \(httpResponse.statusCode)")
+                return nil
+            }
+
+            struct RefreshResponse: Decodable {
+                let access_token: String
+                let refresh_token: String?
+            }
+
+            let refreshResponse = try JSONDecoder().decode(RefreshResponse.self, from: data)
+
+            // Update stored tokens
+            self.accessToken = refreshResponse.access_token
+            saveToKeychain(key: tokenKey, value: refreshResponse.access_token)
+
+            if let newRefreshToken = refreshResponse.refresh_token {
+                saveToKeychain(key: refreshTokenKey, value: newRefreshToken)
+            }
+
+            print("AuthManager: Token refreshed successfully")
+            return refreshResponse.access_token
+
+        } catch {
+            // Network errors - don't sign out
+            print("AuthManager: Token refresh network error: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
     // MARK: - Private Methods
 
     private func handleAuthCallback(callbackURL: URL?, error: Error?) {
@@ -172,9 +238,11 @@ class AuthManager: NSObject, ObservableObject {
             }
         } catch {
             // Token might be expired
-            print("Failed to fetch user profile: \(error)")
+            print("AuthManager: Failed to fetch user profile: \(error.localizedDescription)")
+            print("AuthManager: Full error: \(error)")
             // Could attempt token refresh here
         }
+        print("AuthManager: fetchUserProfile completed, user set: \(AppState.shared.user != nil)")
     }
 
     // MARK: - Keychain

@@ -109,7 +109,8 @@ struct CardGenerationView: View {
     // MARK: - Error State
 
     private func errorState(_ error: String) -> some View {
-        VStack(spacing: 16) {
+        let _ = print("CardGenerationView: Displaying errorState: \(error)")
+        return VStack(spacing: 16) {
             Spacer()
 
             Image(systemName: "exclamationmark.triangle")
@@ -206,8 +207,8 @@ struct CardGenerationView: View {
             bottomActions
         }
         .onAppear {
-            // Select all cards by default
-            appState.selectedCardIndices = Set(appState.generatedCards.indices)
+            // Don't auto-select - user must choose which cards to keep
+            appState.selectedCardIndices = []
         }
     }
 
@@ -307,7 +308,7 @@ struct CardGenerationView: View {
 
                 await MainActor.run {
                     appState.generatedCards = result.cards
-                    appState.selectedCardIndices = Set(result.cards.indices)
+                    appState.selectedCardIndices = []  // User must select which cards to keep
                     if let remaining = result.usage {
                         appState.usageRemaining = remaining
                     }
@@ -323,6 +324,8 @@ struct CardGenerationView: View {
                 }
 
             } catch {
+                print("CardGenerationView: generateCards error: \(error.localizedDescription)")
+                print("CardGenerationView: Full error: \(error)")
                 await MainActor.run {
                     appState.generationError = error.localizedDescription
                     appState.isGenerating = false
@@ -360,33 +363,51 @@ struct CardGenerationView: View {
     }
 
     private func sendCards() {
-        guard let token = AuthManager.shared.accessToken else { return }
+        guard let token = AuthManager.shared.accessToken else {
+            print("CardGenerationView: sendCards - No access token available!")
+            return
+        }
 
         let selectedCards = appState.selectedCardIndices.map { appState.generatedCards[$0] }
-        guard !selectedCards.isEmpty else { return }
+        guard !selectedCards.isEmpty else {
+            print("CardGenerationView: sendCards - No cards selected!")
+            return
+        }
+
+        print("CardGenerationView: sendCards - Starting to send \(selectedCards.count) card(s)")
+        print("CardGenerationView: sendCards - Source URL: \(appState.sourceContext?.displayString ?? "none")")
+        print("CardGenerationView: sendCards - Deck ID: \(appState.selectedDeckId ?? "none")")
 
         Task {
             var successCount = 0
             var lastError: Error?
 
-            for card in selectedCards {
+            for (index, card) in selectedCards.enumerated() {
+                print("CardGenerationView: sendCards - Sending card \(index + 1)/\(selectedCards.count)")
                 do {
-                    _ = try await PluckkAPI.shared.sendCard(
+                    let response = try await PluckkAPI.shared.sendCard(
                         token: token,
                         card: card,
                         sourceUrl: appState.sourceContext?.displayString ?? "",
                         deckId: appState.selectedDeckId
                     )
                     successCount += 1
+                    print("CardGenerationView: sendCards - Card \(index + 1) sent successfully (cardId: \(response.cardId ?? "nil"))")
                 } catch {
                     lastError = error
+                    print("CardGenerationView: sendCards - Card \(index + 1) FAILED: \(error.localizedDescription)")
+                    print("CardGenerationView: sendCards - Full error: \(error)")
                 }
             }
 
+            print("CardGenerationView: sendCards - Completed: \(successCount)/\(selectedCards.count) successful")
+
             await MainActor.run {
                 if successCount > 0 {
+                    print("CardGenerationView: sendCards - Showing success toast for \(successCount) cards")
                     showSuccessToast(count: successCount)
                     if successCount == selectedCards.count {
+                        print("CardGenerationView: sendCards - All cards sent, collapsing panel")
                         collapsePanel()
                     }
                 }
@@ -394,7 +415,12 @@ struct CardGenerationView: View {
                 // Show error if some cards failed
                 let failedCount = selectedCards.count - successCount
                 if failedCount > 0 {
-                    appState.generationError = "Failed to save \(failedCount) card\(failedCount == 1 ? "" : "s"): \(lastError?.localizedDescription ?? "Unknown error")"
+                    let errorMsg = "Failed to save \(failedCount) card\(failedCount == 1 ? "" : "s"): \(lastError?.localizedDescription ?? "Unknown error")"
+                    print("CardGenerationView: sendCards error: \(errorMsg)")
+                    if let err = lastError {
+                        print("CardGenerationView: sendCards full error: \(err)")
+                    }
+                    appState.generationError = errorMsg
                 }
             }
         }
