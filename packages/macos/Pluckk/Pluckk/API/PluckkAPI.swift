@@ -303,35 +303,131 @@ class PluckkAPI {
         }
     }
 
-    // MARK: - Send to Mochi / Save Card
+    // MARK: - Save Card to Supabase
 
-    struct SendCardRequest: Encodable {
+    struct SupabaseCardRequest: Encodable {
         let question: String
         let answer: String
-        let sourceUrl: String
-        // Note: deck_id not used by API - deck comes from user's profile settings
+        let source_url: String
+        let user_id: String
+        let folder_id: String?
     }
 
-    struct SendCardResponse: Decodable {
+    struct SupabaseCardResponse: Decodable {
+        let id: String
+        let question: String
+        let answer: String
+    }
+
+    struct SendCardResponse {
         let success: Bool
         let cardId: String?
         let mochiCardId: String?
-        // Note: API returns camelCase keys (cardId, mochiCardId) which match property names
     }
 
+    /// Save a card to Supabase, optionally also send to Mochi
     func sendCard(token: String, card: GeneratedCard, sourceUrl: String, deckId: String?) async throws -> SendCardResponse {
-        let body = SendCardRequest(
-            question: card.question,
-            answer: card.answer,
-            sourceUrl: sourceUrl
-        )
-
-        // Log the request details
-        print("PluckkAPI: sendCard - Sending card:")
+        print("PluckkAPI: sendCard - Saving card:")
         print("  Question: \(card.question.prefix(100))...")
         print("  Answer: \(card.answer.prefix(100))...")
         print("  Source URL: \(sourceUrl)")
+        print("  Folder ID: \(deckId ?? "none")")
 
+        // First, save to Supabase
+        let supabaseCardId = try await saveCardToSupabase(
+            token: token,
+            question: card.question,
+            answer: card.answer,
+            sourceUrl: sourceUrl,
+            folderId: deckId
+        )
+
+        print("PluckkAPI: sendCard - Card saved to Supabase with ID: \(supabaseCardId)")
+
+        // Then, if Mochi is enabled, also send to Mochi
+        var mochiCardId: String? = nil
+        if AppState.shared.mochiEnabled {
+            print("PluckkAPI: sendCard - Mochi enabled, sending to Mochi...")
+            do {
+                mochiCardId = try await sendCardToMochi(
+                    token: token,
+                    question: card.question,
+                    answer: card.answer,
+                    sourceUrl: sourceUrl
+                )
+                print("PluckkAPI: sendCard - Card sent to Mochi with ID: \(mochiCardId ?? "nil")")
+            } catch {
+                // Mochi send failed, but Supabase save succeeded - log but don't fail
+                print("PluckkAPI: sendCard - Mochi send failed (card still saved to Supabase): \(error.localizedDescription)")
+            }
+        } else {
+            print("PluckkAPI: sendCard - Mochi not enabled, skipping")
+        }
+
+        return SendCardResponse(success: true, cardId: supabaseCardId, mochiCardId: mochiCardId)
+    }
+
+    /// Save card directly to Supabase
+    private func saveCardToSupabase(token: String, question: String, answer: String, sourceUrl: String, folderId: String?) async throws -> String {
+        return try await executeWithTokenRefresh(token: token) { currentToken in
+            // Get user ID from AppState
+            guard let userId = AppState.shared.user?.id else {
+                throw APIError.serverError("User not logged in")
+            }
+
+            let url = URL(string: "\(self.supabaseURL)/rest/v1/cards")!
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("Bearer \(currentToken)", forHTTPHeaderField: "Authorization")
+            request.setValue(self.supabaseKey, forHTTPHeaderField: "apikey")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("return=representation", forHTTPHeaderField: "Prefer")
+            request.timeoutInterval = self.timeout
+
+            let body = SupabaseCardRequest(
+                question: question,
+                answer: answer,
+                source_url: sourceUrl,
+                user_id: userId,
+                folder_id: folderId
+            )
+            request.httpBody = try JSONEncoder().encode(body)
+
+            print("PluckkAPI: saveCardToSupabase - Making request to \(url)")
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            // Log response
+            if let httpResponse = response as? HTTPURLResponse {
+                print("PluckkAPI: saveCardToSupabase - Response status: \(httpResponse.statusCode)")
+            }
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("PluckkAPI: saveCardToSupabase - Response body: \(jsonString)")
+            }
+
+            // Check for 401 specifically
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 401 {
+                throw APIError.unauthorized
+            }
+
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
+                let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
+                throw APIError.serverError("Supabase error: \(errorText)")
+            }
+
+            // Parse response - Supabase returns array with single item
+            let cards = try JSONDecoder().decode([SupabaseCardResponse].self, from: data)
+            guard let savedCard = cards.first else {
+                throw APIError.serverError("No card returned from Supabase")
+            }
+
+            return savedCard.id
+        }
+    }
+
+    /// Send card to Mochi via the backend API
+    private func sendCardToMochi(token: String, question: String, answer: String, sourceUrl: String) async throws -> String? {
         return try await executeWithTokenRefresh(token: token) { currentToken in
             let url = URL(string: "\(self.baseURL)/api/send-to-mochi")!
             var request = URLRequest(url: url)
@@ -339,26 +435,31 @@ class PluckkAPI {
             request.setValue("Bearer \(currentToken)", forHTTPHeaderField: "Authorization")
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.timeoutInterval = self.timeout
-            request.httpBody = try JSONEncoder().encode(body)
 
-            print("PluckkAPI: sendCard - Making request to \(url)")
+            struct MochiRequest: Encodable {
+                let question: String
+                let answer: String
+                let sourceUrl: String
+            }
+
+            let body = MochiRequest(question: question, answer: answer, sourceUrl: sourceUrl)
+            request.httpBody = try JSONEncoder().encode(body)
 
             let (data, response) = try await URLSession.shared.data(for: request)
 
-            // Log the raw response
             if let httpResponse = response as? HTTPURLResponse {
-                print("PluckkAPI: sendCard - Response status: \(httpResponse.statusCode)")
-            }
-            if let jsonString = String(data: data, encoding: .utf8) {
-                print("PluckkAPI: sendCard - Response body: \(jsonString)")
+                print("PluckkAPI: sendCardToMochi - Response status: \(httpResponse.statusCode)")
             }
 
             try self.validateResponse(response, data: data)
 
-            let decoded = try JSONDecoder().decode(SendCardResponse.self, from: data)
-            print("PluckkAPI: sendCard - Success! Card ID: \(decoded.cardId ?? "nil"), Mochi Card ID: \(decoded.mochiCardId ?? "nil")")
+            struct MochiResponse: Decodable {
+                let success: Bool
+                let cardId: String?
+            }
 
-            return decoded
+            let decoded = try JSONDecoder().decode(MochiResponse.self, from: data)
+            return decoded.cardId
         }
     }
 
