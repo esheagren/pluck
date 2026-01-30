@@ -13,6 +13,52 @@ class PluckkAPI {
 
     // MARK: - User
 
+    struct UserMeResponse: Decodable {
+        let user: UserInfo
+        let subscription: SubscriptionInfo?
+        let usage: UsageInfo?
+        let settings: SettingsInfo?
+
+        struct UserInfo: Decodable {
+            let id: String
+            let email: String?
+            let username: String?
+            let displayName: String?
+        }
+
+        struct SubscriptionInfo: Decodable {
+            let status: String?
+            let isPro: Bool?
+        }
+
+        struct UsageInfo: Decodable {
+            let cardsThisMonth: Int?
+            let limit: Int?
+            let remaining: RemainingValue?
+
+            enum RemainingValue: Decodable {
+                case number(Int)
+                case unlimited
+
+                init(from decoder: Decoder) throws {
+                    let container = try decoder.singleValueContainer()
+                    if let num = try? container.decode(Int.self) {
+                        self = .number(num)
+                    } else if let str = try? container.decode(String.self), str == "unlimited" {
+                        self = .unlimited
+                    } else {
+                        self = .number(0)
+                    }
+                }
+            }
+        }
+
+        struct SettingsInfo: Decodable {
+            let mochiApiKey: String?
+            let mochiDeckId: String?
+        }
+    }
+
     func fetchUser(token: String) async throws -> User {
         let url = URL(string: "\(baseURL)/api/user/me")!
         var request = URLRequest(url: url)
@@ -23,7 +69,19 @@ class PluckkAPI {
         let (data, response) = try await URLSession.shared.data(for: request)
         try validateResponse(response, data: data)
 
-        return try JSONDecoder().decode(User.self, from: data)
+        let meResponse = try JSONDecoder().decode(UserMeResponse.self, from: data)
+
+        // Map to User model
+        return User(
+            id: meResponse.user.id,
+            email: meResponse.user.email ?? "",
+            username: meResponse.user.username,
+            displayName: meResponse.user.displayName,
+            subscriptionStatus: meResponse.subscription?.status,
+            mochiApiKey: meResponse.settings?.mochiApiKey,
+            mochiDeckId: meResponse.settings?.mochiDeckId,
+            cardsGeneratedThisMonth: meResponse.usage?.cardsThisMonth
+        )
     }
 
     func updateUser(token: String, updates: [String: Any]) async throws -> User {
