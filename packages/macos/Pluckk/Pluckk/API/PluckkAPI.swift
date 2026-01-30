@@ -309,33 +309,21 @@ class PluckkAPI {
         let question: String
         let answer: String
         let sourceUrl: String
-        let deckId: String?
-
-        enum CodingKeys: String, CodingKey {
-            case question, answer
-            case sourceUrl = "sourceUrl"
-            case deckId = "deck_id"
-        }
+        // Note: deck_id not used by API - deck comes from user's profile settings
     }
 
     struct SendCardResponse: Decodable {
         let success: Bool
         let cardId: String?
         let mochiCardId: String?
-
-        enum CodingKeys: String, CodingKey {
-            case success
-            case cardId = "card_id"
-            case mochiCardId = "mochi_card_id"
-        }
+        // Note: API returns camelCase keys (cardId, mochiCardId) which match property names
     }
 
     func sendCard(token: String, card: GeneratedCard, sourceUrl: String, deckId: String?) async throws -> SendCardResponse {
         let body = SendCardRequest(
             question: card.question,
             answer: card.answer,
-            sourceUrl: sourceUrl,
-            deckId: deckId
+            sourceUrl: sourceUrl
         )
 
         // Log the request details
@@ -343,7 +331,6 @@ class PluckkAPI {
         print("  Question: \(card.question.prefix(100))...")
         print("  Answer: \(card.answer.prefix(100))...")
         print("  Source URL: \(sourceUrl)")
-        print("  Deck ID: \(deckId ?? "none")")
 
         return try await executeWithTokenRefresh(token: token) { currentToken in
             let url = URL(string: "\(self.baseURL)/api/send-to-mochi")!
