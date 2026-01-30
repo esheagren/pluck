@@ -69,6 +69,11 @@ class PluckkAPI {
         let (data, response) = try await URLSession.shared.data(for: request)
         try validateResponse(response, data: data)
 
+        // Debug: print raw response
+        if let jsonString = String(data: data, encoding: .utf8) {
+            print("PluckkAPI: /api/user/me response: \(jsonString.prefix(500))")
+        }
+
         let meResponse = try JSONDecoder().decode(UserMeResponse.self, from: data)
 
         // Map to User model

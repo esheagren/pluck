@@ -116,6 +116,20 @@ struct User: Codable {
     let mochiDeckId: String?
     let cardsGeneratedThisMonth: Int?
 
+    // Explicit memberwise initializer for manual creation
+    init(id: String, email: String, username: String?, displayName: String?,
+         subscriptionStatus: String?, mochiApiKey: String?, mochiDeckId: String?,
+         cardsGeneratedThisMonth: Int?) {
+        self.id = id
+        self.email = email
+        self.username = username
+        self.displayName = displayName
+        self.subscriptionStatus = subscriptionStatus
+        self.mochiApiKey = mochiApiKey
+        self.mochiDeckId = mochiDeckId
+        self.cardsGeneratedThisMonth = cardsGeneratedThisMonth
+    }
+
     enum CodingKeys: String, CodingKey {
         case id, email, username
         case displayName = "display_name"
