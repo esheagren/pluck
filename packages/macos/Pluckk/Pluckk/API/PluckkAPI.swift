@@ -74,7 +74,27 @@ class PluckkAPI {
             print("PluckkAPI: /api/user/me response: \(jsonString.prefix(500))")
         }
 
-        let meResponse = try JSONDecoder().decode(UserMeResponse.self, from: data)
+        let meResponse: UserMeResponse
+        do {
+            meResponse = try JSONDecoder().decode(UserMeResponse.self, from: data)
+        } catch let decodingError as DecodingError {
+            switch decodingError {
+            case .keyNotFound(let key, let context):
+                print("PluckkAPI: Decoding error - missing key '\(key.stringValue)' at path: \(context.codingPath)")
+            case .typeMismatch(let type, let context):
+                print("PluckkAPI: Decoding error - type mismatch for \(type) at path: \(context.codingPath)")
+            case .valueNotFound(let type, let context):
+                print("PluckkAPI: Decoding error - value not found for \(type) at path: \(context.codingPath)")
+            case .dataCorrupted(let context):
+                print("PluckkAPI: Decoding error - data corrupted at path: \(context.codingPath)")
+            @unknown default:
+                print("PluckkAPI: Unknown decoding error: \(decodingError)")
+            }
+            throw decodingError
+        } catch {
+            print("PluckkAPI: Other error: \(error)")
+            throw error
+        }
 
         // Map to User model
         return User(
