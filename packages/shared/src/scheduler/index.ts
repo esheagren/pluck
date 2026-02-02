@@ -12,6 +12,7 @@ export {
   getIntervalDisplay,
   previewIntervals,
   getInitialState,
+  getRelativeDueDate,
 } from './sm2-simple';
 
 // Constants and configuration

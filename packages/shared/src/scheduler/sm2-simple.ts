@@ -205,3 +205,55 @@ export function getInitialState(config: SM2Config = DEFAULT_CONFIG): CardReviewS
     streak: 0,
   };
 }
+
+/**
+ * Get relative due date display from a due_at timestamp.
+ * Returns human-friendly text like "in 3 days", "today", "overdue".
+ *
+ * @param dueAt - ISO date string for when the card is due
+ * @returns Human-readable relative date: "today", "tomorrow", "in 3 days", "in 2 weeks", "overdue"
+ */
+export function getRelativeDueDate(dueAt: string | null | undefined): string {
+  if (!dueAt) {
+    return 'new';
+  }
+
+  const now = new Date();
+  const due = new Date(dueAt);
+
+  // Reset times to midnight for day comparison
+  const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dueMidnight = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+
+  const diffMs = dueMidnight.getTime() - nowMidnight.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    return 'due';
+  }
+
+  if (diffDays === 0) {
+    return 'today';
+  }
+
+  if (diffDays === 1) {
+    return 'tomorrow';
+  }
+
+  if (diffDays < 7) {
+    return `in ${diffDays} days`;
+  }
+
+  const weeks = Math.round(diffDays / 7);
+  if (weeks < 4) {
+    return weeks === 1 ? 'in 1 week' : `in ${weeks} weeks`;
+  }
+
+  const months = Math.round(diffDays / 30);
+  if (months < 12) {
+    return months === 1 ? 'in 1 month' : `in ${months} months`;
+  }
+
+  const years = Math.round(diffDays / 365);
+  return years === 1 ? 'in 1 year' : `in ${years} years`;
+}
