@@ -44,22 +44,22 @@ export default function CardGrid({
           >
             <div
               onClick={(e) => handleCardClick(card, e)}
-              className="group bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-xl p-5 pt-10 cursor-pointer hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all h-full select-none"
+              className="group relative bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-xl p-5 cursor-pointer hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all h-full select-none"
             >
-              <div className="text-sm text-gray-800 dark:text-gray-200 line-clamp-3 mb-3">
+              <span className="absolute top-3 left-3 text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                {getRelativeDueDate(card.due_at)}
+              </span>
+              <div className="text-sm text-gray-800 dark:text-gray-200 line-clamp-3 mb-3 mt-6">
                 {card.question}
               </div>
               <div className="text-xs text-gray-400 dark:text-gray-500 line-clamp-2 mb-3">
                 {card.answer}
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                {showFolderBadge && card.folder && (
+              {showFolderBadge && card.folder && (
+                <div className="flex items-center gap-2 flex-wrap">
                   <FolderBadge folder={card.folder as FolderWithColor} />
-                )}
-                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                  {getRelativeDueDate(card.due_at)}
-                </span>
-              </div>
+                </div>
+              )}
             </div>
           </DraggableCard>
         );
