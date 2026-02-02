@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import DraggableCard from './DraggableCard';
 import FolderBadge from './FolderBadge';
+import { getRelativeDueDate } from '@pluckk/shared/scheduler';
 import type { CardGridProps, Card, FolderWithColor } from '../types';
 
 export default function CardGrid({
@@ -51,9 +52,14 @@ export default function CardGrid({
               <div className="text-xs text-gray-400 dark:text-gray-500 line-clamp-2 mb-3">
                 {card.answer}
               </div>
-              {showFolderBadge && card.folder && (
-                <FolderBadge folder={card.folder as FolderWithColor} />
-              )}
+              <div className="flex items-center gap-2 flex-wrap">
+                {showFolderBadge && card.folder && (
+                  <FolderBadge folder={card.folder as FolderWithColor} />
+                )}
+                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                  {getRelativeDueDate(card.due_at)}
+                </span>
+              </div>
             </div>
           </DraggableCard>
         );
