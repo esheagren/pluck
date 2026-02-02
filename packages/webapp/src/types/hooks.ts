@@ -43,6 +43,8 @@ export interface Card {
   source_text_offset: number | null;
   created_at: string;
   updated_at: string;
+  /** Due date from card_review_state (optional, loaded separately) */
+  due_at?: string | null;
 }
 
 /**
@@ -508,6 +510,7 @@ export interface UseReviewStateReturn {
   getIntervalPreviews: () => IntervalPreviews | null;
   submitReview: (rating: Rating) => Promise<ReviewSubmitResult>;
   skipCard: () => void;
+  removeCard: (cardId: string) => void;
   restart: () => void;
   startNewCardsSession: (ignoreLimit?: boolean) => Promise<void>;
   refetch: (forceRefresh?: boolean) => Promise<void>;

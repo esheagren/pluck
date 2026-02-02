@@ -36,6 +36,7 @@ export default function ReviewPage({
     getIntervalPreviews,
     submitReview,
     skipCard,
+    removeCard,
     startNewCardsSession,
     RATINGS,
   } = useReviewState(userId);
@@ -71,6 +72,20 @@ export default function ReviewPage({
       startNewCardsSession(ignoreLimit);
     },
     [startNewCardsSession]
+  );
+
+  // Wrap onDeleteCard to also remove the card from the review queue
+  const handleDeleteCard = useCallback(
+    async (cardId: string) => {
+      if (!onDeleteCard) return { error: 'No delete handler' };
+      const result = await onDeleteCard(cardId);
+      if (!result.error) {
+        // Card was deleted successfully - remove from review queue
+        removeCard(cardId);
+      }
+      return result;
+    },
+    [onDeleteCard, removeCard]
   );
 
   // Get interval previews for buttons
@@ -280,7 +295,7 @@ export default function ReviewPage({
             isFlipped={isFlipped}
             onFlip={flipCard}
             onUpdateCard={onUpdateCard}
-            onDeleteCard={onDeleteCard}
+            onDeleteCard={handleDeleteCard}
           />
         )}
 

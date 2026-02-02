@@ -654,6 +654,48 @@ export function useReviewState(userId: string | undefined): UseReviewStateReturn
   }, [dueCards, currentIndex]);
 
   /**
+   * Remove a card from the review queue (e.g., after deletion).
+   * Handles edge cases like removing the current card or the last card.
+   */
+  const removeCard = useCallback((cardId: string): void => {
+    const cardIndex = dueCards.findIndex((c) => c.id === cardId);
+    if (cardIndex === -1) return;
+
+    const newDueCards = dueCards.filter((c) => c.id !== cardId);
+    setDueCards(newDueCards);
+
+    // Adjust current index if needed
+    if (newDueCards.length === 0) {
+      // No cards left - session is complete
+      setCurrentIndex(0);
+      clearSession();
+    } else if (cardIndex < currentIndex) {
+      // Removed card was before current position - shift index back
+      const newIndex = currentIndex - 1;
+      setCurrentIndex(newIndex);
+      saveSession(
+        newDueCards.map((c) => c.id),
+        newIndex
+      );
+    } else if (cardIndex === currentIndex && currentIndex >= newDueCards.length) {
+      // Removed current card and it was the last one - go to previous (now last)
+      const newIndex = newDueCards.length - 1;
+      setCurrentIndex(newIndex);
+      saveSession(
+        newDueCards.map((c) => c.id),
+        newIndex
+      );
+    } else {
+      // Removed card was after current or current card removed but more cards remain
+      // Index stays the same (next card slides into position)
+      saveSession(
+        newDueCards.map((c) => c.id),
+        currentIndex
+      );
+    }
+  }, [dueCards, currentIndex]);
+
+  /**
    * Get the current card being reviewed.
    */
   const currentCard = dueCards[currentIndex] || null;
@@ -685,6 +727,7 @@ export function useReviewState(userId: string | undefined): UseReviewStateReturn
     getIntervalPreviews,
     submitReview,
     skipCard,
+    removeCard,
     restart,
     startNewCardsSession,
     refetch: fetchDueCards,
