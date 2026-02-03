@@ -3,9 +3,21 @@ import AppKit
 
 // MARK: - App State
 
-enum CapturedContent {
+enum CapturedContent: Equatable {
     case text(String)
     case image(NSImage)
+
+    static func == (lhs: CapturedContent, rhs: CapturedContent) -> Bool {
+        switch (lhs, rhs) {
+        case (.text(let lhsText), .text(let rhsText)):
+            return lhsText == rhsText
+        case (.image(let lhsImage), .image(let rhsImage)):
+            // Compare by reference - new captures create new instances
+            return lhsImage === rhsImage
+        default:
+            return false
+        }
+    }
 }
 
 enum PanelView {
@@ -71,6 +83,11 @@ class AppState: ObservableObject {
 
 // MARK: - Card Models
 
+struct QAPair: Codable {
+    let question: String
+    let answer: String
+}
+
 struct GeneratedCard: Identifiable {
     let id = UUID()
     var style: CardStyle
@@ -80,6 +97,30 @@ struct GeneratedCard: Identifiable {
 
     // For editable cards
     var isEditing: Bool = false
+
+    // Bidirectional cards (qa_bidirectional)
+    var forward: QAPair?
+    var reverse: QAPair?
+
+    // List cards (cloze_list)
+    var listName: String?
+    var items: [String]?
+    var prompts: [QAPair]?
+
+    /// Number of cards this will expand to when saved (can be 0 for invalid cards)
+    var expandedCardCount: Int {
+        switch style {
+        case .qa_bidirectional:
+            var count = 0
+            if forward != nil { count += 1 }
+            if reverse != nil { count += 1 }
+            return count  // Return actual count (can be 0 for invalid cards)
+        case .cloze_list:
+            return prompts?.count ?? 0  // Return actual count (can be 0 for invalid cards)
+        default:
+            return 1
+        }
+    }
 }
 
 enum CardStyle: String, Codable {

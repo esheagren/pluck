@@ -114,28 +114,38 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func handleDoubleTap() {
         print("AppDelegate: handleDoubleTap called, panel.isExpanded=\(panel.isExpanded)")
 
-        // If panel is expanded, collapse it
-        if panel.isExpanded {
-            print("AppDelegate: Panel is expanded, collapsing")
-            panel.collapse()
-            return
-        }
-
-        // Capture the target window BEFORE we do anything else
-        // This ensures we get the right window before Pluckk takes focus
-        print("AppDelegate: About to capture target window")
-        WindowResizer.shared.captureTargetWindow()
-        print("AppDelegate: Capture complete, continuing with content detection")
-
-        // Try to get selected text via Accessibility API
+        // Try to get selected text via Accessibility API first
+        // This works even when panel is expanded since it reads from the frontmost app
         if let selectedText = selectionReader.getSelectedText(), !selectedText.isEmpty {
+            print("AppDelegate: Found selected text, capturing for card generation")
+
+            // Only capture window if panel isn't expanded yet
+            if !panel.isExpanded {
+                WindowResizer.shared.captureTargetWindow()
+            }
+
             let context = selectionReader.getSourceContext()
             appState.capturedContent = .text(selectedText)
             appState.sourceContext = context
             appState.currentView = .generate
-            panel.expand()
+
+            if !panel.isExpanded {
+                panel.expand()
+            }
             return
         }
+
+        // If panel is expanded and no text selected, collapse it
+        if panel.isExpanded {
+            print("AppDelegate: Panel is expanded, no text selected, collapsing")
+            panel.collapse()
+            return
+        }
+
+        // Panel is collapsed - capture window and check clipboard
+        print("AppDelegate: About to capture target window")
+        WindowResizer.shared.captureTargetWindow()
+        print("AppDelegate: Capture complete, continuing with content detection")
 
         // Check clipboard for image
         if let image = selectionReader.getClipboardImage() {

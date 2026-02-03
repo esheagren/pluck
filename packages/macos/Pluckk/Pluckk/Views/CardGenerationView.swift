@@ -5,6 +5,8 @@ import UserNotifications
 struct CardGenerationView: View {
     @ObservedObject private var appState = AppState.shared
     @State private var editingCardIndex: Int?
+    @State private var showFocusInput = false
+    @State private var focusText = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -25,6 +27,16 @@ struct CardGenerationView: View {
             if appState.capturedContent != nil && appState.generatedCards.isEmpty && !appState.isGenerating {
                 generateCards()
             }
+        }
+        .onChange(of: appState.capturedContent) { newContent in
+            // When new content is captured (e.g., user double-tapped ⌘ with new selection),
+            // clear existing cards and generate new ones
+            guard newContent != nil else { return }
+            appState.generatedCards = []
+            appState.selectedCardIndices = []
+            appState.generationError = nil
+            appState.isGenerating = false  // Cancel any in-progress generation
+            generateCards()
         }
     }
 
@@ -199,6 +211,7 @@ struct CardGenerationView: View {
                     }
                 }
                 .padding(16)
+                .padding(.top, 24)  // Extra breathing room at top
             }
 
             Divider()
@@ -212,51 +225,76 @@ struct CardGenerationView: View {
         }
     }
 
+    /// Total number of cards after expansion (bidirectional → 2, list → N)
+    private var totalExpandedCardCount: Int {
+        appState.selectedCardIndices.reduce(0) { count, index in
+            guard index < appState.generatedCards.count else { return count }
+            return count + appState.generatedCards[index].expandedCardCount
+        }
+    }
+
     private var bottomActions: some View {
         VStack(spacing: 12) {
-            // Deck selector
-            if !appState.decks.isEmpty {
-                HStack {
-                    Text("Deck:")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    Picker("", selection: $appState.selectedDeckId) {
-                        Text("None").tag(nil as String?)
-                        ForEach(appState.decks) { deck in
-                            Text(deck.name).tag(deck.id as String?)
-                        }
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: .infinity)
-                }
-            }
-
-            // Mochi toggle (if configured)
-            if appState.mochiApiKey != nil {
-                Toggle("Also send to Mochi", isOn: $appState.mochiEnabled)
-                    .font(.caption)
-            }
-
-            // Usage info
+            // Usage info (for free users)
             if let remaining = appState.usageRemaining, !appState.subscriptionStatus.isPro {
                 Text("\(remaining) cards remaining this month")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
 
-            // Send button
+            // Action buttons
             HStack {
-                Button("Regenerate") {
-                    regenerateCards()
+                // Regenerate button with optional focus input
+                if showFocusInput {
+                    HStack(spacing: 8) {
+                        TextField("Focus on...", text: $focusText)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.caption)
+                            .frame(maxWidth: 150)
+
+                        Button(action: {
+                            regenerateCardsWithFocus()
+                        }) {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button(action: {
+                            showFocusInput = false
+                            focusText = ""
+                        }) {
+                            Image(systemName: "xmark")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(.secondary)
+                    }
+                } else {
+                    Button(action: {
+                        showFocusInput = true
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.clockwise")
+                            Text("Regenerate")
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .keyboardShortcut("r", modifiers: [])
                 }
-                .buttonStyle(.bordered)
-                .keyboardShortcut("r", modifiers: [])
 
                 Spacer()
 
-                Button("Send \(appState.selectedCardIndices.count) Card\(appState.selectedCardIndices.count == 1 ? "" : "s")") {
+                // Store button with expanded card count
+                Button(action: {
                     sendCards()
+                }) {
+                    HStack(spacing: 4) {
+                        Text("Store")
+                        if totalExpandedCardCount > 0 {
+                            Text("(\(totalExpandedCardCount))")
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(appState.selectedCardIndices.isEmpty)
@@ -268,7 +306,7 @@ struct CardGenerationView: View {
 
     // MARK: - Actions
 
-    private func generateCards() {
+    private func generateCards(withFocus focus: String? = nil) {
         guard let token = AuthManager.shared.accessToken else { return }
 
         appState.isGenerating = true
@@ -286,7 +324,7 @@ struct CardGenerationView: View {
                         context: "",
                         url: appState.sourceContext?.displayString ?? "",
                         title: appState.sourceContext?.windowTitle ?? "",
-                        focusText: nil
+                        focusText: focus
                     )
                     result = try await PluckkAPI.shared.generateCards(token: token, request: request)
 
@@ -335,9 +373,22 @@ struct CardGenerationView: View {
     }
 
     private func regenerateCards() {
-        appState.generatedCards = []
+        // Clear selection first to avoid index out of bounds
         appState.selectedCardIndices = []
+        appState.generatedCards = []
+        appState.generationError = nil
         generateCards()
+    }
+
+    private func regenerateCardsWithFocus() {
+        // Clear selection first to avoid index out of bounds
+        appState.selectedCardIndices = []
+        appState.generatedCards = []
+        appState.generationError = nil
+        let focus = focusText.isEmpty ? nil : focusText
+        generateCards(withFocus: focus)
+        showFocusInput = false
+        focusText = ""
     }
 
     private func toggleCard(_ index: Int) {
@@ -362,19 +413,77 @@ struct CardGenerationView: View {
         editingCardIndex = nil
     }
 
+    /// Expand a card into individual saveable cards
+    /// - qa_bidirectional → 2 separate qa cards (forward + reverse)
+    /// - cloze_list → N separate cloze cards (one per prompt)
+    /// - Others → pass through unchanged
+    /// Returns empty array for invalid cards (missing required data)
+    private func expandCard(_ card: GeneratedCard) -> [GeneratedCard] {
+        switch card.style {
+        case .qa_bidirectional:
+            var result: [GeneratedCard] = []
+            if let forward = card.forward {
+                result.append(GeneratedCard(
+                    style: .qa,
+                    question: forward.question,
+                    answer: forward.answer
+                ))
+            }
+            if let reverse = card.reverse {
+                result.append(GeneratedCard(
+                    style: .qa,
+                    question: reverse.question,
+                    answer: reverse.answer
+                ))
+            }
+            // Don't return invalid cards - skip if no forward/reverse pairs
+            if result.isEmpty {
+                print("WARNING: Bidirectional card has no forward/reverse pairs, skipping")
+            }
+            return result
+
+        case .cloze_list:
+            guard let prompts = card.prompts, !prompts.isEmpty else {
+                print("WARNING: List card has no prompts, skipping")
+                return []
+            }
+            return prompts.map { prompt in
+                GeneratedCard(
+                    style: .cloze,
+                    question: prompt.question,
+                    answer: prompt.answer
+                )
+            }
+
+        default:
+            return [card]
+        }
+    }
+
+    /// Expand all selected cards for saving (with bounds checking)
+    private func expandSelectedCards() -> [GeneratedCard] {
+        let selectedCards = appState.selectedCardIndices.compactMap { index -> GeneratedCard? in
+            guard index < appState.generatedCards.count else { return nil }
+            return appState.generatedCards[index]
+        }
+        return selectedCards.flatMap { expandCard($0) }
+    }
+
     private func sendCards() {
         guard let token = AuthManager.shared.accessToken else {
             print("CardGenerationView: sendCards - No access token available!")
             return
         }
 
-        let selectedCards = appState.selectedCardIndices.map { appState.generatedCards[$0] }
-        guard !selectedCards.isEmpty else {
-            print("CardGenerationView: sendCards - No cards selected!")
+        // Expand cards (bidirectional → 2, list → N)
+        let expandedCards = expandSelectedCards()
+        guard !expandedCards.isEmpty else {
+            print("CardGenerationView: sendCards - No cards to send after expansion!")
+            appState.generationError = "Selected cards contain invalid data and cannot be saved"
             return
         }
 
-        print("CardGenerationView: sendCards - Starting to send \(selectedCards.count) card(s)")
+        print("CardGenerationView: sendCards - Starting to send \(expandedCards.count) expanded card(s)")
         print("CardGenerationView: sendCards - Source URL: \(appState.sourceContext?.displayString ?? "none")")
         print("CardGenerationView: sendCards - Deck ID: \(appState.selectedDeckId ?? "none")")
 
@@ -382,8 +491,8 @@ struct CardGenerationView: View {
             var successCount = 0
             var lastError: Error?
 
-            for (index, card) in selectedCards.enumerated() {
-                print("CardGenerationView: sendCards - Sending card \(index + 1)/\(selectedCards.count)")
+            for (index, card) in expandedCards.enumerated() {
+                print("CardGenerationView: sendCards - Sending card \(index + 1)/\(expandedCards.count)")
                 do {
                     let response = try await PluckkAPI.shared.sendCard(
                         token: token,
@@ -400,20 +509,20 @@ struct CardGenerationView: View {
                 }
             }
 
-            print("CardGenerationView: sendCards - Completed: \(successCount)/\(selectedCards.count) successful")
+            print("CardGenerationView: sendCards - Completed: \(successCount)/\(expandedCards.count) successful")
 
             await MainActor.run {
                 if successCount > 0 {
                     print("CardGenerationView: sendCards - Showing success toast for \(successCount) cards")
                     showSuccessToast(count: successCount)
-                    if successCount == selectedCards.count {
+                    if successCount == expandedCards.count {
                         print("CardGenerationView: sendCards - All cards sent, collapsing panel")
                         collapsePanel()
                     }
                 }
 
                 // Show error if some cards failed
-                let failedCount = selectedCards.count - successCount
+                let failedCount = expandedCards.count - successCount
                 if failedCount > 0 {
                     let errorMsg = "Failed to save \(failedCount) card\(failedCount == 1 ? "" : "s"): \(lastError?.localizedDescription ?? "Unknown error")"
                     print("CardGenerationView: sendCards error: \(errorMsg)")
@@ -464,89 +573,286 @@ struct CardRowView: View {
     @State private var editQuestion: String = ""
     @State private var editAnswer: String = ""
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Header with checkbox and style badge
-            HStack {
-                Button(action: onToggle) {
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(isSelected ? .accentColor : .secondary)
-                }
-                .buttonStyle(.plain)
-
-                Text("[\(index + 1)]")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                Text(card.style.displayName)
-                    .font(.caption2)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.accentColor.opacity(0.1))
-                    .foregroundColor(.accentColor)
-                    .cornerRadius(4)
-
-                Spacer()
-
-                if !isEditing {
-                    Button(action: onEdit) {
-                        Image(systemName: "pencil")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-
-            if isEditing {
-                // Edit mode
-                VStack(alignment: .leading, spacing: 8) {
-                    TextField("Question", text: $editQuestion, axis: .vertical)
-                        .textFieldStyle(.roundedBorder)
-                        .lineLimit(3...6)
-
-                    TextField("Answer", text: $editAnswer, axis: .vertical)
-                        .textFieldStyle(.roundedBorder)
-                        .lineLimit(3...6)
-
-                    HStack {
-                        Button("Cancel") {
-                            onCancelEdit()
-                        }
-                        .buttonStyle(.bordered)
-
-                        Button("Save") {
-                            onSaveEdit(editQuestion, editAnswer)
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                }
-                .onAppear {
-                    editQuestion = card.question
-                    editAnswer = card.answer
-                }
-            } else {
-                // Display mode
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Q: \(card.question)")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .lineLimit(3)
-
-                    Text("A: \(card.answer)")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .lineLimit(3)
-                }
-            }
+    /// Left border accent color based on card type
+    private var accentColor: Color {
+        switch card.style {
+        case .qa_bidirectional:
+            return PluckkTheme.bidirectionalAccent
+        case .cloze_list:
+            return PluckkTheme.listAccent
+        case .diagram:
+            return PluckkTheme.diagramAccent
+        default:
+            return .clear
         }
-        .padding(12)
+    }
+
+    /// Whether this card type shows a colored left border
+    private var showsAccentBorder: Bool {
+        switch card.style {
+        case .qa_bidirectional, .cloze_list, .diagram:
+            return true
+        default:
+            return false
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            // Left accent border for special card types
+            if showsAccentBorder {
+                Rectangle()
+                    .fill(accentColor)
+                    .frame(width: 3)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                // Header with checkbox and style badge
+                cardHeader
+
+                if isEditing {
+                    editModeContent
+                } else {
+                    displayModeContent
+                }
+            }
+            .padding(12)
+        }
         .background(isSelected ? Color.accentColor.opacity(0.05) : Color.primary.opacity(0.03))
         .cornerRadius(8)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(isSelected ? Color.accentColor.opacity(0.3) : Color.clear, lineWidth: 1)
         )
+    }
+
+    private var cardHeader: some View {
+        HStack {
+            Button(action: onToggle) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(isSelected ? .accentColor : .secondary)
+            }
+            .buttonStyle(.plain)
+
+            Text("[\(index + 1)]")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            // Style badge with appropriate color
+            Text(card.style.displayName)
+                .font(.caption2)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(badgeBackgroundColor.opacity(0.1))
+                .foregroundColor(badgeBackgroundColor)
+                .cornerRadius(4)
+
+            // Card count indicator for multi-card types
+            if card.expandedCardCount > 1 {
+                Text("→ \(card.expandedCardCount) cards")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+
+            if !isEditing {
+                Button(action: onEdit) {
+                    Image(systemName: "pencil")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var badgeBackgroundColor: Color {
+        switch card.style {
+        case .qa_bidirectional:
+            return PluckkTheme.bidirectionalAccent
+        case .cloze_list:
+            return PluckkTheme.listAccent
+        case .diagram:
+            return PluckkTheme.diagramAccent
+        default:
+            return .accentColor
+        }
+    }
+
+    private var editModeContent: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            TextField("Question", text: $editQuestion, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(3...6)
+
+            TextField("Answer", text: $editAnswer, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(3...6)
+
+            HStack {
+                Button("Cancel") {
+                    onCancelEdit()
+                }
+                .buttonStyle(.bordered)
+
+                Button("Save") {
+                    onSaveEdit(editQuestion, editAnswer)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .onAppear {
+            editQuestion = card.question
+            editAnswer = card.answer
+        }
+    }
+
+    @ViewBuilder
+    private var displayModeContent: some View {
+        switch card.style {
+        case .qa_bidirectional:
+            bidirectionalContent
+        case .cloze_list:
+            listContent
+        default:
+            standardContent
+        }
+    }
+
+    // MARK: - Standard Card Content (Q&A, Cloze, etc.)
+
+    private var standardContent: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Q: \(card.question)")
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .lineLimit(3)
+
+            Text("A: \(card.answer)")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .lineLimit(3)
+        }
+    }
+
+    // MARK: - Bidirectional Card Content
+
+    private var bidirectionalContent: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let forward = card.forward {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Forward:")
+                        .font(.caption2)
+                        .foregroundColor(PluckkTheme.bidirectionalAccent)
+                        .fontWeight(.semibold)
+                    Text("Q: \(forward.question)")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .lineLimit(2)
+                    Text("A: \(forward.answer)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+            }
+
+            if let reverse = card.reverse {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Reverse:")
+                        .font(.caption2)
+                        .foregroundColor(PluckkTheme.bidirectionalAccent)
+                        .fontWeight(.semibold)
+                    Text("Q: \(reverse.question)")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .lineLimit(2)
+                    Text("A: \(reverse.answer)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+            }
+        }
+    }
+
+    // MARK: - List Card Content
+
+    private var listContent: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // List name
+            if let listName = card.listName {
+                Text(listName)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            }
+
+            // Item chips
+            if let items = card.items, !items.isEmpty {
+                FlowLayout(spacing: 6) {
+                    ForEach(items, id: \.self) { item in
+                        Text(item)
+                            .font(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(PluckkTheme.listAccent.opacity(0.1))
+                            .foregroundColor(PluckkTheme.listAccent)
+                            .cornerRadius(12)
+                    }
+                }
+            }
+
+            // Note about testing
+            Text("Each item tested individually + recall all")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .italic()
+        }
+    }
+}
+
+// MARK: - Flow Layout for Item Chips
+
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let result = FlowResult(in: proposal.width ?? 0, subviews: subviews, spacing: spacing)
+        return result.size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let result = FlowResult(in: bounds.width, subviews: subviews, spacing: spacing)
+        for (index, subview) in subviews.enumerated() {
+            subview.place(at: CGPoint(x: bounds.minX + result.positions[index].x,
+                                      y: bounds.minY + result.positions[index].y),
+                         proposal: .unspecified)
+        }
+    }
+
+    struct FlowResult {
+        var positions: [CGPoint] = []
+        var size: CGSize = .zero
+
+        init(in maxWidth: CGFloat, subviews: Subviews, spacing: CGFloat) {
+            var x: CGFloat = 0
+            var y: CGFloat = 0
+            var rowHeight: CGFloat = 0
+
+            for subview in subviews {
+                let size = subview.sizeThatFits(.unspecified)
+                if x + size.width > maxWidth && x > 0 {
+                    x = 0
+                    y += rowHeight + spacing
+                    rowHeight = 0
+                }
+                positions.append(CGPoint(x: x, y: y))
+                rowHeight = max(rowHeight, size.height)
+                x += size.width + spacing
+                self.size.width = max(self.size.width, x)
+            }
+            self.size.height = y + rowHeight
+        }
     }
 }
 
