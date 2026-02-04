@@ -15,6 +15,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             showPermissionsWindow()
         }
 
+        // Request Automation permission for System Events (needed for window resizing fallback)
+        WindowResizer.shared.requestAutomationPermission()
+
         setupPanel()
         setupMenuBar()
         setupDoubleCmdDetector()

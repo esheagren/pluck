@@ -41,5 +41,7 @@
 	</array>
 	<key>NSAccessibilityUsageDescription</key>
 	<string>Pluckk needs accessibility permission to capture text selections from any application and detect the double-tap Command shortcut.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Pluckk needs automation permission to resize application windows when the panel opens.</string>
 </dict>
 </plist>
