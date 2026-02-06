@@ -1560,6 +1560,7 @@ html.dark .card-item.selected .card-checkbox::after {
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  overflow: visible;
 }
 
 /* Clickable Start Review area - left third */
@@ -1587,7 +1588,7 @@ html.dark .card-item.selected .card-checkbox::after {
   display: flex;
   gap: 2px;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Settings button in review card - right third */
@@ -1688,4 +1689,176 @@ html.dark .activity-grid-mini .activity-day.level-4 {
 
 [data-theme="dark"] .activity-day.skeleton {
   background: var(--color-border);
+}
+
+/* Keyboard Shortcuts Overlay */
+.shortcuts-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.12s ease;
+}
+
+html.dark .shortcuts-overlay {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.shortcuts-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  width: 260px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
+  animation: scaleIn 0.12s ease;
+}
+
+html.dark .shortcuts-panel {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.shortcuts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.shortcuts-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.shortcuts-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.shortcuts-close:hover {
+  color: var(--color-text-primary);
+}
+
+.shortcuts-list {
+  padding: 8px 14px 12px;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+
+.shortcut-keys {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.shortcut-keys kbd {
+  display: inline-block;
+  background: var(--color-btn-secondary-bg);
+  color: var(--color-text-primary);
+  font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border-light);
+  line-height: 1.4;
+}
+
+.shortcut-desc {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.shortcuts-divider {
+  height: 1px;
+  background: var(--color-border-subtle);
+  margin: 6px 0;
+}
+
+/* Custom tooltip for activity grid */
+.activity-day {
+  position: relative;
+}
+
+.activity-day .activity-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-surface-secondary);
+  color: var(--color-text-primary);
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 6px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--color-border);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.activity-day .activity-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--color-border);
+}
+
+.activity-day .activity-tooltip::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: var(--color-surface-secondary);
+  margin-top: -1px;
+}
+
+.activity-day:hover .activity-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Tooltip date styling */
+.activity-tooltip .tooltip-date {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.activity-tooltip .tooltip-activity {
+  color: var(--color-text-secondary);
+  margin-top: 2px;
 }
