@@ -70,6 +70,11 @@ const drawerVersion = document.getElementById('drawer-version') as HTMLElement |
 const drawerThemeToggle = document.getElementById('drawer-theme-toggle') as HTMLInputElement | null;
 const drawerKeepOpenToggle = document.getElementById('drawer-keep-open-toggle') as HTMLInputElement | null;
 const pageContextToggle = document.getElementById('page-context-toggle') as HTMLInputElement | null;
+// DOM Elements - Shortcuts Overlay
+const shortcutsOverlay = document.getElementById('shortcuts-overlay') as HTMLElement | null;
+const shortcutsCloseBtn = document.getElementById('shortcuts-close') as HTMLButtonElement | null;
+const helpBtn = document.getElementById('help-btn') as HTMLButtonElement | null;
+
 // DOM Elements - Review Card
 const reviewCardContainer = document.getElementById('review-card-container') as HTMLElement | null;
 const reviewCard = document.getElementById('review-card') as HTMLElement | null;
@@ -1110,8 +1115,14 @@ async function checkSelectionState(): Promise<void> {
 
     if (selectionData?.selection) {
       // We have text selected - show generate button, hide hint
+      // But only if question input is empty (question submit takes priority)
       readyHint?.classList.add('hidden');
-      generateBtn?.classList.remove('hidden');
+      const hasQuestionInput = questionInput?.value.trim();
+      if (!hasQuestionInput) {
+        generateBtn?.classList.remove('hidden');
+      } else {
+        generateBtn?.classList.add('hidden');
+      }
     } else {
       // No selection - hide generate button, show hint
       readyHint?.classList.remove('hidden');
@@ -1311,22 +1322,25 @@ function renderMiniActivityGrid(activityData: ActivityDataMap): void {
         }
       }
 
-      // Build tooltip text
+      // Build tooltip content
       const formattedDate = formatDateForTooltip(currentDate);
-      let tooltip = formattedDate;
+      let tooltipActivity = '';
       if (!isFuture) {
         if (reviews > 0 || cardsCreated > 0) {
           const parts: string[] = [];
           if (reviews > 0) parts.push(`${reviews} review${reviews !== 1 ? 's' : ''}`);
           if (cardsCreated > 0) parts.push(`${cardsCreated} card${cardsCreated !== 1 ? 's' : ''} created`);
-          tooltip = `${formattedDate}\n${parts.join(', ')}`;
+          tooltipActivity = parts.join(', ');
         } else {
-          tooltip = `${formattedDate}\nNo activity`;
+          tooltipActivity = 'No activity';
         }
       }
 
       const visibility = isFuture ? 'style="visibility: hidden;"' : '';
-      html += `<div class="activity-day level-${level}" ${visibility} title="${tooltip}"></div>`;
+      const tooltipHtml = !isFuture
+        ? `<div class="activity-tooltip"><div class="tooltip-date">${formattedDate}</div><div class="tooltip-activity">${tooltipActivity}</div></div>`
+        : '';
+      html += `<div class="activity-day level-${level}" ${visibility}>${tooltipHtml}</div>`;
 
       currentDate.setDate(currentDate.getDate() + 1);
     }
@@ -1809,6 +1823,30 @@ openSettingsBtn?.addEventListener('click', handleGoogleSignIn);
 upgradeBtn?.addEventListener('click', handleUpgrade);
 closeBtn?.addEventListener('click', closePanel);
 
+// Shortcuts Overlay Toggle Functions
+function toggleShortcutsOverlay(): void {
+  const isOpen = !shortcutsOverlay?.classList.contains('hidden');
+  if (isOpen) {
+    shortcutsOverlay?.classList.add('hidden');
+  } else {
+    shortcutsOverlay?.classList.remove('hidden');
+  }
+}
+
+function closeShortcutsOverlay(): void {
+  shortcutsOverlay?.classList.add('hidden');
+}
+
+// Event Listeners - Shortcuts Overlay
+helpBtn?.addEventListener('click', toggleShortcutsOverlay);
+shortcutsCloseBtn?.addEventListener('click', closeShortcutsOverlay);
+shortcutsOverlay?.addEventListener('click', (e: MouseEvent) => {
+  // Close when clicking the backdrop (not the panel itself)
+  if (e.target === shortcutsOverlay) {
+    closeShortcutsOverlay();
+  }
+});
+
 // Settings Drawer Toggle Functions
 function toggleSettingsDrawer(): void {
   const isOpen = !settingsDrawer?.classList.contains('hidden');
@@ -1890,8 +1928,11 @@ questionInput?.addEventListener('input', () => {
   const hasContent = questionInput.value.trim().length > 0;
 
   // Show/hide submit button based on content
+  // When question input has content, show question submit and hide generate button
+  // When empty, hide question submit (generateBtn visibility managed by checkSelectionState)
   if (hasContent) {
     questionSubmitBtn?.classList.remove('hidden');
+    generateBtn?.classList.add('hidden');
   } else {
     questionSubmitBtn?.classList.add('hidden');
   }
@@ -1939,9 +1980,16 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     toggleFocusInput();
   }
 
-  // Escape to close (drawer first, then focus input, then panel)
+  // ? to toggle keyboard shortcuts help
+  if (e.key === '?' && !isTyping) {
+    toggleShortcutsOverlay();
+  }
+
+  // Escape to close (shortcuts overlay first, then drawer, then focus input, then panel)
   if (e.key === 'Escape') {
-    if (!settingsDrawer?.classList.contains('hidden')) {
+    if (!shortcutsOverlay?.classList.contains('hidden')) {
+      closeShortcutsOverlay();
+    } else if (!settingsDrawer?.classList.contains('hidden')) {
       closeSettingsDrawer();
     } else if (!focusInputContainer?.classList.contains('hidden')) {
       focusInputContainer?.classList.add('hidden');

@@ -15,6 +15,13 @@
     <header class="header">
       <h1 class="logo-text" id="logo-text">Pluckk</h1>
       <div class="header-actions">
+        <button class="settings-btn" id="help-btn" title="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </button>
         <button class="settings-btn" id="close-btn" title="Close" aria-label="Close side panel">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -23,12 +30,6 @@
         </button>
       </div>
     </header>
-
-    <!-- Focus Input (for guided regeneration) -->
-    <div class="focus-input-container hidden" id="focus-input-container">
-      <input type="text" id="focus-input" class="focus-input" placeholder="Focus on... (e.g., practical applications, key terms)" />
-      <button class="btn btn-primary btn-small" id="generate-with-focus-btn">Generate</button>
-    </div>
 
     <!-- Loading State -->
     <div class="state loading-state hidden" id="loading-state">
@@ -125,13 +126,19 @@
         <span><strong id="selected-count">0</strong> of <span id="total-count">0</span> selected</span>
       </div>
 
-      <div class="actions">
-        <button class="btn btn-ghost btn-sm" id="regenerate-btn" title="Regenerate with different focus">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="23 4 23 10 17 10"></polyline>
-            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-          </svg>
-        </button>
+      <div class="actions-row">
+        <div class="regenerate-row">
+          <button class="btn btn-ghost btn-sm" id="regenerate-btn" title="Regenerate with different focus" aria-label="Regenerate cards with custom focus">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+          </button>
+          <div class="focus-input-container hidden" id="focus-input-container">
+            <input type="text" id="focus-input" class="focus-input" placeholder="e.g., key terms" />
+            <button class="btn btn-primary btn-small" id="generate-with-focus-btn">Apply</button>
+          </div>
+        </div>
         <button class="btn btn-mochi btn-sm" id="mochi-btn" disabled>
           <span class="btn-text">Store</span>
         </button>
@@ -152,6 +159,47 @@
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
         </svg>
       </button>
+    </div>
+
+    <!-- Keyboard Shortcuts Overlay -->
+    <div class="shortcuts-overlay hidden" id="shortcuts-overlay">
+      <div class="shortcuts-panel">
+        <div class="shortcuts-header">
+          <span class="shortcuts-title">Keyboard Shortcuts</span>
+          <button class="shortcuts-close" id="shortcuts-close" aria-label="Close shortcuts">&times;</button>
+        </div>
+        <div class="shortcuts-list">
+          <div class="shortcut-row">
+            <span class="shortcut-keys"><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span>
+            <span class="shortcut-desc">Toggle card selection</span>
+          </div>
+          <div class="shortcut-row">
+            <span class="shortcut-keys"><kbd>Enter</kbd></span>
+            <span class="shortcut-desc">Store selected cards</span>
+          </div>
+          <div class="shortcut-row">
+            <span class="shortcut-keys"><kbd>R</kbd></span>
+            <span class="shortcut-desc">Regenerate with focus</span>
+          </div>
+          <div class="shortcut-row">
+            <span class="shortcut-keys"><kbd>Esc</kbd></span>
+            <span class="shortcut-desc">Close panel / dismiss</span>
+          </div>
+          <div class="shortcut-row">
+            <span class="shortcut-keys"><kbd>?</kbd></span>
+            <span class="shortcut-desc">Toggle this help</span>
+          </div>
+          <div class="shortcuts-divider"></div>
+          <div class="shortcut-row">
+            <span class="shortcut-keys"><kbd>Cmd</kbd> <kbd>Opt</kbd> <kbd>P</kbd></span>
+            <span class="shortcut-desc">Open Pluckk</span>
+          </div>
+          <div class="shortcut-row">
+            <span class="shortcut-keys"><kbd>Paste</kbd></span>
+            <span class="shortcut-desc">Screenshot mode</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Settings Drawer (at bottom) -->
