@@ -15,6 +15,7 @@ export type MessageAction =
   | 'getSelection'
   | 'getDOMContext'
   | 'captureViewport'
+  | 'refineCard'
   | 'ping';
 
 // Selection data from content script
@@ -100,6 +101,22 @@ export interface GetDOMContextMessage extends ExtensionMessage {
 
 export interface CaptureViewportMessage extends ExtensionMessage {
   action: 'captureViewport';
+}
+
+// Refine card message
+export type RefinementAction = 'rephrase' | 'simplify' | 'harder';
+
+export interface RefineCardMessage extends ExtensionMessage {
+  action: 'refineCard';
+  card: GeneratedCard;
+  refinementAction: RefinementAction;
+  sourceSelection?: string;
+  sourceContext?: string;
+}
+
+export interface RefineCardResponse {
+  card?: GeneratedCard;
+  error?: string;
 }
 
 // Response types

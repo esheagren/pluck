@@ -708,6 +708,14 @@ interface AnswerQuestionRequest extends ExtensionMessage {
   title?: string;
 }
 
+interface RefineCardRequest extends ExtensionMessage {
+  action: 'refineCard';
+  card: GeneratedCard;
+  refinementAction: 'rephrase' | 'simplify' | 'harder';
+  sourceSelection?: string;
+  sourceContext?: string;
+}
+
 interface SaveToSupabaseRequest extends ExtensionMessage {
   action: 'saveToSupabase';
   question: string;
@@ -721,6 +729,7 @@ type MessageRequest =
   | GenerateCardsFromImageRequest
   | AnswerQuestionRequest
   | SaveToSupabaseRequest
+  | RefineCardRequest
   | { action: 'getMochiStatus' }
   | { action: 'getAuthStatus' }
   | { action: 'captureViewport' }
@@ -983,6 +992,61 @@ chrome.runtime.onMessage.addListener(
           });
         } catch (error) {
           console.error('Answer question failed:', error);
+          sendResponse({ error: 'api_error', message: (error as Error).message });
+        }
+      })();
+
+      return true;
+    }
+
+    if (request.action === 'refineCard') {
+      const req = request as RefineCardRequest;
+      (async () => {
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
+          sendResponse({ error: 'not_authenticated' });
+          return;
+        }
+
+        try {
+          const response = await fetch(`${BACKEND_URL}/api/refine-card`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({
+              card: req.card,
+              refinementAction: req.refinementAction,
+              sourceSelection: req.sourceSelection,
+              sourceContext: req.sourceContext
+            })
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+
+            if (response.status === 401) {
+              sendResponse({ error: 'not_authenticated' });
+              return;
+            }
+            if (response.status === 402) {
+              sendResponse({ error: 'usage_limit_reached' });
+              return;
+            }
+            if (response.status === 429) {
+              sendResponse({ error: 'rate_limit', message: 'Too many requests' });
+              return;
+            }
+
+            sendResponse({ error: 'api_error', message: errorData.error || 'Failed to refine card' });
+            return;
+          }
+
+          const data: { card: GeneratedCard } = await response.json();
+          sendResponse({ card: data.card });
+        } catch (error) {
+          console.error('Card refinement failed:', error);
           sendResponse({ error: 'api_error', message: (error as Error).message });
         }
       })();

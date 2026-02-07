@@ -709,6 +709,7 @@ html.dark .settings-drawer {
   transition: border-color 0.15s ease, background-color 0.2s ease;
   display: flex;
   gap: 12px;
+  position: relative;
 }
 
 .card-item:hover {
@@ -1861,4 +1862,104 @@ html.dark .shortcuts-panel {
 .activity-tooltip .tooltip-activity {
   color: var(--color-text-secondary);
   margin-top: 2px;
+}
+
+/* Card Refinement Menu */
+.card-menu {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.card-menu-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--color-text-tertiary);
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.card-item:hover .card-menu-btn {
+  opacity: 1;
+}
+
+.card-menu-btn:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.card-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 130px;
+  z-index: 10;
+  overflow: hidden;
+}
+
+html.dark .card-menu-dropdown {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.card-menu-action {
+  display: block;
+  width: 100%;
+  padding: 7px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--color-text-primary);
+  text-align: left;
+  transition: background 0.1s ease;
+}
+
+.card-menu-action:hover {
+  background: var(--color-surface-hover);
+}
+
+/* Card refining loading state */
+.card-item.card-refining .card-content {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.card-item.card-refining .card-menu {
+  display: none;
+}
+
+.card-item.card-refining::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-text-primary);
+  border-radius: 50%;
+  animation: card-spin 0.6s linear infinite;
+}
+
+@keyframes card-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Card refine error flash */
+.card-item.card-refine-error {
+  border-color: var(--color-error);
+  transition: border-color 0.3s ease;
 }

@@ -21,6 +21,8 @@ import type {
   CardToSave,
   ProfileCache,
   SelectionResponse,
+  RefinementAction,
+  RefineCardResponse,
 } from '../src/types';
 
 // DOM Elements - Main UI
@@ -254,13 +256,16 @@ function renderCards(): void {
       renderStandardCard(cardEl, card, index, edited);
     }
 
-    // Handle card selection (toggle) - skip if clicking on editable content or checkbox
+    // Handle card selection (toggle) - skip if clicking on editable content, checkbox, or menu
     cardEl.addEventListener('click', (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (target.hasAttribute('contenteditable') && target.isContentEditable) {
         return;
       }
       if (target.classList.contains('diagram-checkbox') || target.closest('.diagram-checkbox-label')) {
+        return;
+      }
+      if (target.closest('.card-menu')) {
         return;
       }
       toggleCard(index);
@@ -295,9 +300,11 @@ function renderStandardCard(cardEl: HTMLElement, card: GeneratedCard, index: num
       <div class="card-divider"></div>
       <div class="card-answer" contenteditable="true" data-field="answer">${escapeHtml(answer)}</div>
     </div>
+    ${createRefinementMenu(index)}
   `;
 
   setupStandardEditHandlers(cardEl, index);
+  setupRefinementMenu(cardEl, index);
 }
 
 /**
@@ -326,9 +333,11 @@ function renderBidirectionalCard(cardEl: HTMLElement, card: GeneratedCard, index
         <div class="card-answer" contenteditable="true" data-field="reverseAnswer">${escapeHtml(reverseA)}</div>
       </div>
     </div>
+    ${createRefinementMenu(index)}
   `;
 
   setupBidirectionalEditHandlers(cardEl, index);
+  setupRefinementMenu(cardEl, index);
 }
 
 /**
@@ -354,9 +363,11 @@ function renderDiagramCard(cardEl: HTMLElement, card: GeneratedCard, index: numb
         </label>
       </div>
     </div>
+    ${createRefinementMenu(index)}
   `;
 
   setupStandardEditHandlers(cardEl, index);
+  setupRefinementMenu(cardEl, index);
 
   // Handle diagram checkbox
   const checkbox = cardEl.querySelector('.diagram-checkbox') as HTMLInputElement | null;
@@ -428,6 +439,110 @@ function setupBidirectionalEditHandlers(cardEl: HTMLElement, index: number): voi
       });
     }
   });
+}
+
+/**
+ * Create refinement menu HTML for a card
+ */
+function createRefinementMenu(index: number): string {
+  return `
+    <div class="card-menu">
+      <button class="card-menu-btn" data-menu-index="${index}" title="Refine card">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+        </svg>
+      </button>
+      <div class="card-menu-dropdown hidden" data-dropdown-index="${index}">
+        <button class="card-menu-action" data-action="rephrase" data-card-index="${index}">Rephrase</button>
+        <button class="card-menu-action" data-action="simplify" data-card-index="${index}">Simplify</button>
+        <button class="card-menu-action" data-action="harder" data-card-index="${index}">Make harder</button>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Setup refinement menu handlers for a card element
+ */
+function setupRefinementMenu(cardEl: HTMLElement, index: number): void {
+  const menuBtn = cardEl.querySelector(`.card-menu-btn[data-menu-index="${index}"]`) as HTMLElement | null;
+  const dropdown = cardEl.querySelector(`.card-menu-dropdown[data-dropdown-index="${index}"]`) as HTMLElement | null;
+
+  if (!menuBtn || !dropdown) return;
+
+  menuBtn.addEventListener('click', (e: MouseEvent) => {
+    e.stopPropagation();
+    // Close any other open dropdowns
+    document.querySelectorAll('.card-menu-dropdown').forEach(d => {
+      if (d !== dropdown) d.classList.add('hidden');
+    });
+    dropdown.classList.toggle('hidden');
+  });
+
+  // Handle action clicks
+  const actions = cardEl.querySelectorAll<HTMLElement>(`.card-menu-action[data-card-index="${index}"]`);
+  actions.forEach(actionBtn => {
+    actionBtn.addEventListener('click', (e: MouseEvent) => {
+      e.stopPropagation();
+      const action = actionBtn.dataset.action as RefinementAction;
+      dropdown.classList.add('hidden');
+      refineCard(index, action);
+    });
+  });
+}
+
+/**
+ * Refine a single card via the backend
+ */
+async function refineCard(index: number, action: RefinementAction): Promise<void> {
+  const card = cards[index];
+  if (!card) return;
+
+  const cardEl = cardsList?.children[index] as HTMLElement | undefined;
+  if (!cardEl) return;
+
+  // Show loading state on this card
+  cardEl.classList.add('card-refining');
+
+  try {
+    const response: RefineCardResponse = await chrome.runtime.sendMessage({
+      action: 'refineCard',
+      card,
+      refinementAction: action,
+      sourceSelection: cachedSelectionData?.selection,
+      sourceContext: cachedSelectionData?.context,
+    });
+
+    if (response.error || !response.card) {
+      cardEl.classList.remove('card-refining');
+      // Brief error flash
+      cardEl.classList.add('card-refine-error');
+      setTimeout(() => cardEl.classList.remove('card-refine-error'), 1500);
+      return;
+    }
+
+    // Replace card in-place
+    cards[index] = response.card;
+    delete editedCards[index];
+
+    // Preserve selection state
+    const wasSelected = selectedIndices.has(index);
+
+    // Re-render cards and restore state
+    renderCards();
+
+    if (wasSelected) {
+      selectedIndices.add(index);
+      const newCardEl = cardsList?.children[index] as HTMLElement | undefined;
+      newCardEl?.classList.add('selected');
+      updateSelectionCount();
+    }
+  } catch (error) {
+    console.error('Card refinement failed:', error);
+    cardEl.classList.remove('card-refining');
+    cardEl.classList.add('card-refine-error');
+    setTimeout(() => cardEl.classList.remove('card-refine-error'), 1500);
+  }
 }
 
 /**
@@ -1878,7 +1993,7 @@ reviewSettingsBtn?.addEventListener('click', (e) => {
   toggleSettingsDrawer();
 });
 
-// Close drawer when clicking outside
+// Close drawer and card menus when clicking outside
 document.addEventListener('click', (e: MouseEvent) => {
   const target = e.target as HTMLElement;
   const isDrawerOpen = !settingsDrawer?.classList.contains('hidden');
@@ -1887,6 +2002,11 @@ document.addEventListener('click', (e: MouseEvent) => {
 
   if (isDrawerOpen && !clickedInDrawer && !clickedSettingsBtn) {
     closeSettingsDrawer();
+  }
+
+  // Close any open card refinement dropdowns
+  if (!target.closest('.card-menu')) {
+    document.querySelectorAll('.card-menu-dropdown').forEach(d => d.classList.add('hidden'));
   }
 });
 

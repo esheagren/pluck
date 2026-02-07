@@ -32,6 +32,9 @@ export type {
   DOMContextResponse,
   ViewportScreenshotResponse,
   PageContext,
+  RefinementAction,
+  RefineCardMessage,
+  RefineCardResponse,
 } from './messages';
 
 // Storage types
