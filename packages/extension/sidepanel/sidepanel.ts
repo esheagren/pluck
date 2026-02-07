@@ -513,7 +513,7 @@ async function refineCard(index: number, action: RefinementAction): Promise<void
       sourceContext: cachedSelectionData?.context,
     });
 
-    if (response.error || !response.card) {
+    if (!response || response.error || !response.card) {
       cardEl.classList.remove('card-refining');
       // Brief error flash
       cardEl.classList.add('card-refine-error');
