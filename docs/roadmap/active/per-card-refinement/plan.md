@@ -1,6 +1,6 @@
 # Per-Card Refinement Actions Implementation Plan
 
-**Status:** Complete
+**Status:** Completed
 **Created:** 2026-02-06
 **Started:** 2026-02-06
 **Completed:** 2026-02-06

@@ -94,8 +94,11 @@ Use a faster, distilled model potentially fine-tuned specifically for question g
 ### Comparison/Contrast Cards
 New card style for highlighting similarities and differences between related concepts. Example: "How does X differ from Y?" or "What do X and Y have in common?" Addresses a common knowledge type not currently in the taxonomy.
 
-### Per-Card Refinement Actions
-Action menu on individual generated cards to refine without regenerating the whole batch. Actions like "rephrase differently", "flip direction", "relate to [concept]". Generates new variations of just that card while keeping the others.
+### Refine Card Server-Side Validation
+The `/api/refine-card` endpoint passes client-supplied card JSON directly into the LLM prompt. A malicious authenticated user could craft card content for prompt injection. Low risk (auth required, card data originates from Claude) but should be hardened.
+
+**Context:** See [Per-Card Refinement documentation](completed/per-card-refinement/documentation.md) - Known Limitations section.
+**Suggested fix:** Validate card structure server-side (whitelist known fields, strip unexpected properties) before including in the prompt.
 
 ### DOM Context Capture for Images
 When a user provides just an image/screenshot without text selection, capture the visible DOM text or take a viewport screenshot to extract surrounding context. Helps the AI understand what the image refers to and generate better questions.
