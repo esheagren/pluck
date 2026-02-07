@@ -10,6 +10,98 @@ import type { ClaudeResponse } from '../lib/claude-types.js';
 
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
+const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
+
+type RefinementAction = 'rephrase' | 'simplify' | 'harder';
+
+const REFINEMENT_INSTRUCTIONS: Record<RefinementAction, string> = {
+  rephrase: 'Rephrase the question and answer differently while testing the same knowledge. Use different wording, framing, or angle.',
+  simplify: 'Break this into a more atomic, easier-to-answer card. Simplify the language and narrow the scope.',
+  harder: 'Make this card require deeper recall or application. Increase specificity, ask "why" or "how" instead of "what".',
+};
+
+/**
+ * Handle single-card refinement requests
+ */
+async function handleRefineCard(
+  res: VercelResponse,
+  userId: string,
+  body: GenerateCardsRequest
+): Promise<void> {
+  const { refineCard: card, refinementAction, sourceSelection, sourceContext } = body;
+
+  if (!card || !refinementAction || !['rephrase', 'simplify', 'harder'].includes(refinementAction)) {
+    res.status(400).json({ error: 'Invalid refinement request' });
+    return;
+  }
+
+  const action = refinementAction as RefinementAction;
+  const systemPrompt = `You are refining a single spaced repetition flashcard. ${REFINEMENT_INSTRUCTIONS[action]}
+
+Return ONLY valid JSON with the refined card in the exact same format as the input card. Preserve the style and tags. Do not add explanation.
+Output format: {"card":{...}}`;
+
+  let userMessage = `**Original card:**\n${JSON.stringify(card, null, 2)}`;
+  if (sourceSelection) userMessage += `\n\n**Source text:** ${sourceSelection}`;
+  if (sourceContext) userMessage += `\n\n**Surrounding context:** ${sourceContext}`;
+  userMessage += '\n\nRefine this card according to the instructions.';
+
+  try {
+    const claudeResponse = await fetch(CLAUDE_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.CLAUDE_API_KEY || '',
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: HAIKU_MODEL,
+        max_tokens: 500,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userMessage }],
+      }),
+    });
+
+    if (!claudeResponse.ok) {
+      const errorText = await claudeResponse.text();
+      console.error('Claude API error:', claudeResponse.status, errorText);
+      if (claudeResponse.status === 429) {
+        res.status(429).json({ error: 'rate_limit', message: 'Too many requests, please try again later' });
+        return;
+      }
+      res.status(500).json({ error: 'Failed to refine card' });
+      return;
+    }
+
+    const data = await claudeResponse.json() as ClaudeResponse;
+    const content = data.content?.[0]?.text;
+    if (!content) {
+      res.status(500).json({ error: 'Empty response from AI' });
+      return;
+    }
+
+    let jsonStr = content.trim();
+    if (jsonStr.startsWith('```')) {
+      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    }
+
+    const parsed = JSON.parse(jsonStr) as { card: GeneratedCard };
+    if (!parsed.card) {
+      res.status(500).json({ error: 'Invalid response format from AI' });
+      return;
+    }
+
+    await incrementCardCount(userId, 1);
+    res.status(200).json({ card: parsed.card });
+  } catch (error) {
+    console.error('Error refining card:', error);
+    if (error instanceof SyntaxError) {
+      res.status(500).json({ error: 'Failed to parse AI response' });
+      return;
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
 
 /**
  * Build the system prompt based on user's subscription status and learning profile
@@ -131,7 +223,15 @@ export default async function handler(
   }
 
   // Parse request body
-  const { selection, context, url, title, focusText, customPrompt } = req.body as GenerateCardsRequest;
+  const body = req.body as GenerateCardsRequest;
+
+  // Refinement mode: refine a single card instead of generating a batch
+  if (body.refineCard && body.refinementAction) {
+    await handleRefineCard(res, user.id, body);
+    return;
+  }
+
+  const { selection, context, url, title, focusText, customPrompt } = body;
 
   if (!selection) {
     res.status(400).json({ error: 'Missing selection text' });

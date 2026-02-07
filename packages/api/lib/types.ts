@@ -102,6 +102,11 @@ export interface GenerateCardsRequest {
   title?: string;
   focusText?: string;
   customPrompt?: string;
+  // Per-card refinement (when present, takes the refinement path instead of full generation)
+  refineCard?: GeneratedCard;
+  refinementAction?: 'rephrase' | 'simplify' | 'harder';
+  sourceSelection?: string;
+  sourceContext?: string;
 }
 
 /**

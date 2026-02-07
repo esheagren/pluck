@@ -1009,14 +1009,14 @@ chrome.runtime.onMessage.addListener(
         }
 
         try {
-          const response = await fetch(`${BACKEND_URL}/api/refine-card`, {
+          const response = await fetch(`${BACKEND_URL}/api/generate-cards`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${accessToken}`
             },
             body: JSON.stringify({
-              card: req.card,
+              refineCard: req.card,
               refinementAction: req.refinementAction,
               sourceSelection: req.sourceSelection,
               sourceContext: req.sourceContext
