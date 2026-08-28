@@ -25,13 +25,15 @@ const supabase = createSupabaseClient({
 
 // Open side panel when extension icon is clicked
 chrome.action.onClicked.addListener((tab) => {
-  if (tab.windowId) {
+  if (tab.windowId && chrome.sidePanel) {
     chrome.sidePanel.open({ windowId: tab.windowId });
   }
 });
 
-// Enable side panel to be opened
-chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+// Enable side panel to be opened (guard for Brave/other Chromium browsers)
+if (chrome.sidePanel?.setPanelBehavior) {
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+}
 
 /**
  * Get system prompt from storage (or use default)

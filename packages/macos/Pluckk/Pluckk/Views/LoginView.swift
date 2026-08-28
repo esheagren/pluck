@@ -75,6 +75,7 @@ struct LoginView: View {
                 }
 
                 if let error = authManager.error {
+                    let _ = print("LoginView: Displaying authManager.error: \(error)")
                     Text(error)
                         .font(.system(size: PluckkTheme.FontSize.smaller))
                         .foregroundColor(PluckkTheme.Light.error)

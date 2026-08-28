@@ -145,11 +145,6 @@ export interface OptionsElements {
   statusEl: HTMLElement | null;
   shortcutDisplay: HTMLElement | null;
   closePageBtn: HTMLButtonElement | null;
-
-  // Mochi settings
-  mochiApiKeyInput: HTMLInputElement | null;
-  mochiDeckSelect: HTMLSelectElement | null;
-  fetchDecksBtn: HTMLButtonElement | null;
 }
 
 /**
