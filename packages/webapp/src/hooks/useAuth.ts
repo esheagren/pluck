@@ -30,10 +30,19 @@ export async function completeGoogleSignIn(): Promise<AuthUser | null> {
   const idToken = parseIdToken(window.location.href);
   if (!idToken) return null;
   const user = await signInWithGoogleCredential(idToken);
-  let returnTo = '/';
-  try { returnTo = sessionStorage.getItem('pluckk_return_to') || '/'; sessionStorage.removeItem('pluckk_return_to'); } catch { /* ignore */ }
-  window.history.replaceState(null, '', returnTo);
+  // Strip the id_token fragment; App.tsx performs the actual route change with
+  // <Navigate>, since history.replaceState is invisible to React Router.
+  window.history.replaceState(null, '', window.location.pathname);
   return user;
+}
+
+/** Where to send the user after the callback (set by startGoogleSignIn). */
+export function consumeReturnTo(): string {
+  try {
+    const v = sessionStorage.getItem('pluckk_return_to') || '/';
+    sessionStorage.removeItem('pluckk_return_to');
+    return v === AUTH_CALLBACK_PATH ? '/' : v;
+  } catch { return '/'; }
 }
 
 export function useAuth(): UseAuthReturn {
@@ -78,7 +87,6 @@ export function useAuth(): UseAuthReturn {
         } catch (error) {
           console.error('Sign in failed:', error);
           clearSession();
-          window.history.replaceState(null, '', '/');
         }
       } else if (getAccessToken()) {
         setUser(getStoredUser());

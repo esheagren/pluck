@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from './hooks/useAuth';
+import { useAuth, AUTH_CALLBACK_PATH, consumeReturnTo } from './hooks/useAuth';
 import { useCards } from './hooks/useCards';
 import { useFolders } from './hooks/useFolders';
 import Layout from './components/Layout';
@@ -61,8 +61,13 @@ export default function App(): JSX.Element {
   }
 
   // Show loading while checking auth (also covers the /auth/callback exchange)
-  if (authLoading || location.pathname === '/auth/callback') {
+  if (authLoading) {
     return <LoadingScreen />;
+  }
+  // Exchange finished: leave the callback route via the router (history.replaceState
+  // in the hook doesn't update React Router's location).
+  if (location.pathname === AUTH_CALLBACK_PATH) {
+    return <Navigate to={consumeReturnTo()} replace />;
   }
 
   // Show landing page if not authenticated
