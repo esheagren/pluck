@@ -10,7 +10,7 @@ export const BACKEND_URL: string = 'https://pluckk-api.vercel.app';
 //   https://pluckk.app/auth/callback
 //   http://localhost:5173/auth/callback
 //   https://<extension-id>.chromiumapp.org/
-export const GOOGLE_CLIENT_ID: string = '';
+export const GOOGLE_CLIENT_ID: string = '1004228422906-0kq0nd19qgkpqqgpr8kahg0oevro8e3c.apps.googleusercontent.com';
 
 // Direct API URLs (deprecated - use BACKEND_URL for Claude/Gemini)
 export const CLAUDE_API_URL: string = 'https://api.anthropic.com/v1/messages';
