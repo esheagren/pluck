@@ -217,7 +217,7 @@ Next card (or session summary if done)
 | Frontend | React 18 + Vite | Web app UI |
 | Styling | Tailwind CSS | Utility-first CSS |
 | State | React hooks + Context | Local state management |
-| Backend | Vercel Functions | Serverless API (`api/v1/[...path].ts` router for data/auth) |
+| Backend | Vercel Functions | Serverless API (`api/v1.ts` routes all `/api/v1/*` data/auth paths) |
 | Database | Neon Postgres + Drizzle ORM | Data persistence (`packages/api/db/schema.ts`) |
 | Auth | Google Sign-In → Pluckk bearer tokens | One credential for webapp, extension, macOS |
 | Files | Vercel Blob | Card images |

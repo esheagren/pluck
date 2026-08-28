@@ -88,3 +88,19 @@ two-Vercel-project layout and `CORS: *`.
    put the client ID in `packages/shared/src/constants/api.ts` and `vercel env add GOOGLE_CLIENT_IDS` on `pluckk-api`.
 4. Then: `vercel env pull .env.local`, `npm run db:push`, `npm run db:import`, deploy both projects,
    remove `SUPABASE_*`/`STRIPE_*` env vars, smoke-test, merge.
+
+## 7. Cut over — LIVE (2026-08-28)
+
+- Neon `pluckk-db` connected to `pluckk-api` (Prod/Preview/Dev); schema pushed; data imported — 3 users,
+  4 folders, 307 cards, 90 review states, 395 review logs; 200 images in Blob store `pluckk-api-blob`
+  (public, iad1); 0 cards still reference Supabase storage.
+- Google OAuth Web client `1004228422906-0kq0nd19…` reused (was Supabase's); redirect URIs added for
+  pluckk.app, localhost:5173, and the extension (`imobhhfhcbhfiaefjjnfmmgdbjpphhcm.chromiumapp.org`).
+  `GOOGLE_CLIENT_IDS` set on `pluckk-api`; `SUPABASE_*` and `STRIPE_*` env vars deleted.
+- Routing fix during deploy: Vercel's `api/v1/[...path].ts` catch-all only matched single-segment paths
+  on this `framework: null` project → replaced with `api/v1.ts` + rewrite `/api/v1/:path*` → `/api/v1?path=:path*`.
+- Production verified: `pluckk-api.vercel.app` (401/404/405 shapes, Google verifier active, CORS preflight
+  200), `pluckk.app` serving the new bundle with the client ID, `/auth/callback` reachable.
+- Local verification: `npm run smoke` (15 checks against Neon) passes.
+- Not done: macOS app (still Supabase). Supabase project `grjkoedivfrjlbtfskif` left paused as rollback;
+  delete after ~30 days. Extension must be reloaded from `packages/extension/dist` (users sign in again).
