@@ -14,6 +14,7 @@ import FeedbackPage from './pages/FeedbackPage';
 import LandingPage from './pages/LandingPage';
 import InfoPage from './pages/InfoPage';
 import PrivacyPage from './pages/PrivacyPage';
+import ArchitecturePage from './pages/ArchitecturePage';
 
 // Loading Screen Component
 function LoadingScreen(): JSX.Element {
@@ -50,6 +51,9 @@ export default function App(): JSX.Element {
   }
   if (location.pathname === '/privacy') {
     return <PrivacyPage />;
+  }
+  if (location.pathname === '/architecture') {
+    return <ArchitecturePage />;
   }
   // Public profile pages
   if (location.pathname.startsWith('/u/')) {
