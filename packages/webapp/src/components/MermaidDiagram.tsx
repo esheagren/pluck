@@ -60,6 +60,12 @@ export default function MermaidDiagram({ id, source, dark }: Props): JSX.Element
           {error}
         </pre>
       )}
+      {!svg && !error && (
+        <div className="flex items-center gap-2 py-8 text-sm text-gray-400 dark:text-gray-500">
+          <span className="spinner h-4 w-4 rounded-full border-2 border-gray-200 border-t-gray-500 dark:border-gray-700 dark:border-t-gray-300" />
+          Rendering diagram…
+        </div>
+      )}
       <div ref={ref} className="[&>svg]:mx-auto [&>svg]:h-auto [&>svg]:max-w-full" dangerouslySetInnerHTML={{ __html: svg }} />
     </div>
   );

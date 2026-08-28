@@ -22,7 +22,7 @@ export const diagrams: DiagramDef[] = [
   subgraph clients["Clients"]
     direction LR
     subgraph ext["Chrome extension (Manifest V3)"]
-      direction LR
+      direction TB
       cs["Content script<br/>selection · DOM context · annotations"] --> bg["Background worker<br/>API calls · image tasks"] --> sp["Side panel<br/>card options · edit · save"]
     end
     web["Web app · pluckk.app<br/>Vite + React · review · library · settings"]
@@ -32,13 +32,14 @@ export const diagrams: DiagramDef[] = [
   google["Google Identity<br/>OIDC id_token"]
 
   subgraph api["Vercel · pluckk-api (serverless functions)"]
-    direction LR
-    auth["lib/auth.ts<br/>Bearer pk_… → api_tokens → user"]
-    v1["api/v1.ts<br/>auth · cards · folders · review · activity · feedback · images"]
-    gen["generate-cards<br/>generate-cards-from-image<br/>answer-question"]
+    direction TB
+    auth["lib/auth.ts — Bearer pk_… → api_tokens → user"]
+    v1["api/v1.ts — auth · cards · folders · review · activity · feedback · images"]
+    gen["generate-cards · generate-cards-from-image · answer-question"]
     img["generate-image"]
-    mochi["send-to-mochi<br/>import-from-mochi"]
-    user["user/me · check-username<br/>profile/:username"]
+    mochi["send-to-mochi · import-from-mochi"]
+    user["user/me · check-username · profile/:username"]
+    auth ~~~ v1 ~~~ gen ~~~ img ~~~ mochi ~~~ user
   end
 
   subgraph data["Data (owned by the API only)"]
