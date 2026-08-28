@@ -18,55 +18,55 @@ export const diagrams: DiagramDef[] = [
     summary:
       'Three clients talk to one API. Nothing else holds credentials: the API is the only thing that ' +
       'reads Neon or writes Blob, and it authorises every query with the caller’s user id.',
-    source: `flowchart LR
+    source: `flowchart TB
   subgraph clients["Clients"]
-    direction TB
+    direction LR
     subgraph ext["Chrome extension (Manifest V3)"]
-      cs["Content script<br/>selection · DOM context · annotations"]
-      bg["Background service worker<br/>API calls · image tasks"]
-      sp["Side panel<br/>card options · edit · save"]
-      cs --> bg --> sp
+      direction LR
+      cs["Content script<br/>selection · DOM context · annotations"] --> bg["Background worker<br/>API calls · image tasks"] --> sp["Side panel<br/>card options · edit · save"]
     end
     web["Web app · pluckk.app<br/>Vite + React · review · library · settings"]
-    mac["macOS app<br/>(legacy · still on Supabase · dark)"]:::legacy
+    mac["macOS app<br/>legacy · still on Supabase · dark"]:::legacy
   end
 
-  subgraph vercel["Vercel · pluckk-api"]
-    direction TB
+  google["Google Identity<br/>OIDC id_token"]
+
+  subgraph api["Vercel · pluckk-api (serverless functions)"]
+    direction LR
+    auth["lib/auth.ts<br/>Bearer pk_… → api_tokens → user"]
     v1["api/v1.ts<br/>auth · cards · folders · review · activity · feedback · images"]
-    gen["generate-cards · generate-cards-from-image · answer-question"]
+    gen["generate-cards<br/>generate-cards-from-image<br/>answer-question"]
     img["generate-image"]
-    mochi["send-to-mochi · import-from-mochi"]
-    user["user/me · check-username · profile/:username"]
-    auth["lib/auth.ts<br/>bearer token → api_tokens → user"]
-    v1 & gen & img & mochi & user --> auth
+    mochi["send-to-mochi<br/>import-from-mochi"]
+    user["user/me · check-username<br/>profile/:username"]
   end
 
-  subgraph data["Data"]
+  subgraph data["Data (owned by the API only)"]
+    direction LR
     neon[("Neon Postgres<br/>Drizzle schema")]
     blob[("Vercel Blob<br/>card-images/*.png")]
   end
 
-  subgraph third["Third parties"]
-    google["Google Identity<br/>OIDC id_token"]
+  subgraph third["Third-party services"]
+    direction LR
     claude["Claude API<br/>card generation"]
     gemini["Gemini API<br/>diagram images"]
     mochiapi["Mochi API<br/>optional export"]
   end
 
-  ext -- "Bearer pk_… (chrome.storage)" --> v1
-  web -- "Bearer pk_… (localStorage)" --> v1
-  ext & web -.->|"id_token"| google
-  v1 -->|"verify id_token"| google
-  v1 --> neon
-  v1 -->|"PUT image"| blob
+  ext -. "sign in → id_token" .-> google
+  web -. "sign in → id_token" .-> google
+  ext == "Bearer token (chrome.storage)" ==> api
+  web == "Bearer token (localStorage)" ==> api
+  v1 -- "verify id_token" --> google
+  v1 & user & mochi --> neon
+  v1 -- "PUT image" --> blob
   gen --> claude
   img --> gemini
   mochi --> mochiapi
-  user --> neon
-  mac -.-x neon
+  mac -. "direct PostgREST (broken)" .-x data
 
-  classDef legacy stroke-dasharray: 5 5, opacity: 0.6;`,
+  classDef legacy stroke-dasharray: 5 5,opacity:0.6;`,
   },
   {
     id: 'capture',
@@ -199,7 +199,7 @@ export const diagrams: DiagramDef[] = [
       'What a card is made of, what surrounds it, and who owns each field. The table under the ' +
       'diagram says where every part of a card comes from and what processes it.',
     source: `classDiagram
-  direction LR
+  direction TB
   class User {
     +uuid id
     +text email

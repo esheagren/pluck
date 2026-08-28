@@ -13,6 +13,8 @@ function loadMermaid(dark: boolean): Promise<MermaidModule> {
         fontFamily: 'Inter, system-ui, sans-serif',
         sequence: { useMaxWidth: true, mirrorActors: false, wrap: true },
         flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+        // Class diagrams get wide; let them render at natural size and scroll horizontally.
+        class: { useMaxWidth: false },
       });
       return m.default;
     });
