@@ -3,7 +3,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { getDb, schema } from '../../lib/db.js';
-import { activityFor } from '../v1/[...path].js';
+import { activityFor } from '../v1.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }

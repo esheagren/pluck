@@ -3,6 +3,9 @@
   "framework": null,
   "buildCommand": "",
   "installCommand": "npm install",
+  "rewrites": [
+    { "source": "/api/v1/:path*", "destination": "/api/v1?path=:path*" }
+  ],
   "headers": [
     {
       "source": "/api/(.*)",

@@ -4,7 +4,7 @@
 // reads (cards, folders, review queue, activity), profile 404, 404/405 routing.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import v1 from '../api/v1/[...path].js';
+import v1 from '../api/v1.js';
 import checkUsername from '../api/user/check-username.js';
 import profile from '../api/profile/[username].js';
 import me from '../api/user/me.js';

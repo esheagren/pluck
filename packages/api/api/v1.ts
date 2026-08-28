@@ -16,10 +16,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { and, desc, eq, gte, like, sql } from 'drizzle-orm';
 import { OAuth2Client } from 'google-auth-library';
 import { put } from '@vercel/blob';
-import { getDb, schema } from '../../lib/db.js';
-import { authenticateRequest, isAuthError, issueToken, revokeToken } from '../../lib/auth.js';
-import { Router, pathSegments, type RouteHandler } from '../../lib/router.js';
-import { snake, pick, isoTimestamp } from '../../lib/serialize.js';
+import { getDb, schema } from '../lib/db.js';
+import { authenticateRequest, isAuthError, issueToken, revokeToken } from '../lib/auth.js';
+import { Router, pathSegments, type RouteHandler } from '../lib/router.js';
+import { snake, pick, isoTimestamp } from '../lib/serialize.js';
 
 const router = new Router();
 
