@@ -247,6 +247,7 @@ router.on('POST', 'images', authed(async (req, res, user) => {
   const ext = mime_type.includes('png') ? 'png' : 'jpg';
   const blob = await put(`card-images/${card_id}.${ext}`, Buffer.from(image_data, 'base64'), {
     access: 'public', contentType: mime_type, addRandomSuffix: false, allowOverwrite: true,
+    token: process.env.BLOB_READ_WRITE_TOKEN,
   });
   await db.update(schema.cards).set({ imageUrl: blob.url }).where(eq(schema.cards.id, card_id));
   res.status(200).json({ image_url: blob.url });

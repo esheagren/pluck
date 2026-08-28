@@ -66,6 +66,7 @@ async function main() {
       const ext = f.split('.').pop()!.toLowerCase();
       const blob = await put(`card-images/${f}`, readFileSync(join(imgDir, f)), {
         access: 'public', contentType: ext === 'png' ? 'image/png' : 'image/jpeg', addRandomSuffix: false, allowOverwrite: true,
+        token: process.env.BLOB_READ_WRITE_TOKEN, // explicit: the SDK otherwise prefers a (dev-disabled) OIDC token
       });
       await db.execute(sql`update cards set image_url = ${blob.url} where id = ${cardId}::uuid`);
       n++;
