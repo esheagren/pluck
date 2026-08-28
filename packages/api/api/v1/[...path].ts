@@ -19,7 +19,7 @@ import { put } from '@vercel/blob';
 import { getDb, schema } from '../../lib/db.js';
 import { authenticateRequest, isAuthError, issueToken, revokeToken } from '../../lib/auth.js';
 import { Router, pathSegments, type RouteHandler } from '../../lib/router.js';
-import { snake, pick } from '../../lib/serialize.js';
+import { snake, pick, isoTimestamp } from '../../lib/serialize.js';
 
 const router = new Router();
 
@@ -99,7 +99,7 @@ async function listCards(userId: string, sourceUrlPrefix?: string) {
     .leftJoin(schema.cardReviewState, and(eq(schema.cardReviewState.cardId, schema.cards.id), eq(schema.cardReviewState.userId, userId)))
     .where(where)
     .orderBy(desc(schema.cards.createdAt));
-  return rows.map((r) => ({ ...snake<Record<string, unknown>>(r.card), folder: r.folder ? snake(r.folder) : null, due_at: r.dueAt ?? null }));
+  return rows.map((r) => ({ ...snake<Record<string, unknown>>(r.card), folder: r.folder ? snake(r.folder) : null, due_at: r.dueAt ? isoTimestamp(r.dueAt) : null }));
 }
 
 router.on('GET', 'cards', authed(async (req, res, user) => {
