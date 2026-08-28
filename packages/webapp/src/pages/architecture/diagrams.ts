@@ -211,13 +211,13 @@ export const diagrams: DiagramDef[] = [
     +bool onboarding_completed
     +text primary_category
     +text[] work_fields
-    +int technicality_preference (1–4)
-    +int breadth_preference (1–4)
+    +int technicality_preference · 1–4
+    +int breadth_preference · 1–4
   }
   class ApiToken {
     +uuid id
-    +text token_hash (sha256)
-    +text label (webapp | extension)
+    +text token_hash · sha256
+    +text label · webapp | extension
     +ts last_used_at
   }
   class Folder {
@@ -230,8 +230,8 @@ export const diagrams: DiagramDef[] = [
     +uuid id
     +text question
     +text answer
-    +text style (qa | cloze | bidirectional | explanation | application | diagram)
-    +text answer_type (text | numeric)
+    +text style · qa | cloze | bidirectional | explanation | application | diagram
+    +text answer_type · text | numeric
     +numeric numeric_answer / lower / upper
     +text numeric_unit
     +text[] tags
@@ -247,19 +247,19 @@ export const diagrams: DiagramDef[] = [
   }
   class CardReviewState {
     +uuid id
-    +text status (new | learning | review | relearning)
+    +text status · new | learning | review | relearning
     +ts due_at
     +numeric interval_days
     +numeric ease_factor
     +int review_count
     +int lapse_count
     +int streak
-    +numeric stability / difficulty (FSRS, unused)
+    +numeric stability / difficulty · FSRS, unused
     +ts last_reviewed_at
   }
   class ReviewLog {
     +uuid id
-    +text rating (again | hard | good | easy)
+    +text rating · again | hard | good | easy
     +text previous_status
     +numeric previous_interval
     +numeric previous_ease
@@ -272,7 +272,7 @@ export const diagrams: DiagramDef[] = [
   }
   class AlgorithmConfig {
     +text name
-    +text algorithm_type (sm2 | fsrs)
+    +text algorithm_type · sm2 | fsrs
     +numeric initial_ease
     +numeric minimum_ease
     +numeric[] learning_steps

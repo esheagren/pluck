@@ -12,8 +12,9 @@ function loadMermaid(dark: boolean): Promise<MermaidModule> {
         theme: dark ? 'dark' : 'neutral',
         fontFamily: 'Inter, system-ui, sans-serif',
         sequence: { useMaxWidth: true, mirrorActors: false, wrap: true },
-        flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
-        // Class diagrams get wide; let them render at natural size and scroll horizontally.
+        // Flow/class diagrams get wide; render at natural size and scroll horizontally
+        // rather than shrinking text to fit. Sequence diagrams scale to the container.
+        flowchart: { useMaxWidth: false, htmlLabels: true, curve: 'basis', nodeSpacing: 40, rankSpacing: 60 },
         class: { useMaxWidth: false },
       });
       return m.default;
