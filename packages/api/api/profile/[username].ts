@@ -1,120 +1,43 @@
-// GET /api/profile/:username
-// Returns public profile data (no auth required)
+// GET /api/profile/:username — public profile (no auth)
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from '../../lib/supabase-admin.js';
-import type { PublicProfile, PublicCard, ActivityDay } from '../../lib/types.js';
+import { and, desc, eq, sql } from 'drizzle-orm';
+import { getDb, schema } from '../../lib/db.js';
+import { activityFor } from '../v1/[...path].js';
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-): Promise<void> {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  if (req.method !== 'GET') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
-  }
+export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+  if (req.method === 'OPTIONS') { res.status(200).end(); return; }
+  if (req.method !== 'GET') { res.status(405).json({ error: 'Method not allowed' }); return; }
 
   const { username } = req.query;
+  if (!username || typeof username !== 'string') { res.status(400).json({ error: 'Username required' }); return; }
 
-  if (!username || typeof username !== 'string') {
-    res.status(400).json({ error: 'Username required' });
-    return;
-  }
+  const db = getDb();
+  const [profile] = await db.select().from(schema.users)
+    .where(and(sql`lower(${schema.users.username}) = ${username.toLowerCase()}`, eq(schema.users.profileIsPublic, true))).limit(1);
+  if (!profile) { res.status(404).json({ error: 'Profile not found' }); return; }
 
-  // Get public profile using the database function
-  const { data: profiles, error: profileError } = await supabaseAdmin
-    .rpc('get_public_profile', { p_username: username });
+  const since = new Date(); since.setFullYear(since.getFullYear() - 1);
+  const { reviews } = await activityFor(profile.id, since.toISOString().slice(0, 10));
+  const activity = reviews as Array<{ review_date: string; total_reviews: number }>;
 
-  if (profileError) {
-    console.error('Error fetching profile:', profileError);
-    res.status(500).json({ error: 'Failed to fetch profile' });
-    return;
-  }
-
-  if (!profiles || (profiles as PublicProfile[]).length === 0) {
-    res.status(404).json({ error: 'Profile not found' });
-    return;
-  }
-
-  const profile = (profiles as PublicProfile[])[0];
-
-  // Get activity data (last 365 days)
-  const oneYearAgo = new Date();
-  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-  const dateString = oneYearAgo.toISOString().split('T')[0];
-
-  const { data: activity, error: activityError } = await supabaseAdmin
-    .from('user_daily_review_summary')
-    .select('review_date, total_reviews')
-    .eq('user_id', profile.id)
-    .gte('review_date', dateString)
-    .order('review_date', { ascending: true });
-
-  if (activityError) {
-    console.error('Error fetching activity:', activityError);
-  }
-
-  // Get public cards count
-  const { count: publicCardsCount, error: countError } = await supabaseAdmin
-    .from('cards')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', profile.id)
-    .eq('is_public', true);
-
-  if (countError) {
-    console.error('Error counting cards:', countError);
-  }
-
-  // Get public cards (limited to 20 most recent)
-  const { data: publicCards, error: cardsError } = await supabaseAdmin
-    .from('cards')
-    .select('id, question, answer, style, tags, created_at')
-    .eq('user_id', profile.id)
-    .eq('is_public', true)
-    .order('created_at', { ascending: false })
-    .limit(20);
-
-  if (cardsError) {
-    console.error('Error fetching cards:', cardsError);
-  }
-
-  const activityData = (activity || []) as ActivityDay[];
-  const cardsData = (publicCards || []) as PublicCard[];
-
-  // Calculate some summary stats from activity
-  const totalReviews = activityData.reduce((sum, day) => sum + (day.total_reviews || 0), 0);
-  const activeDays = activityData.filter(day => day.total_reviews > 0).length;
+  const [{ count: publicCardsCount }] = await db.select({ count: sql<number>`count(*)::int` }).from(schema.cards)
+    .where(and(eq(schema.cards.userId, profile.id), eq(schema.cards.isPublic, true)));
+  const publicCards = await db.select({
+    id: schema.cards.id, question: schema.cards.question, answer: schema.cards.answer,
+    style: schema.cards.style, tags: schema.cards.tags, createdAt: schema.cards.createdAt,
+  }).from(schema.cards)
+    .where(and(eq(schema.cards.userId, profile.id), eq(schema.cards.isPublic, true)))
+    .orderBy(desc(schema.cards.createdAt)).limit(20);
 
   res.status(200).json({
-    profile: {
-      username: profile.username,
-      displayName: profile.display_name,
-      bio: profile.bio,
-      avatarUrl: profile.avatar_url,
-      memberSince: profile.created_at
-    },
+    profile: { username: profile.username, displayName: profile.displayName, bio: profile.bio, avatarUrl: profile.avatarUrl, memberSince: profile.createdAt },
     stats: {
-      totalReviews,
-      activeDays,
-      publicCardsCount: publicCardsCount || 0
+      totalReviews: activity.reduce((s, d) => s + (d.total_reviews || 0), 0),
+      activeDays: activity.filter((d) => d.total_reviews > 0).length,
+      publicCardsCount,
     },
-    activity: activityData.map(day => ({
-      date: day.review_date,
-      count: day.total_reviews
-    })),
-    publicCards: cardsData.map(card => ({
-      id: card.id,
-      question: card.question,
-      answer: card.answer,
-      style: card.style,
-      tags: card.tags,
-      createdAt: card.created_at
-    }))
+    activity: activity.map((d) => ({ date: d.review_date, count: d.total_reviews })),
+    publicCards,
   });
 }

@@ -1,5 +1,5 @@
 import { useState, type JSX } from 'react';
-import { submitFeedback } from '@pluckk/shared/supabase';
+import { submitFeedback } from '@pluckk/shared/api';
 import type { FeedbackModalProps } from '../types';
 
 export default function FeedbackModal({

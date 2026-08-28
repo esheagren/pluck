@@ -1,6 +1,6 @@
 import { useState, useEffect, type JSX } from 'react';
 import { BACKEND_URL, MOCHI_API_URL } from '@pluckk/shared/constants';
-import { getAccessToken } from '@pluckk/shared/supabase';
+import { getAccessToken } from '@pluckk/shared/api';
 import { useTheme } from '../hooks/useTheme';
 import type {
   SettingsPageProps,
@@ -28,13 +28,7 @@ import {
 const DEFAULT_NEW_CARDS_PER_DAY = 10;
 const NEW_CARDS_KEY = 'pluckk_new_cards_per_day';
 
-export default function SettingsPage({
-  user,
-  billingInfo,
-  onSignOut,
-  onUpgrade,
-  onManage,
-}: SettingsPageProps): JSX.Element {
+export default function SettingsPage({ user, onSignOut }: SettingsPageProps): JSX.Element {
   const { toggleTheme, isDark } = useTheme();
   const [mochiApiKey, setMochiApiKey] = useState('');
   const [mochiDeckId, setMochiDeckId] = useState('');
@@ -494,41 +488,6 @@ export default function SettingsPage({
             Email
           </label>
           <div className="text-gray-800 dark:text-gray-200">{user?.email}</div>
-        </div>
-
-        {/* Subscription */}
-        <div className="px-5 py-4">
-          <label className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide block mb-1">
-            Subscription
-          </label>
-          {billingInfo?.isPro ? (
-            <div className="flex items-center gap-3">
-              <span className="pro-badge text-white text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide">
-                Pro
-              </span>
-              <button
-                onClick={onManage}
-                className="text-sm text-gray-500 dark:text-gray-400 underline hover:text-gray-800 dark:hover:text-gray-200"
-              >
-                Manage subscription
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-gray-800 dark:text-gray-200">Free</span>
-                <span className="text-gray-400 dark:text-gray-500 text-sm ml-2">
-                  {billingInfo?.cardsUsed || 0} / {billingInfo?.limit || 50} cards this month
-                </span>
-              </div>
-              <button
-                onClick={onUpgrade}
-                className="btn-upgrade text-white text-sm font-medium px-4 py-2 rounded-lg transition-all"
-              >
-                Upgrade to Pro
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Study Settings */}

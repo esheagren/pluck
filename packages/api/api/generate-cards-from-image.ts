@@ -2,8 +2,7 @@
 // Uses Claude Sonnet vision to analyze screenshots and generate flashcards
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { authenticateRequest, checkUsageLimit, isAuthError } from '../lib/auth.js';
-import { incrementCardCount } from '../lib/supabase-admin.js';
+import { authenticateRequest, isAuthError } from '../lib/auth.js';
 import type { GenerateCardsFromImageRequest, GeneratedCard } from '../lib/types.js';
 import type { ClaudeResponse } from '../lib/claude-types.js';
 
@@ -73,19 +72,7 @@ export default async function handler(
     return;
   }
 
-  const { user, profile } = authResult;
 
-  // Check usage limits
-  const usage = checkUsageLimit(profile);
-  if (!usage.allowed) {
-    res.status(402).json({
-      error: 'usage_limit_reached',
-      message: `You've used all ${usage.limit} free cards this month. Upgrade to Pro for unlimited cards.`,
-      remaining: 0,
-      limit: usage.limit
-    });
-    return;
-  }
 
   // Parse request body
   const { imageData, mimeType, focusText, pageContext } = req.body as GenerateCardsFromImageRequest;
@@ -253,16 +240,14 @@ export default async function handler(
       return;
     }
 
-    // Increment usage count (number of cards generated)
-    await incrementCardCount(user.id, parsed.cards.length);
 
     // Return cards with updated usage info
     res.status(200).json({
       cards: parsed.cards,
       usage: {
-        remaining: usage.remaining === Infinity ? 'unlimited' : usage.remaining - parsed.cards.length,
-        limit: usage.limit,
-        subscription: profile.subscription_status
+        remaining: 'unlimited',
+        limit: undefined,
+        subscription: 'active'
       }
     });
 

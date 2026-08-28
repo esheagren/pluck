@@ -3,7 +3,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
+import type { User as DbUser } from '../db/schema.js';
 
 /**
  * Vercel API handler type
@@ -62,8 +62,8 @@ export interface UserProfile {
  * Authentication result - success case
  */
 export interface AuthSuccess {
-  user: SupabaseUser;
-  profile: UserProfile;
+  user: DbUser;
+  profile: DbUser;
   error?: undefined;
   status?: undefined;
 }

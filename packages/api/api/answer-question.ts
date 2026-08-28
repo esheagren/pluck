@@ -2,8 +2,7 @@
 // Generates an answer for a user-typed question, optionally improving the question
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { authenticateRequest, checkUsageLimit, isAuthError } from '../lib/auth.js';
-import { incrementCardCount } from '../lib/supabase-admin.js';
+import { authenticateRequest, isAuthError } from '../lib/auth.js';
 import type { AnswerQuestionRequest, GeneratedCard } from '../lib/types.js';
 import type { ClaudeResponse } from '../lib/claude-types.js';
 
@@ -69,19 +68,7 @@ export default async function handler(
     return;
   }
 
-  const { user, profile } = authResult;
 
-  // Check usage limits
-  const usage = checkUsageLimit(profile);
-  if (!usage.allowed) {
-    res.status(402).json({
-      error: 'usage_limit_reached',
-      message: `You've used all ${usage.limit} free cards this month. Upgrade to Pro for unlimited cards.`,
-      remaining: 0,
-      limit: usage.limit
-    });
-    return;
-  }
 
   // Parse request body
   const { question, url, title } = req.body as AnswerQuestionRequest;
@@ -181,16 +168,14 @@ export default async function handler(
       return;
     }
 
-    // Increment usage count by number of cards generated
-    await incrementCardCount(user.id, validCards.length);
 
     // Return cards with usage info
     res.status(200).json({
       cards: validCards,
       usage: {
-        remaining: usage.remaining === Infinity ? 'unlimited' : usage.remaining - parsed.cards.length,
-        limit: usage.limit,
-        subscription: profile.subscription_status
+        remaining: 'unlimited',
+        limit: undefined,
+        subscription: 'active'
       }
     });
 

@@ -2,7 +2,7 @@
  * Type definitions for custom React hooks
  */
 
-import type { User } from '@pluckk/shared/supabase';
+import type { AuthUser as User } from '@pluckk/shared/api';
 import type {
   CardReviewState,
   IntervalPreviews,
@@ -76,13 +76,10 @@ export interface BillingInfo {
 export interface UseAuthReturn {
   user: User | null;
   loading: boolean;
-  billingInfo: BillingInfo | null;
   learningProfile: LearningProfile | null;
   showOnboarding: boolean;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
-  handleUpgrade: () => Promise<void>;
-  handleManageSubscription: () => Promise<void>;
   completeOnboarding: (profile: Omit<LearningProfile, 'onboardingCompleted'>) => Promise<void>;
   skipOnboarding: () => Promise<void>;
 }
@@ -558,10 +555,7 @@ export interface CardsPageProps {
  */
 export interface SettingsPageProps {
   user: User | null;
-  billingInfo: BillingInfo | null;
   onSignOut: () => void;
-  onUpgrade: () => void;
-  onManage: () => void;
 }
 
 /**

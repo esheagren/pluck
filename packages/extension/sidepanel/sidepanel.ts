@@ -2,12 +2,16 @@
 // Main UI logic for card generation and Mochi integration
 
 import { escapeHtml } from '@pluckk/shared/utils';
-import { FREE_TIER_LIMIT, BACKEND_URL, SUPABASE_URL, SUPABASE_KEY } from '@pluckk/shared/constants';
+import { BACKEND_URL } from '@pluckk/shared/constants';
+
+// Billing removed 2026-08 (private app); kept for the usage-bar math when a limit is absent.
+const FREE_TIER_LIMIT = 0;
 import {
   signInWithGoogle,
   getSession,
   getUserProfile,
-  getAccessToken
+  getAccessToken,
+  api
 } from '../src/auth';
 import { initSandAnimation, type CleanupFunction } from './sand-animation';
 import { initializeTheme, toggleTheme, type Theme } from '../src/theme';
@@ -1313,41 +1317,16 @@ async function fetchActivityData(): Promise<ActivityDataMap | null> {
   const { session } = await getSession();
   if (!session?.user?.id) return null;
 
-  const userId = session.user.id;
-  const accessToken = session.access_token;
-
   // Calculate date 84 days ago (12 weeks)
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 84);
   const startDateStr = formatDateLocal(startDate);
 
   try {
-    // Fetch review data
-    const reviewsResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/user_daily_review_summary?user_id=eq.${userId}&review_date=gte.${startDateStr}&select=review_date,total_reviews`,
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'apikey': SUPABASE_KEY
-        }
-      }
-    );
-
-    // Fetch card creation data
-    const cardsResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/user_daily_card_summary?user_id=eq.${userId}&created_date=gte.${startDateStr}&select=created_date,cards_created`,
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'apikey': SUPABASE_KEY
-        }
-      }
-    );
-
-    if (!reviewsResponse.ok && !cardsResponse.ok) return null;
-
-    const reviewsData = reviewsResponse.ok ? await reviewsResponse.json() : [];
-    const cardsData = cardsResponse.ok ? await cardsResponse.json() : [];
+    // Server aggregates by day; trim to the 12-week window here.
+    const activity = await api.activity.get();
+    const reviewsData = activity.reviews.filter((r) => r.review_date >= startDateStr);
+    const cardsData = activity.cards.filter((c) => c.created_date >= startDateStr);
 
     // Combine into activity map
     const activityData: ActivityDataMap = {};
@@ -1794,27 +1773,8 @@ async function handleUpgrade(): Promise<void> {
       return;
     }
 
-    const response = await fetch(`${BACKEND_URL}/api/checkout`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      },
-      body: JSON.stringify({
-        successUrl: 'https://pluckk.app/success',
-        cancelUrl: 'https://pluckk.app/cancel'
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error('Checkout failed');
-    }
-
-    interface CheckoutResponse {
-      url: string;
-    }
-    const { url }: CheckoutResponse = await response.json();
-    chrome.tabs.create({ url });
+    void accessToken;
+    showSettingsStatus('Billing is disabled — Pluckk is free', 'success');
   } catch (error) {
     console.error('Upgrade error:', error);
     showSettingsStatus('Failed to start checkout', 'error');
@@ -1842,27 +1802,8 @@ async function handleManageSubscription(): Promise<void> {
       return;
     }
 
-    const response = await fetch(`${BACKEND_URL}/api/portal`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      },
-      body: JSON.stringify({
-        returnUrl: 'https://pluckk.app'
-      })
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Portal failed');
-    }
-
-    interface PortalResponse {
-      url: string;
-    }
-    const { url }: PortalResponse = await response.json();
-    chrome.tabs.create({ url });
+    void accessToken;
+    showSettingsStatus('Billing is disabled — Pluckk is free', 'success');
   } catch (error) {
     console.error('Portal error:', error);
     showSettingsStatus('Failed to open subscription portal', 'error');

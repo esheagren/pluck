@@ -1,252 +1,132 @@
 import { useState, useEffect } from 'react';
 import {
-  signInWithGoogle,
-  signOut as supabaseSignOut,
-  getSession,
+  api,
   getAccessToken,
+  getStoredUser,
   onAuthStateChange,
-} from '@pluckk/shared/supabase';
-import type { User, AuthChangeEvent, Session } from '@pluckk/shared/supabase';
-import { BACKEND_URL, FREE_TIER_LIMIT } from '@pluckk/shared/constants';
-import type { BillingInfo, UseAuthReturn, LearningProfile } from '../types';
+  signOut as apiSignOut,
+  signInWithGoogleCredential,
+  buildGoogleAuthUrl,
+  parseIdToken,
+  clearSession,
+} from '@pluckk/shared/api';
+import type { AuthUser } from '@pluckk/shared/api';
+import type { UseAuthReturn, LearningProfile } from '../types';
+
+export const AUTH_CALLBACK_PATH = '/auth/callback';
+
+/** Kick off Google sign-in: full-page redirect to Google, back to /auth/callback. */
+export function startGoogleSignIn(): void {
+  const returnTo = window.location.pathname === AUTH_CALLBACK_PATH ? '/' : window.location.pathname;
+  try { sessionStorage.setItem('pluckk_return_to', returnTo); } catch { /* ignore */ }
+  window.location.href = buildGoogleAuthUrl({ redirectUri: `${window.location.origin}${AUTH_CALLBACK_PATH}` });
+}
+
+/**
+ * Finish sign-in on /auth/callback: parse id_token from the fragment, exchange
+ * it for a bearer token, then send the user back where they were.
+ */
+export async function completeGoogleSignIn(): Promise<AuthUser | null> {
+  const idToken = parseIdToken(window.location.href);
+  if (!idToken) return null;
+  const user = await signInWithGoogleCredential(idToken);
+  let returnTo = '/';
+  try { returnTo = sessionStorage.getItem('pluckk_return_to') || '/'; sessionStorage.removeItem('pluckk_return_to'); } catch { /* ignore */ }
+  window.history.replaceState(null, '', returnTo);
+  return user;
+}
 
 export function useAuth(): UseAuthReturn {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => (getAccessToken() ? getStoredUser() : null));
   const [loading, setLoading] = useState(true);
-  const [billingInfo, setBillingInfo] = useState<BillingInfo | null>(null);
   const [learningProfile, setLearningProfile] = useState<LearningProfile | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // Fetch user info including billing and learning profile
-  const fetchUserInfo = async (isNewSignIn = false): Promise<void> => {
+  const fetchUserInfo = async (): Promise<void> => {
     try {
-      const accessToken = await getAccessToken();
-      if (!accessToken) return;
-
-      const response = await fetch(`${BACKEND_URL}/api/user/me`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setBillingInfo({
-          isPro: data.subscription?.isPro || false,
-          cardsUsed: data.usage?.cardsThisMonth || 0,
-          limit: data.usage?.limit || FREE_TIER_LIMIT,
-        });
-
-        const profile: LearningProfile = {
-          onboardingCompleted: data.learningProfile?.onboardingCompleted ?? false,
-          primaryCategory: data.learningProfile?.primaryCategory || null,
-          studentLevel: data.learningProfile?.studentLevel || null,
-          studentField: data.learningProfile?.studentField || null,
-          workFields: data.learningProfile?.workFields || [],
-          workFieldOther: data.learningProfile?.workFieldOther || null,
-          workYearsExperience: data.learningProfile?.workYearsExperience || null,
-          researchField: data.learningProfile?.researchField || null,
-          researchYearsExperience: data.learningProfile?.researchYearsExperience || null,
-          additionalInterests: data.learningProfile?.additionalInterests || [],
-          additionalInterestsOther: data.learningProfile?.additionalInterestsOther || null,
-          spacedRepExperience: data.learningProfile?.spacedRepExperience || null,
-          technicalityPreference: data.learningProfile?.technicalityPreference || null,
-          breadthPreference: data.learningProfile?.breadthPreference || null,
-        };
-        setLearningProfile(profile);
-
-        // Show onboarding wizard when onboarding not completed
-        if (!profile.onboardingCompleted) {
-          setShowOnboarding(true);
-        }
-      }
+      const data = await api.user.me();
+      const lp = data.learningProfile as Partial<LearningProfile>;
+      const profile: LearningProfile = {
+        onboardingCompleted: lp.onboardingCompleted ?? false,
+        primaryCategory: lp.primaryCategory || null,
+        studentLevel: lp.studentLevel || null,
+        studentField: lp.studentField || null,
+        workFields: lp.workFields || [],
+        workFieldOther: lp.workFieldOther || null,
+        workYearsExperience: lp.workYearsExperience || null,
+        researchField: lp.researchField || null,
+        researchYearsExperience: lp.researchYearsExperience || null,
+        additionalInterests: lp.additionalInterests || [],
+        additionalInterestsOther: lp.additionalInterestsOther || null,
+        spacedRepExperience: lp.spacedRepExperience || null,
+        technicalityPreference: lp.technicalityPreference || null,
+        breadthPreference: lp.breadthPreference || null,
+      };
+      setLearningProfile(profile);
+      if (!profile.onboardingCompleted) setShowOnboarding(true);
     } catch (error) {
       console.error('Failed to fetch user info:', error);
     }
   };
 
-  // Initialize auth state
   useEffect(() => {
-    const initAuth = async (): Promise<void> => {
-      const { session } = await getSession();
-      if (session?.user) {
-        setUser(session.user);
-        fetchUserInfo(false); // Not a new sign-in on page load
+    const init = async (): Promise<void> => {
+      if (window.location.pathname === AUTH_CALLBACK_PATH) {
+        try {
+          const u = await completeGoogleSignIn();
+          if (u) { setUser(u); await fetchUserInfo(); }
+        } catch (error) {
+          console.error('Sign in failed:', error);
+          clearSession();
+          window.history.replaceState(null, '', '/');
+        }
+      } else if (getAccessToken()) {
+        setUser(getStoredUser());
+        await fetchUserInfo();
       }
       setLoading(false);
     };
+    init();
 
-    initAuth();
-
-    // Listen for auth changes
-    const unsubscribe = onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
-      console.log('Auth state changed:', event);
-
-      if (event === 'SIGNED_IN' && session?.user) {
-        setUser(session.user);
-        fetchUserInfo(true); // This is a new sign-in
+    return onAuthStateChange((event, u) => {
+      if (event === 'SIGNED_IN' && u) {
+        setUser(u);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
-        setBillingInfo(null);
         setLearningProfile(null);
         setShowOnboarding(false);
       }
     });
-
-    return unsubscribe;
   }, []);
 
-  const signIn = async (): Promise<void> => {
-    const { error } = await signInWithGoogle();
-    if (error) {
-      console.error('Sign in error:', error);
-    }
-  };
+  const signIn = async (): Promise<void> => { startGoogleSignIn(); };
 
   const signOut = async (): Promise<void> => {
-    const { error } = await supabaseSignOut();
-    if (error) {
-      console.error('Sign out error:', error);
-    }
+    await apiSignOut();
     setUser(null);
-    setBillingInfo(null);
   };
 
-  const handleUpgrade = async (): Promise<void> => {
+  const completeOnboarding = async (profile: Omit<LearningProfile, 'onboardingCompleted'>): Promise<void> => {
     try {
-      const accessToken = await getAccessToken();
-      if (!accessToken) return;
-
-      const response = await fetch(`${BACKEND_URL}/api/checkout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          successUrl: window.location.href,
-          cancelUrl: window.location.href,
-        }),
-      });
-
-      if (response.ok) {
-        const { url } = await response.json();
-        window.location.href = url;
-      }
-    } catch (error) {
-      console.error('Checkout error:', error);
-    }
-  };
-
-  const handleManageSubscription = async (): Promise<void> => {
-    try {
-      const accessToken = await getAccessToken();
-      if (!accessToken) return;
-
-      const response = await fetch(`${BACKEND_URL}/api/portal`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          returnUrl: window.location.href,
-        }),
-      });
-
-      if (response.ok) {
-        const { url } = await response.json();
-        window.location.href = url;
-      }
-    } catch (error) {
-      console.error('Portal error:', error);
-    }
-  };
-
-  const completeOnboarding = async (
-    profile: Omit<LearningProfile, 'onboardingCompleted'>
-  ): Promise<void> => {
-    try {
-      const accessToken = await getAccessToken();
-      if (!accessToken) return;
-
-      const response = await fetch(`${BACKEND_URL}/api/user/me`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          onboardingCompleted: true,
-          primaryCategory: profile.primaryCategory,
-          studentLevel: profile.studentLevel,
-          studentField: profile.studentField,
-          workFields: profile.workFields,
-          workFieldOther: profile.workFieldOther,
-          workYearsExperience: profile.workYearsExperience,
-          researchField: profile.researchField,
-          researchYearsExperience: profile.researchYearsExperience,
-          additionalInterests: profile.additionalInterests,
-          additionalInterestsOther: profile.additionalInterestsOther,
-          spacedRepExperience: profile.spacedRepExperience,
-          technicalityPreference: profile.technicalityPreference,
-          breadthPreference: profile.breadthPreference,
-        }),
-      });
-
-      if (response.ok) {
-        setLearningProfile({
-          ...profile,
-          onboardingCompleted: true,
-        });
-        setShowOnboarding(false);
-      } else {
-        // Log the error for debugging
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Failed to save onboarding:', response.status, errorData);
-        // Still close the wizard so user isn't stuck
-        setShowOnboarding(false);
-      }
+      await api.user.update({ onboardingCompleted: true, ...profile });
+      setLearningProfile({ ...profile, onboardingCompleted: true });
     } catch (error) {
       console.error('Failed to save onboarding:', error);
-      // Still close the wizard so user isn't stuck
+    } finally {
       setShowOnboarding(false);
     }
   };
 
   const skipOnboarding = async (): Promise<void> => {
     try {
-      const accessToken = await getAccessToken();
-      if (!accessToken) return;
-
-      await fetch(`${BACKEND_URL}/api/user/me`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ onboardingCompleted: true }),
-      });
-
-      setLearningProfile((prev) =>
-        prev ? { ...prev, onboardingCompleted: true } : null
-      );
-      setShowOnboarding(false);
+      await api.user.update({ onboardingCompleted: true });
+      setLearningProfile((prev) => (prev ? { ...prev, onboardingCompleted: true } : null));
     } catch (error) {
       console.error('Failed to skip onboarding:', error);
-      setShowOnboarding(false); // Still hide wizard on error
+    } finally {
+      setShowOnboarding(false);
     }
   };
 
-  return {
-    user,
-    loading,
-    billingInfo,
-    learningProfile,
-    showOnboarding,
-    signIn,
-    signOut,
-    handleUpgrade,
-    handleManageSubscription,
-    completeOnboarding,
-    skipOnboarding,
-  };
+  return { user, loading, learningProfile, showOnboarding, signIn, signOut, completeOnboarding, skipOnboarding };
 }

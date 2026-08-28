@@ -2,10 +2,10 @@
 // Proxies Claude API calls with server-side API key
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { User as DbUser } from '../db/schema.js';
 import { buildPersonaPrompt } from '../lib/prompts.js';
-import { authenticateRequest, checkUsageLimit, isAuthError } from '../lib/auth.js';
-import { incrementCardCount } from '../lib/supabase-admin.js';
-import type { GenerateCardsRequest, GeneratedCard, UserProfile } from '../lib/types.js';
+import { authenticateRequest, isAuthError } from '../lib/auth.js';
+import type { GenerateCardsRequest, GeneratedCard } from '../lib/types.js';
 import type { ClaudeResponse } from '../lib/claude-types.js';
 
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
@@ -25,7 +25,6 @@ const REFINEMENT_INSTRUCTIONS: Record<RefinementAction, string> = {
  */
 async function handleRefineCard(
   res: VercelResponse,
-  userId: string,
   body: GenerateCardsRequest
 ): Promise<void> {
   const { refineCard: card, refinementAction, sourceSelection, sourceContext } = body;
@@ -91,7 +90,6 @@ Output format: {"card":{...}}`;
       return;
     }
 
-    await incrementCardCount(userId, 1);
     res.status(200).json({ card: parsed.card });
   } catch (error) {
     console.error('Error refining card:', error);
@@ -108,23 +106,25 @@ Output format: {"card":{...}}`;
  * Pro users get access to the diagram card style
  * Learning profile adds personalization context
  */
-function buildSystemPrompt(isPro: boolean, profile?: UserProfile): string {
+function buildSystemPrompt(isPro: boolean, profile?: DbUser): string {
   // Build persona prompt from learning profile
+  // DB columns are plain text/int; the persona builder wants the literal unions.
+  // Values were validated on write in /api/user/me, so the cast is safe.
   const personaPrompt = buildPersonaPrompt({
-    primaryCategory: profile?.primary_category,
-    studentLevel: profile?.student_level,
-    studentField: profile?.student_field,
-    workFields: profile?.work_fields,
-    workFieldOther: profile?.work_field_other,
-    workYearsExperience: profile?.work_years_experience,
-    researchField: profile?.research_field,
-    researchYearsExperience: profile?.research_years_experience,
-    additionalInterests: profile?.additional_interests,
-    additionalInterestsOther: profile?.additional_interests_other,
-    spacedRepExperience: profile?.spaced_rep_experience,
-    technicalityPreference: profile?.technicality_preference,
-    breadthPreference: profile?.breadth_preference,
-  });
+    primaryCategory: profile?.primaryCategory,
+    studentLevel: profile?.studentLevel,
+    studentField: profile?.studentField,
+    workFields: profile?.workFields,
+    workFieldOther: profile?.workFieldOther,
+    workYearsExperience: profile?.workYearsExperience,
+    researchField: profile?.researchField,
+    researchYearsExperience: profile?.researchYearsExperience,
+    additionalInterests: profile?.additionalInterests,
+    additionalInterestsOther: profile?.additionalInterestsOther,
+    spacedRepExperience: profile?.spacedRepExperience,
+    technicalityPreference: profile?.technicalityPreference,
+    breadthPreference: profile?.breadthPreference,
+  } as Parameters<typeof buildPersonaPrompt>[0]);
   const diagramStyle = isPro ? `
 7. **diagram** - For STRUCTURAL or COMPARATIVE knowledge that benefits from visual representation.
    When to use: taxonomies, hierarchies, system architectures, X vs Y comparisons, process flows
@@ -208,26 +208,15 @@ export default async function handler(
     return;
   }
 
-  const { user, profile } = authResult;
+  const { profile } = authResult;
 
-  // Check usage limits
-  const usage = checkUsageLimit(profile);
-  if (!usage.allowed) {
-    res.status(402).json({
-      error: 'usage_limit_reached',
-      message: `You've used all ${usage.limit} free cards this month. Upgrade to Pro for unlimited cards.`,
-      remaining: 0,
-      limit: usage.limit
-    });
-    return;
-  }
 
   // Parse request body
   const body = req.body as GenerateCardsRequest;
 
   // Refinement mode: refine a single card instead of generating a batch
   if (body.refineCard && body.refinementAction) {
-    await handleRefineCard(res, user.id, body);
+    await handleRefineCard(res, body);
     return;
   }
 
@@ -253,7 +242,7 @@ Generate 4-8 spaced repetition cards for the highlighted selection, depending on
   }
 
   // Determine if user is Pro (for diagram feature access)
-  const isPro = profile.subscription_status === 'active' || profile.subscription_status === 'admin';
+  const isPro = true;
 
   // Use custom prompt or build based on subscription status and learning profile
   const systemPrompt = customPrompt || buildSystemPrompt(isPro, profile);
@@ -319,17 +308,15 @@ Generate 4-8 spaced repetition cards for the highlighted selection, depending on
       return;
     }
 
-    // Increment usage count (number of cards generated)
-    await incrementCardCount(user.id, parsed.cards.length);
 
     // Return cards with updated usage info and subscription status
     res.status(200).json({
       cards: parsed.cards,
       isPro,
       usage: {
-        remaining: usage.remaining === Infinity ? 'unlimited' : usage.remaining - parsed.cards.length,
-        limit: usage.limit,
-        subscription: profile.subscription_status
+        remaining: 'unlimited',
+        limit: undefined,
+        subscription: 'active'
       }
     });
 

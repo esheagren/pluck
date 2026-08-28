@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BACKEND_URL } from '@pluckk/shared/constants';
-import { getAccessToken } from '@pluckk/shared/supabase';
+import { getAccessToken } from '@pluckk/shared/api';
 import type {
   Profile,
   Subscription,

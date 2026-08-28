@@ -1,7 +1,7 @@
 import { useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { submitFeedback } from '@pluckk/shared/supabase';
+import { submitFeedback } from '@pluckk/shared/api';
 
 export default function FeedbackPage(): JSX.Element {
   const { user } = useAuth();

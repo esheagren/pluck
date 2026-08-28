@@ -1,12 +1,11 @@
 // Pluckk - Options Page Script
 
-import { DEFAULT_SYSTEM_PROMPT, FREE_TIER_LIMIT, BACKEND_URL } from '@pluckk/shared/constants';
+import { DEFAULT_SYSTEM_PROMPT } from '@pluckk/shared/constants';
 import {
   signInWithGoogle,
   signOut,
   getSession,
   getUserProfile,
-  getAccessToken,
   onAuthStateChange
 } from '../src/auth';
 import { initializeTheme } from '../src/theme';
@@ -87,9 +86,9 @@ async function updateUserDisplay(user: SessionUser | null): Promise<void> {
   // Fetch and display usage stats
   const profile = await getUserProfile();
   if (profile) {
-    const used = profile.cards_generated_this_month || 0;
-    const limit = FREE_TIER_LIMIT;
-    const isPro = profile.subscription_status === 'active';
+    const used = profile.usage?.cardsThisMonth || 0;
+    const limit = profile.usage?.limit || 1;
+    const isPro = true; // billing removed 2026-08; Pluckk is a private, free app
 
     if (isPro) {
       if (usageText) usageText.textContent = `${used} cards (unlimited)`;
@@ -223,38 +222,7 @@ async function handleUpgrade(): Promise<void> {
   }
 
   try {
-    const accessToken = await getAccessToken();
-    if (!accessToken) {
-      showStatus('Please sign in first', 'error');
-      return;
-    }
-
-    const response = await fetch(`${BACKEND_URL}/api/checkout`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      },
-      body: JSON.stringify({
-        successUrl: window.location.href,
-        cancelUrl: window.location.href
-      })
-    });
-
-    if (!response.ok) {
-      interface ErrorResponse {
-        message?: string;
-      }
-      const error: ErrorResponse = await response.json();
-      throw new Error(error.message || 'Checkout failed');
-    }
-
-    interface CheckoutResponse {
-      url: string;
-    }
-    const { url }: CheckoutResponse = await response.json();
-    // Open checkout in new tab
-    window.open(url, '_blank');
+    showStatus('Billing is disabled — Pluckk is free', 'success');
   } catch (error) {
     console.error('Upgrade error:', error);
     showStatus('Failed to start checkout', 'error');
@@ -276,37 +244,7 @@ async function handleManageSubscription(): Promise<void> {
   }
 
   try {
-    const accessToken = await getAccessToken();
-    if (!accessToken) {
-      showStatus('Please sign in first', 'error');
-      return;
-    }
-
-    const response = await fetch(`${BACKEND_URL}/api/portal`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      },
-      body: JSON.stringify({
-        returnUrl: window.location.href
-      })
-    });
-
-    if (!response.ok) {
-      interface ErrorResponse {
-        message?: string;
-      }
-      const error: ErrorResponse = await response.json();
-      throw new Error(error.message || 'Portal failed');
-    }
-
-    interface PortalResponse {
-      url: string;
-    }
-    const { url }: PortalResponse = await response.json();
-    // Open portal in new tab
-    window.open(url, '_blank');
+    showStatus('Billing is disabled — Pluckk is free', 'success');
   } catch (error) {
     console.error('Portal error:', error);
     showStatus('Failed to open subscription portal', 'error');

@@ -58,3 +58,33 @@ Estimate: A+B ≈ one session; C ≈ one to two sessions; D ≈ an hour.
 
 ## 5. Capture done (2026-08-28)
 REST dump at `projects/_migration/supabase-dumps/pluckk/` (15 tables, 3 auth users, 200 images in `card-images`). The live schema is well beyond `docs/README.md`: `cards` (307) carries numeric/interval answers + source anchoring; `card_review_state` (90) and `review_logs` (395) support SM-2 **and FSRS** (`stability`, `difficulty`, `fsrs_weights` in `algorithm_configs`); `folders`, `study_sessions`, `user_study_settings`, `user_calibration_stats`, `reserved_usernames`, `feedback`; plus what look like views/rollups (`public_user_cards`, `card_difficulty_ranking`, `user_daily_review_summary`, `user_daily_card_summary`). Phase B must derive the Drizzle schema from `openapi.json` + a `pg_dump --schema-only` (still wanted: connection string → `_migration/pluckk.pgurl`) to tell tables from views and recover the DB functions the rollups depend on.
+
+## 6. Code port done (2026-08-28) — branch `worktree-neon-migration`
+
+Implemented; typecheck/build clean except three pre-existing errors in untouched files
+(`extension/src/theme.ts`, `webapp/src/components/OnboardingWizard.tsx`, one `sidepanel.ts` cache cast):
+
+- **API**: `db/schema.ts` (Drizzle, all 11 live tables + new `api_tokens`; Stripe columns and the 4 views
+  dropped), `lib/db.ts`, `lib/auth.ts` (bearer tokens), `lib/router.ts` + `api/v1/[...path].ts`
+  (auth/google, cards, folders, review/queue, review, activity, feedback, images → Blob), ports of
+  `user/me`, `check-username`, `profile/[username]`, `import-from-mochi`; usage limits/Stripe deleted.
+  `scripts/import-supabase.ts` loads the REST dump preserving UUIDs and moves images to Blob.
+- **Shared**: `src/api/` (client, localStorage session, Google OIDC helpers) replaces `src/supabase/`.
+- **Webapp**: hooks rewritten against the client; Google redirect flow via `/auth/callback`; billing UI removed.
+- **Extension**: `src/auth.ts` → chrome.identity to Google directly, exchange at the API; card save,
+  image upload, activity, annotations, deep-link all via the API; Supabase host permission removed.
+  Extension ID (from the fixed manifest key): `imobhhfhcbhfiaefjjnfmmgdbjpphhcm`.
+- **macOS**: untouched (decision: leave on old flow → it is dark until ported).
+
+Design change vs §1: no Auth.js. One credential (opaque bearer token) for every client keeps the
+two-Vercel-project layout and `CORS: *`.
+
+### Remaining (needs Erik)
+1. Neon: connect a Neon database to the `pluckk-api` Vercel project (dashboard → Storage, or
+   `vercel integration add neon` from `packages/api`).
+2. Blob: create a Blob store and connect it to `pluckk-api` (dashboard → Storage → Blob).
+3. Google OAuth Web client: add redirect URIs `https://pluckk.app/auth/callback`,
+   `http://localhost:5173/auth/callback`, `https://imobhhfhcbhfiaefjjnfmmgdbjpphhcm.chromiumapp.org/`;
+   put the client ID in `packages/shared/src/constants/api.ts` and `vercel env add GOOGLE_CLIENT_IDS` on `pluckk-api`.
+4. Then: `vercel env pull .env.local`, `npm run db:push`, `npm run db:import`, deploy both projects,
+   remove `SUPABASE_*`/`STRIPE_*` env vars, smoke-test, merge.

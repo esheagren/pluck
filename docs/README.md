@@ -93,8 +93,9 @@ pluckFull/
 ├── packages/
 │   ├── extension/     # Chrome extension (Manifest V3)
 │   ├── webapp/        # React web app (Vite + Tailwind)
-│   ├── shared/        # Types, SM-2 algorithm, Supabase client
-│   └── api/           # Vercel serverless functions
+│   ├── shared/        # Types, SM-2 algorithm, API client + Google sign-in helpers
+│   ├── api/           # Vercel serverless functions + Drizzle schema (Neon Postgres)
+│   └── macos/         # Swift app (not yet migrated off Supabase)
 └── docs/              # Documentation
 ```
 
@@ -120,17 +121,20 @@ pluckFull/
           │         │ /generate-cards  │──────▶ Claude API
           │         │ /generate-image  │──────▶ Gemini API
           │         │ /send-to-mochi   │──────▶ Mochi API
+          │         │ /v1/auth/google  │──────▶ Google (ID token verify)
+          │         │ /v1/cards …      │
+          │         │ /v1/review …     │
+          │         │ /v1/images       │──────▶ Vercel Blob
           │         └──────────────────┘
           │                    │
           │                    ▼
           │         ┌──────────────────┐
-          └────────▶│    Supabase      │◀────── WEB APP
-                    │                  │
-                    │ - Auth (Google)  │
-                    │ - Cards table    │
-                    │ - Reviews table  │
-                    │ - User profiles  │
-                    │ - Image storage  │
+          └────────▶│  Neon Postgres   │◀────── WEB APP (via the same API)
+                    │  (Drizzle)       │
+                    │ - users, tokens  │
+                    │ - cards, folders │
+                    │ - review state   │
+                    │ - review logs    │
                     └──────────────────┘
                               ▲
                               │
@@ -174,8 +178,8 @@ Side Panel
    │ Displays card options, user selects/edits
    │ (user action)
    ▼
-Supabase
-   └─▶ Card saved to database with review metadata
+POST /api/v1/cards
+   └─▶ Card saved to Neon (images → Blob via /api/v1/images)
 ```
 
 ### Data Flow: Review Session
@@ -184,7 +188,7 @@ Supabase
 Web App loads
    │
    ▼
-Query: cards WHERE next_review <= today
+GET /api/v1/review/queue  (cards + review states + new-cards-reviewed-today)
    │
    ▼
 Load session from sessionStorage (if < 24h old)
@@ -196,10 +200,10 @@ Display card (question only)
 Reveal answer + rating buttons
    │ (user rates: Again/Hard/Good/Easy)
    ▼
-SM-2 calculates next_review date
+SM-2 calculates next due date (client)
    │
    ▼
-Update card_reviews in Supabase
+POST /api/v1/review → server upserts card_review_state + writes review_logs
    │
    ▼
 Next card (or session summary if done)
@@ -213,40 +217,44 @@ Next card (or session summary if done)
 | Frontend | React 18 + Vite | Web app UI |
 | Styling | Tailwind CSS | Utility-first CSS |
 | State | React hooks + Context | Local state management |
-| Backend | Vercel Functions | Serverless API |
-| Database | Supabase (Postgres) | Data persistence |
-| Auth | Supabase Auth (Google OAuth) | User authentication |
+| Backend | Vercel Functions | Serverless API (`api/v1/[...path].ts` router for data/auth) |
+| Database | Neon Postgres + Drizzle ORM | Data persistence (`packages/api/db/schema.ts`) |
+| Auth | Google Sign-In → Pluckk bearer tokens | One credential for webapp, extension, macOS |
+| Files | Vercel Blob | Card images |
 | AI | Claude Sonnet 4 | Card generation |
 | Images | Gemini API | Diagram generation |
-| Payments | Stripe | Subscription billing |
 
 ### Database Schema (Simplified)
 
 ```sql
 -- Core tables
-users (id, email, subscription_tier, cards_generated_this_month, ...)
-cards (id, user_id, question, answer, source_url, image_url, ...)
-card_reviews (id, card_id, status, ease_factor, interval_days, next_review, ...)
-decks (id, user_id, name, ...)
+users (id, email, google_sub, username, display_name, mochi_*, learning profile ...)
+api_tokens (id, user_id, token_hash, label, last_used_at)
+cards (id, user_id, folder_id, question, answer, source_*, image_url, numeric_*, tags ...)
+folders (id, user_id, name, color, sort_order)
+card_review_state (id, card_id, user_id, status, due_at, interval_days, ease_factor, streak ...)
+review_logs (id, card_id, user_id, rating, previous_*, new_*, reviewed_at ...)
+algorithm_configs, user_study_settings, study_sessions, user_calibration_stats, feedback, reserved_usernames
 ```
 
 ### Authentication
 
-**Extension:** Chrome Identity API → Supabase OAuth → JWT stored in chrome.storage.local
+**Extension:** `chrome.identity.launchWebAuthFlow` → Google (OIDC `id_token`) → `POST /api/v1/auth/google` → bearer token in `chrome.storage.local`
 
-**Web App:** Supabase client → OAuth redirect → Session managed by SDK
+**Web App:** redirect to Google → `/auth/callback` parses `id_token` → same exchange → token in localStorage
 
-**API:** JWT verification on each request → User ID extracted for RLS
+**API:** `Authorization: Bearer pk_…` → sha256 lookup in `api_tokens` → every query scoped by `user_id` (no RLS)
 
 ### Storage Strategy
 
 | What | Where | Why |
 |------|-------|-----|
 | API keys, settings | chrome.storage.sync | Syncs across devices |
-| Auth session | chrome.storage.local | Device-specific, sensitive |
+| Auth session | chrome.storage.local / localStorage | Device-specific, sensitive |
 | Review session | sessionStorage | Temporary, survives refresh |
 | Folder order | localStorage | UI preference |
-| All persistent data | Supabase | Source of truth |
+| All persistent data | Neon Postgres (via the API) | Source of truth |
+| Card images | Vercel Blob | Public URLs stored in `cards.image_url` |
 
 ## Development
 
@@ -257,7 +265,11 @@ npm install
 # Development (run from root)
 npm run dev:extension    # Watch extension
 npm run dev:webapp       # Watch web app
-npm run dev:api          # Local API
+npm run dev:api          # Local API (needs packages/api/.env.local: vercel env pull)
+
+# Database (from packages/api)
+npm run db:push          # Sync db/schema.ts to Neon
+npm run db:studio        # Browse tables
 
 # Build
 npm run build:extension

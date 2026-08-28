@@ -26,11 +26,13 @@ export interface LocalStorageData {
 
 // Session stored after OAuth
 export interface PluckkSession {
+  /** Pluckk bearer token (opaque, issued by /api/v1/auth/google). */
   access_token: string;
-  refresh_token: string;
-  expires_in: number;
-  expires_at: number;
   user: SessionUser;
+  /** @deprecated Supabase-era fields; no longer set. */
+  refresh_token?: string;
+  expires_in?: number;
+  expires_at?: number;
 }
 
 export interface SessionUser {

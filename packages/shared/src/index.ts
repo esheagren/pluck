@@ -1,6 +1,6 @@
 // Main barrel export for @pluckk/shared
 
-export * from './supabase/index';
+export * from './api/index';
 export * from './constants/index';
 export * from './utils/index';
 export * from './scheduler/index';

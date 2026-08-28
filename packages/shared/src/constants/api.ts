@@ -1,7 +1,16 @@
 // API URLs and configuration constants
 
-// Backend API (proxies Claude/Gemini calls)
+// Backend API (Vercel: data, auth, Claude/Gemini proxies)
 export const BACKEND_URL: string = 'https://pluckk-api.vercel.app';
+
+// Google OAuth *Web* client ID used by the webapp (redirect flow) and the
+// extension (chrome.identity → accounts.google.com). It is public, not a secret;
+// the API verifies ID tokens server-side against GOOGLE_CLIENT_IDS.
+// Authorized redirect URIs the client must list:
+//   https://pluckk.app/auth/callback
+//   http://localhost:5173/auth/callback
+//   https://<extension-id>.chromiumapp.org/
+export const GOOGLE_CLIENT_ID: string = '';
 
 // Direct API URLs (deprecated - use BACKEND_URL for Claude/Gemini)
 export const CLAUDE_API_URL: string = 'https://api.anthropic.com/v1/messages';
@@ -10,13 +19,3 @@ export const GEMINI_IMAGE_API_URL: string = 'https://generativelanguage.googleap
 
 // Mochi API (still called directly with user's own key)
 export const MOCHI_API_URL: string = 'https://app.mochi.cards/api';
-
-// Supabase configuration
-export const SUPABASE_URL: string = 'https://grjkoedivfrjlbtfskif.supabase.co';
-export const SUPABASE_KEY: string = 'sb_publishable_E1Is2auN23lNbPWDPzbgYw_RxERFa0W';
-
-// Stripe configuration
-export const STRIPE_PUBLISHABLE_KEY: string = 'pk_live_51Q1X4IAiykuoRvR46SWYJHWLh6m5CdMxFDcuC5u72Sn35Jj8HBrdiyygYYmoKxaOtLu6OAgw1iib7f9xXYGwdR6G00trIh6TA9';
-
-// Usage limits
-export const FREE_TIER_LIMIT: number = 20;

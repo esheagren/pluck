@@ -1,12 +1,11 @@
 // Pluckk - Background Service Worker
 // Handles API calls via backend proxy and message routing
 
-import { createSupabaseClient } from '@pluckk/shared/supabase';
 import {
   BACKEND_URL,
   DEFAULT_SYSTEM_PROMPT
 } from '@pluckk/shared/constants';
-import { getSession, getAccessToken, getUserProfile } from './auth';
+import { getSession, getAccessToken, getUserProfile, api } from './auth';
 import type {
   SelectionData,
   GeneratedCard,
@@ -18,10 +17,11 @@ import type {
   ExtensionMessage,
 } from './types';
 
-// Initialize Supabase client
-const supabase = createSupabaseClient({
-  onError: (msg: string, err: unknown) => console.error('[Pluckk]', msg, err)
-});
+/** Upload a base64 image for a card via the API (Vercel Blob) and set cards.image_url. */
+async function uploadCardImage(cardId: string, imageData: string, mimeType: string): Promise<string> {
+  const { image_url } = await api.images.upload(cardId, imageData, mimeType);
+  return image_url;
+}
 
 // Open side panel when extension icon is clicked
 chrome.action.onClicked.addListener((tab) => {
@@ -494,15 +494,11 @@ async function generateAndAttachImage(
     // Upload to Supabase Storage if we have a Supabase card ID
     if (supabaseCardId) {
       try {
-        console.log('[Pluckk] Uploading image to Supabase Storage...');
-        const imageUrl = await supabase.uploadImage(imageResult.data, imageResult.mimeType, supabaseCardId);
-        console.log('[Pluckk] Image uploaded to Supabase:', imageUrl);
-
-        console.log('[Pluckk] Updating Supabase card with image URL...');
-        await supabase.updateCardImage(supabaseCardId, imageUrl);
-        console.log('[Pluckk] Supabase card updated with image URL!');
+        console.log('[Pluckk] Uploading image to Pluckk...');
+        const imageUrl = await uploadCardImage(supabaseCardId, imageResult.data, imageResult.mimeType);
+        console.log('[Pluckk] Image uploaded:', imageUrl);
       } catch (supabaseError) {
-        console.error('[Pluckk] Supabase image upload failed:', (supabaseError as Error).message);
+        console.error('[Pluckk] Image upload failed:', (supabaseError as Error).message);
       }
     }
   } catch (error) {
@@ -544,15 +540,9 @@ async function generateImageForSupabase(
     const imageResult = await generateImageWithBackend(question, answer, diagramPrompt);
     console.log('[Pluckk] Image generated successfully, mimeType:', imageResult.mimeType);
 
-    // Upload to Supabase Storage
-    console.log('[Pluckk] Uploading image to Supabase Storage...');
-    const imageUrl = await supabase.uploadImage(imageResult.data, imageResult.mimeType, supabaseCardId);
-    console.log('[Pluckk] Image uploaded to Supabase:', imageUrl);
-
-    // Update Supabase card with image URL
-    console.log('[Pluckk] Updating Supabase card with image URL...');
-    await supabase.updateCardImage(supabaseCardId, imageUrl);
-    console.log('[Pluckk] Supabase card updated with image URL!');
+    console.log('[Pluckk] Uploading image to Pluckk...');
+    const imageUrl = await uploadCardImage(supabaseCardId, imageResult.data, imageResult.mimeType);
+    console.log('[Pluckk] Image uploaded:', imageUrl);
   } catch (error) {
     console.error('[Pluckk] Failed to generate/upload image for Supabase:', (error as Error).message, error);
   } finally {
@@ -585,13 +575,9 @@ async function uploadScreenshotToSupabase(
 
   try {
     console.log('[Pluckk] Starting screenshot upload task:', taskId);
-    console.log('[Pluckk] Uploading screenshot to Supabase Storage...');
-    const imageUrl = await supabase.uploadImage(screenshotData, screenshotMimeType, supabaseCardId);
-    console.log('[Pluckk] Screenshot uploaded to Supabase:', imageUrl);
-
-    console.log('[Pluckk] Updating Supabase card with image URL...');
-    await supabase.updateCardImage(supabaseCardId, imageUrl);
-    console.log('[Pluckk] Supabase card updated with image URL!');
+    console.log('[Pluckk] Uploading screenshot to Pluckk...');
+    const imageUrl = await uploadCardImage(supabaseCardId, screenshotData, screenshotMimeType);
+    console.log('[Pluckk] Screenshot uploaded:', imageUrl);
   } catch (error) {
     console.error('[Pluckk] Failed to upload screenshot:', (error as Error).message, error);
   } finally {
@@ -771,8 +757,8 @@ chrome.runtime.onMessage.addListener(
         let supabaseResult: { supabase: SupabaseResult } = { supabase: { success: true } };
         let supabaseCardId: string | null = null;
 
-        // Get user session for user_id
-        const { session, user } = await getSession();
+        // Get user session
+        const { user } = await getSession();
 
         // Require authentication to save cards
         if (!user?.id) {
@@ -786,26 +772,22 @@ chrome.runtime.onMessage.addListener(
         // Check if this is a screenshot-based card
         const hasScreenshot = req.screenshotData && req.screenshotMimeType;
 
-        // First, save to Supabase with user association
+        // First, save the card via the API
         try {
-          const result = await supabase.saveCard(
-            req.question,
-            req.answer,
-            req.sourceUrl,
-            {
-              userId: user.id,
-              accessToken: session?.access_token,
-              sourceSelection: req.sourceSelection,
-              sourceContext: req.sourceContext,
-              sourceTitle: req.sourceTitle,
-              sourceSelector: req.sourceSelector,
-              sourceTextOffset: req.sourceTextOffset
-            }
-          );
-          supabaseCardId = result.cardId || null;
-          supabaseResult = { supabase: result };
+          const card = await api.cards.create({
+            question: req.question,
+            answer: req.answer,
+            source_url: req.sourceUrl,
+            source_selection: req.sourceSelection,
+            source_context: req.sourceContext,
+            source_title: req.sourceTitle,
+            source_selector: req.sourceSelector,
+            source_text_offset: req.sourceTextOffset
+          });
+          supabaseCardId = card.id;
+          supabaseResult = { supabase: { success: true, cardId: card.id } };
         } catch (error) {
-          supabaseResult = { supabase: { error: 'supabase_error', message: (error as Error).message } };
+          supabaseResult = { supabase: { error: 'save_error', message: (error as Error).message } };
         }
 
         // Send to Mochi via backend API
@@ -1075,7 +1057,7 @@ chrome.runtime.onMessage.addListener(
       const req = request as SaveToSupabaseRequest;
       (async () => {
         try {
-          const { session, user } = await getSession();
+          const { user } = await getSession();
 
           // Require authentication to save cards
           if (!user?.id) {
@@ -1083,18 +1065,10 @@ chrome.runtime.onMessage.addListener(
             return;
           }
 
-          const result = await supabase.saveCard(
-            req.question,
-            req.answer,
-            req.sourceUrl,
-            {
-              userId: user.id,
-              accessToken: session?.access_token
-            }
-          );
-          sendResponse(result);
+          const card = await api.cards.create({ question: req.question, answer: req.answer, source_url: req.sourceUrl });
+          sendResponse({ success: true, cardId: card.id });
         } catch (error) {
-          sendResponse({ error: 'supabase_error', message: (error as Error).message });
+          sendResponse({ error: 'save_error', message: (error as Error).message });
         }
       })();
 

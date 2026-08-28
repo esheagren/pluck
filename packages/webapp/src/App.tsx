@@ -32,12 +32,9 @@ export default function App(): JSX.Element {
   const {
     user,
     loading: authLoading,
-    billingInfo,
     showOnboarding,
     signIn,
     signOut,
-    handleUpgrade,
-    handleManageSubscription,
     completeOnboarding,
     skipOnboarding,
   } = useAuth();
@@ -63,8 +60,8 @@ export default function App(): JSX.Element {
     );
   }
 
-  // Show loading while checking auth
-  if (authLoading) {
+  // Show loading while checking auth (also covers the /auth/callback exchange)
+  if (authLoading || location.pathname === '/auth/callback') {
     return <LoadingScreen />;
   }
 
@@ -116,13 +113,7 @@ export default function App(): JSX.Element {
         <Route
           path="/settings"
           element={
-            <SettingsPage
-              user={user}
-              billingInfo={billingInfo}
-              onSignOut={signOut}
-              onUpgrade={handleUpgrade}
-              onManage={handleManageSubscription}
-            />
+            <SettingsPage user={user} onSignOut={signOut} />
           }
         />
         <Route path="/activity" element={<Navigate to="/profile" replace />} />
