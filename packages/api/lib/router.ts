@@ -36,12 +36,22 @@ export class Router {
       }
       return;
     }
-    res.status(pathMatched ? 405 : 404).json({ error: pathMatched ? 'Method not allowed' : 'Not found' });
+    res.status(pathMatched ? 405 : 404).json({ error: pathMatched ? 'Method not allowed' : 'Not found', path: segments });
   }
 }
 
+/**
+ * Segments after /api/v1/. Vercel's catch-all populates `req.query.path`, but its
+ * shape has varied (array vs "a/b" string), so fall back to parsing req.url.
+ */
 export function pathSegments(req: VercelRequest): string[] {
-  const raw = req.query.path;
-  const arr = Array.isArray(raw) ? raw : typeof raw === 'string' ? raw.split('/') : [];
-  return arr.filter(Boolean);
+  const raw = req.query?.path;
+  let arr = Array.isArray(raw) ? raw : typeof raw === 'string' ? raw.split('/') : [];
+  if (arr.length === 0 && req.url) {
+    const pathname = req.url.split('?')[0];
+    arr = pathname.replace(/^\/?api\/v1\/?/, '').split('/');
+  }
+  arr = arr.filter(Boolean);
+  if (arr[0] === 'v1') arr = arr.slice(1);
+  return arr;
 }
