@@ -17,7 +17,9 @@ export default function Layout(): JSX.Element {
 
       <Sidebar />
       <MobileNav />
-      <main className="relative z-10 flex-1 ml-[220px] flex items-start justify-center p-10 max-md:ml-0">
+      {/* Right padding = the SandAnimation filter strip (100% − filterPosition of the viewport),
+          so content centers within the dotted region rather than the full width. */}
+      <main className="relative z-10 flex-1 ml-[220px] flex items-start justify-center p-10 pr-[calc(2.5rem+12.5vw)] max-md:ml-0 max-md:pr-10">
         <Outlet />
       </main>
     </div>
