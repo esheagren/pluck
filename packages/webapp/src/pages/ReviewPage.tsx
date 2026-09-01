@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, type ReactNode, type JSX } from 'react';
 import ReviewCard from '../components/ReviewCard';
 import ReviewProgressBar from '../components/ReviewProgressBar';
+import SessionControls from '../components/SessionControls';
 import { useReviewState } from '../hooks/useReviewState';
-import type { ReviewPageProps } from '../types';
+import type { ReviewPageProps, SessionConfig } from '../types';
 import type { Rating } from '@pluckk/shared/scheduler';
 
 interface CenteredWrapperProps {
@@ -22,7 +23,9 @@ export default function ReviewPage({
   onUpdateCard,
   onDeleteCard,
 }: ReviewPageProps): JSX.Element {
+  const [sessionConfig, setSessionConfig] = useState<SessionConfig>({ mode: 'scheduled' });
   const {
+    sessionMeta,
     currentCard,
     loading,
     isComplete,
@@ -39,7 +42,7 @@ export default function ReviewPage({
     removeCard,
     startNewCardsSession,
     RATINGS,
-  } = useReviewState(userId);
+  } = useReviewState(userId, sessionConfig);
 
   const [isFlipped, setIsFlipped] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -176,12 +179,18 @@ export default function ReviewPage({
     );
   }
 
+  const sessionControls = (
+    <SessionControls config={sessionConfig} onChange={setSessionConfig} meta={sessionMeta} />
+  );
+
   // Empty state - no cards in queue
   if (totalCards === 0) {
     const hasNewCards = newCardsAvailableToday > 0;
 
     return (
       <CenteredWrapper>
+        <div className="flex w-full flex-col items-center gap-8">
+        {sessionControls}
         <div className="flex flex-col items-center justify-center text-center gap-4">
           <div className="w-20 h-20 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-2">
             <svg
@@ -221,6 +230,7 @@ export default function ReviewPage({
           ) : (
             <p className="text-gray-400 dark:text-gray-500 text-sm">No new cards to learn.</p>
           )}
+        </div>
         </div>
       </CenteredWrapper>
     );
@@ -285,7 +295,8 @@ export default function ReviewPage({
   // Review state
   return (
     <CenteredWrapper>
-      <div className="flex flex-col items-center gap-8">
+      <div className="flex w-full flex-col items-center gap-8">
+        {sessionControls}
         {/* Progress indicator */}
         <ReviewProgressBar currentIndex={currentIndex} dueCards={dueCards} />
 

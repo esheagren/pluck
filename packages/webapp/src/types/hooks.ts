@@ -493,7 +493,23 @@ export interface ReviewSubmitResult {
 /**
  * Return type for useReviewState hook
  */
+/** Review-mixer session request (mirrors POST /api/v1/review/session). */
+export interface SessionConfig {
+  mode: 'scheduled' | 'focus' | 'backlog';
+  folderId?: string | null;      // focus/backlog (null = unfiled)
+  size?: number;                 // omit → server default
+  mix?: Array<{ folder_id: string | null; pct: number }>;
+}
+
+export interface SessionMeta {
+  mode: string;
+  per_folder: Record<string, { due: number; new: number; dealt: number }>;
+  due_total: number;
+  backlog_remaining?: number;
+}
+
 export interface UseReviewStateReturn {
+  sessionMeta: SessionMeta | null;
   dueCards: CardWithReviewState[];
   currentCard: CardWithReviewState | null;
   currentIndex: number;

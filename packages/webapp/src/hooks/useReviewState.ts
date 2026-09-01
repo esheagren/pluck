@@ -20,7 +20,11 @@ import type {
   RestoredSession,
   ReviewSubmitResult,
   UseReviewStateReturn,
+  SessionConfig,
+  SessionMeta,
 } from '../types';
+
+const DEFAULT_CONFIG: SessionConfig = { mode: 'scheduled' };
 
 const DEFAULT_NEW_CARDS_PER_DAY = 10;
 const NEW_CARDS_KEY = 'pluckk_new_cards_per_day';
@@ -99,12 +103,14 @@ function getNewCardsPerDay(): number {
  * Hook for managing spaced repetition review state.
  * Fetches due cards, handles rating submissions, and logs reviews.
  */
-export function useReviewState(userId: string | undefined): UseReviewStateReturn {
+export function useReviewState(userId: string | undefined, config: SessionConfig = DEFAULT_CONFIG): UseReviewStateReturn {
+  const configKey = JSON.stringify([config.mode, config.folderId ?? '*', config.size ?? 0, config.mix ?? null]);
   const [dueCards, setDueCards] = useState<CardWithReviewState[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [totalNewCards, setTotalNewCards] = useState(0);
   const [newCardsAvailableToday, setNewCardsAvailableToday] = useState(0);
+  const [sessionMeta, setSessionMeta] = useState<SessionMeta | null>(null);
 
   /**
    * Try to restore a saved session by fetching fresh data for saved card IDs.
@@ -211,77 +217,31 @@ export function useReviewState(userId: string | undefined): UseReviewStateReturn
 
         // Clear any stale session since we're fetching fresh
         clearSession();
-        // One round trip: all cards (incl. those without review state), all states,
-        // and the ids of new cards already reviewed today.
-        const queue = await api.review.queue();
-        const cards = queue.cards as unknown as CardWithReviewState[];
-        const reviewStates = queue.states as unknown as Array<CardReviewState & { card_id: string }>;
-
-        // Create a map of card_id -> review_state
-        const stateMap = new Map<string, CardReviewState & { card_id: string }>();
-        reviewStates.forEach((state) => {
-          stateMap.set(state.card_id, state);
+        // The server-side mixer selects and orders the session (quotas, per-folder
+        // new-card caps, pauses); we only annotate the dealt cards.
+        const session = await api.review.session({
+          mode: config.mode,
+          size: config.size,
+          folder_id: config.mode === 'focus' || config.mode === 'backlog' ? config.folderId ?? null : undefined,
+          mix: config.mix,
         });
+        setSessionMeta(session.meta);
+        const stateMap = new Map(session.states.map((st) => [st.card_id, st as unknown as CardReviewState]));
+        const dealt: CardWithReviewState[] = (session.cards as unknown as CardWithReviewState[]).map((card) => ({
+          ...card,
+          review_state: stateMap.get(card.id) ?? null,
+          is_new: !stateMap.has(card.id),
+          is_due: true,
+        }));
 
-        // Merge cards with their state and categorize
-        const now = new Date();
-        const cardsWithState: CardWithReviewState[] = (cards as CardWithReviewState[]).map(
-          (card) => {
-            const state = stateMap.get(card.id) || null;
-            return {
-              ...card,
-              review_state: state,
-              is_new: !state,
-              is_due: !state || new Date((state as unknown as { due_at: string }).due_at) <= now,
-            };
-          }
-        );
+        const folderTotals = Object.values(session.meta.per_folder);
+        setTotalNewCards(folderTotals.reduce((s, f) => s + f.new, 0));
+        setNewCardsAvailableToday(dealt.filter((c) => c.is_new).length);
 
-        // Separate into review cards (due, have state) and new cards (no state)
-        const reviewCards = cardsWithState.filter((c) => c.is_due && !c.is_new);
-        const newCards = cardsWithState.filter((c) => c.is_new);
-
-        // Store total new cards count
-        setTotalNewCards(newCards.length);
-
-        // Apply new cards per day limit
-        const newCardsLimit = getNewCardsPerDay();
-        let limitedNewCards = newCards;
-        let availableToday = newCards.length; // Default to all new cards if unlimited
-
-        // If limit is 0, that means unlimited; otherwise apply the limit
-        if (newCardsLimit > 0) {
-          // Check how many new cards have already been reviewed today
-          // Use local midnight for consistent day boundaries
-          const todayStart = new Date(new Date().toDateString());
-
-          void todayStart;
-          const newCardsReviewedToday = new Set(queue.new_reviewed_today).size;
-          const remainingNewCards = Math.max(0, newCardsLimit - newCardsReviewedToday);
-
-          // Track how many new cards are available today (min of remaining allowance and available cards)
-          availableToday = Math.min(remainingNewCards, newCards.length);
-
-          // Limit new cards to the remaining allowance
-          limitedNewCards = newCards.slice(0, remainingNewCards);
-        }
-
-        // Store available new cards for today
-        setNewCardsAvailableToday(availableToday);
-
-        // Combine review cards and limited new cards, then shuffle
-        const allDue = [...reviewCards, ...limitedNewCards];
-        const shuffled = allDue.sort(() => Math.random() - 0.5);
-
-        setDueCards(shuffled);
+        setDueCards(dealt);
         setCurrentIndex(0);
-
-        // Save the new session
-        if (shuffled.length > 0) {
-          saveSession(
-            shuffled.map((c) => c.id),
-            0
-          );
+        if (dealt.length > 0) {
+          saveSession(dealt.map((c) => c.id), 0);
         }
       } catch (error) {
         console.error('Error fetching due cards:', error);
@@ -290,7 +250,8 @@ export function useReviewState(userId: string | undefined): UseReviewStateReturn
         setLoading(false);
       }
     },
-    [userId, tryRestoreSession]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [userId, tryRestoreSession, configKey]
   );
 
   /**
@@ -548,6 +509,7 @@ export function useReviewState(userId: string | undefined): UseReviewStateReturn
   }, [fetchDueCards]);
 
   return {
+    sessionMeta,
     dueCards,
     currentCard,
     currentIndex,

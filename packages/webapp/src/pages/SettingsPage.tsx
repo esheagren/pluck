@@ -1,6 +1,6 @@
 import { useState, useEffect, type JSX } from 'react';
 import { BACKEND_URL, MOCHI_API_URL } from '@pluckk/shared/constants';
-import { getAccessToken } from '@pluckk/shared/api';
+import { getAccessToken, api } from '@pluckk/shared/api';
 import { useTheme } from '../hooks/useTheme';
 import type {
   SettingsPageProps,
@@ -84,6 +84,11 @@ export default function SettingsPage({ user, onSignOut }: SettingsPageProps): JS
 
       const accessToken = await getAccessToken();
       if (!accessToken) return;
+
+      // Server value wins over localStorage (source of truth since the review mixer).
+      api.review.settings().then((s) => {
+        if (Number.isFinite(s.new_cards_per_day)) setNewCardsPerDay(s.new_cards_per_day);
+      }).catch(() => {});
 
       const response = await fetch(`${BACKEND_URL}/api/user/me`, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -174,6 +179,8 @@ export default function SettingsPage({ user, onSignOut }: SettingsPageProps): JS
     if (!isNaN(num) && num >= 0) {
       setNewCardsPerDay(num);
       localStorage.setItem(NEW_CARDS_KEY, num.toString());
+      // Server is the source of truth since the review mixer; localStorage kept as a fallback.
+      api.review.updateSettings({ new_cards_per_day: num }).catch(() => {});
     }
   };
 
