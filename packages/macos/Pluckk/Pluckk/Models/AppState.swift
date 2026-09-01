@@ -9,21 +9,17 @@ enum CapturedContent: Equatable {
 
     static func == (lhs: CapturedContent, rhs: CapturedContent) -> Bool {
         switch (lhs, rhs) {
-        case (.text(let lhsText), .text(let rhsText)):
-            return lhsText == rhsText
-        case (.image(let lhsImage), .image(let rhsImage)):
-            // Compare by reference - new captures create new instances
-            return lhsImage === rhsImage
-        default:
-            return false
+        case (.text(let l), .text(let r)): return l == r
+        case (.image(let l), .image(let r)): return l === r
+        default: return false
         }
     }
 }
 
+/// The panel has two jobs: capture → generate, and settings. Review and browsing
+/// live in the web app (pluckk.app).
 enum PanelView {
     case generate
-    case browse
-    case review
     case settings
 }
 
@@ -32,10 +28,7 @@ struct SourceContext {
     let windowTitle: String
 
     var displayString: String {
-        if windowTitle.isEmpty {
-            return appName
-        }
-        return "\(appName) - \(windowTitle)"
+        windowTitle.isEmpty ? appName : "\(appName) - \(windowTitle)"
     }
 }
 
@@ -56,7 +49,7 @@ class AppState: ObservableObject {
     @Published var selectedCardIndices: Set<Int> = []
     @Published var generationError: String?
 
-    // Decks
+    // Decks (Pluckk folders)
     @Published var decks: [Deck] = []
     @Published var selectedDeckId: String?
 
@@ -64,10 +57,6 @@ class AppState: ObservableObject {
     @Published var mochiEnabled = false
     @Published var mochiApiKey: String?
     @Published var mochiDeckId: String?
-
-    // Usage
-    @Published var usageRemaining: Int?
-    @Published var subscriptionStatus: SubscriptionStatus = .free
 
     private init() {}
 
@@ -94,8 +83,6 @@ struct GeneratedCard: Identifiable {
     var question: String
     var answer: String
     var isSelected: Bool = true
-
-    // For editable cards
     var isEditing: Bool = false
 
     // Bidirectional cards (qa_bidirectional)
@@ -111,12 +98,9 @@ struct GeneratedCard: Identifiable {
     var expandedCardCount: Int {
         switch style {
         case .qa_bidirectional:
-            var count = 0
-            if forward != nil { count += 1 }
-            if reverse != nil { count += 1 }
-            return count  // Return actual count (can be 0 for invalid cards)
+            return (forward != nil ? 1 : 0) + (reverse != nil ? 1 : 0)
         case .cloze_list:
-            return prompts?.count ?? 0  // Return actual count (can be 0 for invalid cards)
+            return prompts?.count ?? 0
         default:
             return 1
         }
@@ -147,99 +131,15 @@ enum CardStyle: String, Codable {
 
 // MARK: - User Models
 
-struct User: Codable {
+struct User {
     let id: String
     let email: String
-    let username: String?
     let displayName: String?
-    let subscriptionStatus: String?
     let mochiApiKey: String?
     let mochiDeckId: String?
-    let cardsGeneratedThisMonth: Int?
-
-    // Explicit memberwise initializer for manual creation
-    init(id: String, email: String, username: String?, displayName: String?,
-         subscriptionStatus: String?, mochiApiKey: String?, mochiDeckId: String?,
-         cardsGeneratedThisMonth: Int?) {
-        self.id = id
-        self.email = email
-        self.username = username
-        self.displayName = displayName
-        self.subscriptionStatus = subscriptionStatus
-        self.mochiApiKey = mochiApiKey
-        self.mochiDeckId = mochiDeckId
-        self.cardsGeneratedThisMonth = cardsGeneratedThisMonth
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case id, email, username
-        case displayName = "display_name"
-        case subscriptionStatus = "subscription_status"
-        case mochiApiKey = "mochi_api_key"
-        case mochiDeckId = "mochi_deck_id"
-        case cardsGeneratedThisMonth = "cards_generated_this_month"
-    }
 }
 
-struct Deck: Codable, Identifiable {
+struct Deck: Identifiable {
     let id: String
     let name: String
-    let userId: String?
-    let cardCount: Int?
-
-    enum CodingKeys: String, CodingKey {
-        case id, name
-        case userId = "user_id"
-        case cardCount = "card_count"
-    }
-}
-
-enum SubscriptionStatus: String {
-    case free
-    case active
-    case canceled
-    case pastDue = "past_due"
-    case admin
-
-    var isPro: Bool {
-        self == .active || self == .admin
-    }
-}
-
-// MARK: - Review Models
-
-struct CardReviewState: Codable {
-    let cardId: String
-    let easiness: Double
-    let interval: Int
-    let repetitions: Int
-    let nextReview: String
-
-    enum CodingKeys: String, CodingKey {
-        case cardId = "card_id"
-        case easiness, interval, repetitions
-        case nextReview = "next_review"
-    }
-}
-
-struct SavedCard: Codable, Identifiable {
-    let id: String
-    let userId: String
-    let question: String
-    let answer: String
-    let style: String?
-    let sourceUrl: String?
-    let sourceTitle: String?
-    let createdAt: String
-    var reviewState: CardReviewState?
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case userId = "user_id"
-        case question, answer, style
-        case sourceUrl = "source_url"
-        case sourceTitle = "source_title"
-        case createdAt = "created_at"
-        case reviewState = "card_review_state"
-    }
 }

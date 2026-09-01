@@ -1,22 +1,19 @@
 import Foundation
 
-/// Centralized configuration for Pluckk macOS app
-/// Note: These are publishable keys protected by Supabase RLS policies
+/// Centralized configuration for the Pluckk macOS app.
+/// The app is a thin capture client: it holds no database credentials and
+/// talks only to the Pluckk API with a bearer token obtained via the web app.
 enum Config {
-    // MARK: - API URLs
+    // MARK: - URLs
     static let backendURL = "https://pluckk-api.vercel.app"
-    static let supabaseURL = "https://grjkoedivfrjlbtfskif.supabase.co"
-    static let mochiAPIURL = "https://app.mochi.cards/api"
+    static let webappURL = "https://pluckk.app"
 
-    // MARK: - Supabase
-    /// Supabase anon/publishable key - safe to include in client apps
-    /// Protected by Row Level Security policies on the database
-    static let supabaseAnonKey = "sb_publishable_E1Is2auN23lNbPWDPzbgYw_RxERFa0W"
+    /// The web app runs the Google sign-in and hands the Pluckk token back on
+    /// the `pluckk://` scheme (see AuthManager). Registered in Info.plist.
+    static let authStartURL = "\(webappURL)/auth/desktop"
+    static let authCallbackScheme = "pluckk"
 
     // MARK: - App Info
-    static let appVersion = "1.0.0"
+    static let appVersion = "1.1.0"
     static let bundleIdentifier = "com.pluckk.app"
-
-    // MARK: - Usage Limits
-    static let freeTierMonthlyLimit = 20
 }

@@ -71,8 +71,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func showContextMenu() {
         let menu = NSMenu()
 
-        menu.addItem(NSMenuItem(title: "Browse Cards", action: #selector(showBrowse), keyEquivalent: "b"))
-        menu.addItem(NSMenuItem(title: "Review Due Cards", action: #selector(showReview), keyEquivalent: "r"))
+        menu.addItem(NSMenuItem(title: "Open pluckk.app", action: #selector(openWebapp), keyEquivalent: "o"))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Settings...", action: #selector(showSettings), keyEquivalent: ","))
         menu.addItem(NSMenuItem.separator())
@@ -83,16 +82,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.menu = nil
     }
 
-    @objc private func showBrowse() {
-        appState.currentView = .browse
-        WindowResizer.shared.captureTargetWindow()
-        panel.expand()
-    }
-
-    @objc private func showReview() {
-        appState.currentView = .review
-        WindowResizer.shared.captureTargetWindow()
-        panel.expand()
+    @objc private func openWebapp() {
+        if let url = URL(string: Config.webappURL) { NSWorkspace.shared.open(url) }
     }
 
     @objc private func showSettings() {

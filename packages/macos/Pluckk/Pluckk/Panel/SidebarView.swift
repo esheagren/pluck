@@ -68,18 +68,6 @@ struct SidebarView: View {
                                 } else {
                                     LoginView()
                                 }
-                            case .browse:
-                                if appState.isAuthenticated {
-                                    CardBrowserView()
-                                } else {
-                                    LoginView()
-                                }
-                            case .review:
-                                if appState.isAuthenticated {
-                                    ReviewSessionView()
-                                } else {
-                                    LoginView()
-                                }
                             case .settings:
                                 SettingsView()
                             }

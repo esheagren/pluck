@@ -25,11 +25,12 @@ root `CLAUDE.md` replaced by the accurate one and `.claude/CLAUDE.md` un-ignored
 `index.html` main.jsx · the two activity grids on one date helper.
 Exit: everything still deploys; ~4–5k LOC gone; privacy page tells the truth.
 
-## Phase 2 — macOS thin port (one session + **[Erik]** Xcode build & Accessibility grant)
+## Phase 2 — macOS thin port — ✅ CODE DONE 2026-09-01 (compiles under Xcode 26.3; **[Erik]** run it once + test on Notion)
 
 Keep `⌘⌘` detector, Accessibility reader, panel, generation view, login/settings. Delete review, browser, SM-2,
-Pro UI, hardcoded key. Auth → Google id_token → `POST /api/v1/auth/google`; data → `/api/v1/cards`,
-`/api/generate-cards`. **[Erik]** test on Notion desktop (Electron selected-text caveat).
+Pro UI, hardcoded key. Auth → `ASWebAuthenticationSession` opens `pluckk.app/auth/desktop`, the web app runs Google sign-in and
+redirects to `pluckk://auth/callback#token=…` (no new Google client needed); data → `/api/v1/cards`,
+`/api/generate-cards`, Mochi decks via `/api/import-from-mochi` (key stays server-side). **[Erik]** test on Notion desktop (Electron selected-text caveat).
 Exit: `⌘⌘` in any app saves a card to Neon.
 
 ## Phase 3 — Core + server-owned domain (two to three sessions)

@@ -37,10 +37,10 @@ export function onAuthStateChange(listener: Listener): () => void {
 export const api = createApiClient({ getToken: getAccessToken, onUnauthorized: clearSession });
 
 /** Complete Google Sign-In: exchange the ID token, persist the session. */
-export async function signInWithGoogleCredential(credential: string): Promise<AuthUser> {
-  const { token, user } = await api.auth.google(credential, 'webapp');
+export async function signInWithGoogleCredential(credential: string, client = 'webapp'): Promise<{ token: string; user: AuthUser }> {
+  const { token, user } = await api.auth.google(credential, client);
   setSession(token, user);
-  return user;
+  return { token, user };
 }
 
 export async function signOut(): Promise<void> {

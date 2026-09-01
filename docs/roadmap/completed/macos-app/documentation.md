@@ -1,3 +1,5 @@
+> **2026-09-01:** ported to the Neon/API stack as a *thin capture client* — review mode, card browser, the Swift SM-2 and all Supabase access were removed (see `docs/roadmap/planned/consolidation/plan.md` Phase 2). Sections below describing review/browse/Supabase are historical.
+
 # Pluckk macOS App
 
 ## Overview
