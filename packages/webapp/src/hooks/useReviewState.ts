@@ -33,12 +33,16 @@ const SESSION_KEY = 'pluckk_review_session';
 /**
  * Save the current review session to sessionStorage.
  */
+// Stamped onto saved sessions so a Mix session never resumes inside a Focus/Backlog one.
+let activeConfigKey = '';
+
 function saveSession(cardIds: string[], currentIndex: number): void {
   try {
     const session: SavedSession = {
       cardIds,
       currentIndex,
       timestamp: Date.now(),
+      configKey: activeConfigKey,
     };
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
   } catch (_e) {
@@ -105,6 +109,7 @@ function getNewCardsPerDay(): number {
  */
 export function useReviewState(userId: string | undefined, config: SessionConfig = DEFAULT_CONFIG): UseReviewStateReturn {
   const configKey = JSON.stringify([config.mode, config.folderId ?? '*', config.size ?? 0, config.mix ?? null]);
+  activeConfigKey = configKey;
   const [dueCards, setDueCards] = useState<CardWithReviewState[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -200,7 +205,8 @@ export function useReviewState(userId: string | undefined, config: SessionConfig
         // Try to restore from saved session (unless forcing refresh)
         if (!forceRefresh) {
           const session = loadSession();
-          if (session) {
+          // Only resume a session dealt under the same mode/deck as the current URL.
+          if (session && (session.configKey ?? '') === configKey) {
             const restored = await tryRestoreSession(session);
             if (restored) {
               setDueCards(restored.cards);

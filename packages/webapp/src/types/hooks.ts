@@ -471,6 +471,8 @@ export interface SavedSession {
   cardIds: string[];
   currentIndex: number;
   timestamp: number;
+  /** Which session config dealt these cards; a saved Mix session must not resume inside a Focus session. */
+  configKey?: string;
 }
 
 /**
