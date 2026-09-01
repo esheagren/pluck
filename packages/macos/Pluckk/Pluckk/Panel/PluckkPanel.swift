@@ -13,6 +13,12 @@ class PluckkPanel: NSPanel {
     private(set) var isExpanded = false
     private var hostingView: NSHostingView<SidebarView>?
 
+    /// Off by default: the panel floats over the active app. Turning it on shoves the
+    /// frontmost window aside (and pulls it out of full screen), which is intrusive on
+    /// narrow or portrait displays.
+    static let pushWindowAsideKey = "pushWindowAside"
+    private var pushesWindowAside: Bool { UserDefaults.standard.bool(forKey: Self.pushWindowAsideKey) }
+
     override init(contentRect: NSRect, styleMask style: NSWindow.StyleMask, backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
         super.init(contentRect: contentRect, styleMask: style, backing: backingStoreType, defer: flag)
     }
@@ -94,9 +100,10 @@ class PluckkPanel: NSPanel {
         guard !isExpanded else { return }
         isExpanded = true
 
-        // Resize the frontmost window to make room for panel
-        // Account for the collapsed strip width that's already there
-        WindowResizer.shared.makeRoomForPanel(panelWidth: expandedWidth - collapsedWidth)
+        if pushesWindowAside {
+            // Account for the collapsed strip width that's already there
+            WindowResizer.shared.makeRoomForPanel(panelWidth: expandedWidth - collapsedWidth)
+        }
 
         guard let screen = NSScreen.main else { return }
         let screenFrame = screen.frame
@@ -124,7 +131,7 @@ class PluckkPanel: NSPanel {
         guard isExpanded else { return }
         isExpanded = false
 
-        // Restore the previously resized window
+        // No-op unless expand() resized a window
         WindowResizer.shared.restoreWindow()
 
         guard let screen = NSScreen.main else { return }

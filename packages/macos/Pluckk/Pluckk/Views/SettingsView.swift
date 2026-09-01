@@ -6,6 +6,7 @@ struct SettingsView: View {
     @ObservedObject private var authManager = AuthManager.shared
 
     @State private var launchAtLogin = false
+    @AppStorage(PluckkPanel.pushWindowAsideKey) private var pushWindowAside = false
     @State private var mochiApiKeyInput = ""
     @State private var isSavingMochi = false
     @State private var mochiDecks: [MochiDeck] = []
@@ -146,6 +147,11 @@ struct SettingsView: View {
                 .onChange(of: launchAtLogin) { newValue in
                     setLaunchAtLogin(newValue)
                 }
+
+            Toggle("Push the active window aside when the panel opens", isOn: $pushWindowAside)
+            Text("Off: the panel floats over the app. On: the app's window is resized to make room.")
+                .font(.caption)
+                .foregroundColor(.secondary)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Trigger")
