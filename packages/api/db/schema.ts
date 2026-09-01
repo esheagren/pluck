@@ -64,6 +64,11 @@ export const folders = pgTable('folders', {
   name: text('name').notNull(),
   color: text('color').default('#6B7280'),
   sortOrder: integer('sort_order').default(0),
+  // Review-mixer (2026-09): default-mix percentage (null = not in default mix),
+  // paused folders never enter sessions, per-folder new-card introduction budget.
+  weight: integer('weight'),
+  isPaused: boolean('is_paused').default(false).notNull(),
+  newPerDay: integer('new_per_day'),
   createdAt: ts('created_at').defaultNow().notNull(),
   updatedAt: ts('updated_at').defaultNow().notNull().$onUpdate(() => new Date().toISOString()),
 }, (t) => [index('folders_user_idx').on(t.userId)]);
@@ -142,6 +147,7 @@ export const userStudySettings = pgTable('user_study_settings', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
   ratingSystem: text('rating_system').default('4-button'),
+  sessionSize: integer('session_size'),
   targetRetention: num('target_retention').default(0.9),
   newCardsPerDay: integer('new_cards_per_day').default(20),
   maxReviewsPerDay: integer('max_reviews_per_day'),

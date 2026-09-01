@@ -15,6 +15,7 @@ export interface AuthUser {
 
 export interface FolderRow {
   id: string; user_id: string; name: string; color: string | null; sort_order: number | null;
+  weight: number | null; is_paused: boolean; new_per_day: number | null;
   created_at: string; updated_at: string;
 }
 
@@ -38,6 +39,17 @@ export interface ReviewStateRow {
 }
 
 export interface ReviewQueue { cards: CardRow[]; states: ReviewStateRow[]; new_reviewed_today: string[] }
+export interface ReviewSession {
+  cards: CardRow[];
+  states: ReviewStateRow[];
+  meta: {
+    mode: string;
+    per_folder: Record<string, { due: number; new: number; dealt: number }>;
+    due_total: number;
+    backlog_remaining?: number;
+  };
+}
+export interface ReviewSettings { session_size: number; new_cards_per_day: number }
 export interface ActivityData {
   reviews: Array<{ review_date: string; total_reviews: number }>;
   cards: Array<{ created_date: string; cards_created: number }>;
@@ -111,11 +123,19 @@ export function createApiClient(opts: ApiClientOptions) {
     folders: {
       list: () => request<FolderRow[]>('GET', '/api/v1/folders'),
       create: (name: string) => request<FolderRow>('POST', '/api/v1/folders', { name }),
-      update: (id: string, updates: { name?: string; color?: string; sort_order?: number }) => request<FolderRow>('PATCH', `/api/v1/folders/${id}`, updates),
+      update: (id: string, updates: { name?: string; color?: string; sort_order?: number; weight?: number | null; is_paused?: boolean; new_per_day?: number | null }) => request<FolderRow>('PATCH', `/api/v1/folders/${id}`, updates),
       remove: (id: string) => request<{ success: true }>('DELETE', `/api/v1/folders/${id}`),
     },
     review: {
       queue: () => request<ReviewQueue>('GET', '/api/v1/review/queue'),
+      session: (payload: {
+        mode?: 'scheduled' | 'focus' | 'backlog';
+        size?: number;
+        folder_id?: string | null;
+        mix?: Array<{ folder_id: string | null; pct: number }>;
+      }) => request<ReviewSession>('POST', '/api/v1/review/session', payload),
+      settings: () => request<ReviewSettings>('GET', '/api/v1/review/settings'),
+      updateSettings: (s: Partial<ReviewSettings>) => request<{ success: true }>('PATCH', '/api/v1/review/settings', s),
       submit: (payload: { card_id: string; rating: string; new_state: { status: string; due_at: string; interval_days: number; ease_factor: number }; algorithm_version?: string; response_time_ms?: number }) =>
         request<{ state: ReviewStateRow }>('POST', '/api/v1/review', payload),
     },

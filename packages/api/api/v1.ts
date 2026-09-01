@@ -13,7 +13,8 @@
 //   POST   images                 { card_id, image_data, mime_type } → { image_url }
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { and, desc, eq, gte, like, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, like, sql } from 'drizzle-orm';
+import { selectSession } from '../lib/mixer.js';
 import { OAuth2Client } from 'google-auth-library';
 import { put } from '@vercel/blob';
 import { getDb, schema } from '../lib/db.js';
@@ -137,7 +138,7 @@ router.on('DELETE', 'cards/:id', authed(async (_req, res, user, { id }) => {
 }));
 
 // ---------------------------------------------------------------- folders
-const FOLDER_FIELDS = ['name', 'color', 'sortOrder'] as const;
+const FOLDER_FIELDS = ['name', 'color', 'sortOrder', 'weight', 'isPaused', 'newPerDay'] as const;
 
 router.on('GET', 'folders', authed(async (_req, res, user) => {
   const rows = await getDb().select().from(schema.folders).where(eq(schema.folders.userId, user.id))
@@ -208,6 +209,98 @@ router.on('POST', 'review', authed(async (req, res, user) => {
     algorithmVersion: body.algorithm_version ?? null, reviewedAt: now,
   });
   res.status(200).json({ state: snake(state) });
+}));
+
+// ---------------------------------------------------------------- review mixer
+const DEFAULT_SESSION_SIZE = 100;
+const DEFAULT_NEW_PER_DAY = 10;
+
+async function getStudySettings(userId: string) {
+  const db = getDb();
+  const [row] = await db.select().from(schema.userStudySettings).where(eq(schema.userStudySettings.userId, userId));
+  if (row) return row;
+  const [created] = await db.insert(schema.userStudySettings).values({ userId }).onConflictDoNothing().returning();
+  return created ?? (await db.select().from(schema.userStudySettings).where(eq(schema.userStudySettings.userId, userId)))[0];
+}
+
+router.on('GET', 'review/settings', authed(async (_req, res, user) => {
+  const s = await getStudySettings(user.id);
+  res.status(200).json({
+    session_size: s.sessionSize ?? DEFAULT_SESSION_SIZE,
+    new_cards_per_day: s.newCardsPerDay ?? DEFAULT_NEW_PER_DAY,
+  });
+}));
+
+router.on('PATCH', 'review/settings', authed(async (req, res, user) => {
+  const body = (req.body ?? {}) as { session_size?: number; new_cards_per_day?: number };
+  await getStudySettings(user.id);
+  const set: Record<string, number> = {};
+  if (Number.isFinite(body.session_size)) set.sessionSize = Math.max(1, Math.min(1000, Math.floor(body.session_size!)));
+  if (Number.isFinite(body.new_cards_per_day)) set.newCardsPerDay = Math.max(0, Math.min(500, Math.floor(body.new_cards_per_day!)));
+  if (Object.keys(set).length === 0) { res.status(400).json({ error: 'Nothing to update' }); return; }
+  await getDb().update(schema.userStudySettings).set(set).where(eq(schema.userStudySettings.userId, user.id));
+  res.status(200).json({ success: true });
+}));
+
+router.on('POST', 'review/session', authed(async (req, res, user) => {
+  const body = (req.body ?? {}) as {
+    mode?: 'scheduled' | 'focus' | 'backlog';
+    size?: number;
+    folder_id?: string | null;
+    mix?: Array<{ folder_id: string | null; pct: number }>;
+  };
+  const mode = body.mode ?? 'scheduled';
+  if ((mode === 'focus' || mode === 'backlog') && body.folder_id === undefined) {
+    res.status(400).json({ error: `${mode} mode requires folder_id (null for unfiled)` });
+    return;
+  }
+  const db = getDb();
+  const settings = await getStudySettings(user.id);
+  const size = Math.max(1, Math.min(1000, Math.floor(body.size ?? settings.sessionSize ?? DEFAULT_SESSION_SIZE)));
+
+  const folderRows = await db.select({
+    id: schema.folders.id, weight: schema.folders.weight, isPaused: schema.folders.isPaused, newPerDay: schema.folders.newPerDay,
+  }).from(schema.folders).where(eq(schema.folders.userId, user.id));
+
+  // Slim candidate rows: id, folder, created, state status/due.
+  const candidateRows = await db.select({
+    cardId: schema.cards.id, folderId: schema.cards.folderId, createdAt: schema.cards.createdAt,
+    status: schema.cardReviewState.status, dueAt: schema.cardReviewState.dueAt,
+  }).from(schema.cards)
+    .leftJoin(schema.cardReviewState, and(eq(schema.cardReviewState.cardId, schema.cards.id), eq(schema.cardReviewState.userId, user.id)))
+    .where(eq(schema.cards.userId, user.id));
+
+  // New cards already introduced today, per folder.
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const introduced = await db.execute(sql`
+    select c.folder_id, count(distinct l.card_id)::int as n
+    from review_logs l join cards c on c.id = l.card_id
+    where l.user_id = ${user.id} and l.previous_status = 'new' and l.reviewed_at >= ${todayStart.toISOString()}
+    group by c.folder_id`);
+  const newToday = new Map<string | null, number>();
+  for (const r of introduced.rows as Array<{ folder_id: string | null; n: number }>) newToday.set(r.folder_id, r.n);
+
+  const result = selectSession({
+    mode, size,
+    folderId: body.folder_id,
+    mix: body.mix?.map((m) => ({ folderId: m.folder_id, pct: m.pct })),
+    folders: folderRows,
+    candidates: candidateRows,
+    newReviewedTodayByFolder: newToday,
+    defaultNewPerDay: settings.newCardsPerDay ?? DEFAULT_NEW_PER_DAY,
+  });
+
+  // Full rows for only the dealt cards, preserving deal order.
+  let cards: unknown[] = [];
+  let states: unknown[] = [];
+  if (result.dealtIds.length > 0) {
+    const all = await listCards(user.id);
+    const orderMap = new Map(result.dealtIds.map((id, i) => [id, i]));
+    cards = (all as unknown as Array<{ id: string }>).filter((c) => orderMap.has(c.id)).sort((a, b) => orderMap.get(a.id)! - orderMap.get(b.id)!);
+    states = snake(await db.select().from(schema.cardReviewState)
+      .where(and(eq(schema.cardReviewState.userId, user.id), inArray(schema.cardReviewState.cardId, result.dealtIds)))) as unknown[];
+  }
+  res.status(200).json({ cards, states, meta: result.meta });
 }));
 
 // ---------------------------------------------------------------- activity
