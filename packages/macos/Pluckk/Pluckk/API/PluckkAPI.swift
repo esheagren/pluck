@@ -185,37 +185,63 @@ class PluckkAPI {
             let answer: String
         }
 
-        /// Flatten this API card into one or more GeneratedCards
-        func toGeneratedCards() -> [GeneratedCard] {
-            var result: [GeneratedCard] = []
+        /// Convert API card to GeneratedCard, preserving structure for bidirectional/list types
+        /// Validates data and logs warnings for malformed responses
+        func toGeneratedCard() -> GeneratedCard {
             let cardStyle = CardStyle(rawValue: style) ?? .qa
 
             switch style {
             case "qa_bidirectional":
-                // Create two cards from forward and reverse
-                if let fwd = forward {
-                    result.append(GeneratedCard(style: .qa, question: fwd.question, answer: fwd.answer))
-                }
-                if let rev = reverse {
-                    result.append(GeneratedCard(style: .qa, question: rev.question, answer: rev.answer))
-                }
-
-            case "cloze_list":
-                // Expand prompts into individual cloze cards
-                if let prompts = prompts {
-                    for prompt in prompts {
-                        result.append(GeneratedCard(style: .cloze, question: prompt.question, answer: prompt.answer))
+                // Validate: bidirectional cards should have at least forward or reverse
+                if forward == nil && reverse == nil {
+                    print("PluckkAPI: WARNING - Bidirectional card missing both forward and reverse pairs")
+                    // Fall back to simple card if we have question/answer
+                    if let q = question, let a = answer {
+                        return GeneratedCard(style: .qa, question: q, answer: a)
                     }
                 }
+                // Preserve bidirectional structure - expand at save time
+                // Use Pluckk.QAPair to reference the module-level type (not the nested APICard.QAPair)
+                let fwdPair: Pluckk.QAPair? = forward.map { Pluckk.QAPair(question: $0.question, answer: $0.answer) }
+                let revPair: Pluckk.QAPair? = reverse.map { Pluckk.QAPair(question: $0.question, answer: $0.answer) }
+                // Use forward question/answer as display text
+                return GeneratedCard(
+                    style: .qa_bidirectional,
+                    question: forward?.question ?? "",
+                    answer: forward?.answer ?? "",
+                    forward: fwdPair,
+                    reverse: revPair
+                )
+
+            case "cloze_list":
+                // Validate: list cards should have prompts
+                if prompts == nil || prompts?.isEmpty == true {
+                    print("PluckkAPI: WARNING - List card missing prompts")
+                    // Fall back to simple card if we have question/answer
+                    if let q = question, let a = answer {
+                        return GeneratedCard(style: .cloze, question: q, answer: a)
+                    }
+                }
+                // Preserve list structure - expand at save time
+                let qaPairs: [Pluckk.QAPair]? = prompts?.map { Pluckk.QAPair(question: $0.question, answer: $0.answer) }
+                // Use list name as display question
+                return GeneratedCard(
+                    style: .cloze_list,
+                    question: list_name ?? "List",
+                    answer: items?.joined(separator: ", ") ?? "",
+                    listName: list_name,
+                    items: items,
+                    prompts: qaPairs
+                )
 
             default:
                 // Simple card types (qa, cloze, explanation, application, diagram)
-                if let q = question, let a = answer {
-                    result.append(GeneratedCard(style: cardStyle, question: q, answer: a))
-                }
+                return GeneratedCard(
+                    style: cardStyle,
+                    question: question ?? "",
+                    answer: answer ?? ""
+                )
             }
-
-            return result
         }
     }
 
@@ -239,8 +265,8 @@ class PluckkAPI {
 
             let apiResponse = try JSONDecoder().decode(GenerateCardsResponse.self, from: data)
 
-            // Flatten all card types into simple GeneratedCards
-            let cards = apiResponse.cards.flatMap { $0.toGeneratedCards() }
+            // Preserve card structure - expand at save time
+            let cards = apiResponse.cards.map { $0.toGeneratedCard() }
 
             var remaining: Int? = nil
             if let usage = apiResponse.usage {
@@ -286,8 +312,8 @@ class PluckkAPI {
 
             let apiResponse = try JSONDecoder().decode(GenerateCardsResponse.self, from: data)
 
-            // Flatten all card types into simple GeneratedCards
-            let cards = apiResponse.cards.flatMap { $0.toGeneratedCards() }
+            // Preserve card structure - expand at save time
+            let cards = apiResponse.cards.map { $0.toGeneratedCard() }
 
             var remaining: Int? = nil
             if let usage = apiResponse.usage {

@@ -2,44 +2,135 @@
 // Proxies Claude API calls with server-side API key
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { User as DbUser } from '../db/schema.js';
 import { buildPersonaPrompt } from '../lib/prompts.js';
-import { authenticateRequest, checkUsageLimit, isAuthError } from '../lib/auth.js';
-import { incrementCardCount } from '../lib/supabase-admin.js';
-import type { GenerateCardsRequest, GeneratedCard, UserProfile } from '../lib/types.js';
+import { authenticateRequest, isAuthError } from '../lib/auth.js';
+import type { GenerateCardsRequest, GeneratedCard } from '../lib/types.js';
 import type { ClaudeResponse } from '../lib/claude-types.js';
 
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
+const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
+
+type RefinementAction = 'rephrase' | 'simplify' | 'harder';
+
+const REFINEMENT_INSTRUCTIONS: Record<RefinementAction, string> = {
+  rephrase: 'Rephrase the question and answer differently while testing the same knowledge. Use different wording, framing, or angle.',
+  simplify: 'Break this into a more atomic, easier-to-answer card. Simplify the language and narrow the scope.',
+  harder: 'Make this card require deeper recall or application. Increase specificity, ask "why" or "how" instead of "what".',
+};
 
 /**
- * Build the system prompt based on user's subscription status and learning profile
- * Pro users get access to the diagram card style
+ * Handle single-card refinement requests
+ */
+async function handleRefineCard(
+  res: VercelResponse,
+  body: GenerateCardsRequest
+): Promise<void> {
+  const { refineCard: card, refinementAction, sourceSelection, sourceContext } = body;
+
+  if (!card || !refinementAction || !['rephrase', 'simplify', 'harder'].includes(refinementAction)) {
+    res.status(400).json({ error: 'Invalid refinement request' });
+    return;
+  }
+
+  const action = refinementAction as RefinementAction;
+  const systemPrompt = `You are refining a single spaced repetition flashcard. ${REFINEMENT_INSTRUCTIONS[action]}
+
+Return ONLY valid JSON with the refined card in the exact same format as the input card. Preserve the style and tags. Do not add explanation.
+Output format: {"card":{...}}`;
+
+  let userMessage = `**Original card:**\n${JSON.stringify(card, null, 2)}`;
+  if (sourceSelection) userMessage += `\n\n**Source text:** ${sourceSelection}`;
+  if (sourceContext) userMessage += `\n\n**Surrounding context:** ${sourceContext}`;
+  userMessage += '\n\nRefine this card according to the instructions.';
+
+  try {
+    const claudeResponse = await fetch(CLAUDE_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.CLAUDE_API_KEY || '',
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: HAIKU_MODEL,
+        max_tokens: 500,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userMessage }],
+      }),
+    });
+
+    if (!claudeResponse.ok) {
+      const errorText = await claudeResponse.text();
+      console.error('Claude API error:', claudeResponse.status, errorText);
+      if (claudeResponse.status === 429) {
+        res.status(429).json({ error: 'rate_limit', message: 'Too many requests, please try again later' });
+        return;
+      }
+      res.status(500).json({ error: 'Failed to refine card' });
+      return;
+    }
+
+    const data = await claudeResponse.json() as ClaudeResponse;
+    const content = data.content?.[0]?.text;
+    if (!content) {
+      res.status(500).json({ error: 'Empty response from AI' });
+      return;
+    }
+
+    let jsonStr = content.trim();
+    if (jsonStr.startsWith('```')) {
+      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    }
+
+    const parsed = JSON.parse(jsonStr) as { card: GeneratedCard };
+    if (!parsed.card) {
+      res.status(500).json({ error: 'Invalid response format from AI' });
+      return;
+    }
+
+    res.status(200).json({ card: parsed.card });
+  } catch (error) {
+    console.error('Error refining card:', error);
+    if (error instanceof SyntaxError) {
+      res.status(500).json({ error: 'Failed to parse AI response' });
+      return;
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+/**
+ * Build the system prompt from the user's learning profile
  * Learning profile adds personalization context
  */
-function buildSystemPrompt(isPro: boolean, profile?: UserProfile): string {
+function buildSystemPrompt(profile?: DbUser): string {
   // Build persona prompt from learning profile
+  // DB columns are plain text/int; the persona builder wants the literal unions.
+  // Values were validated on write in /api/user/me, so the cast is safe.
   const personaPrompt = buildPersonaPrompt({
-    primaryCategory: profile?.primary_category,
-    studentLevel: profile?.student_level,
-    studentField: profile?.student_field,
-    workFields: profile?.work_fields,
-    workFieldOther: profile?.work_field_other,
-    workYearsExperience: profile?.work_years_experience,
-    researchField: profile?.research_field,
-    researchYearsExperience: profile?.research_years_experience,
-    additionalInterests: profile?.additional_interests,
-    additionalInterestsOther: profile?.additional_interests_other,
-    spacedRepExperience: profile?.spaced_rep_experience,
-    technicalityPreference: profile?.technicality_preference,
-    breadthPreference: profile?.breadth_preference,
-  });
-  const diagramStyle = isPro ? `
+    primaryCategory: profile?.primaryCategory,
+    studentLevel: profile?.studentLevel,
+    studentField: profile?.studentField,
+    workFields: profile?.workFields,
+    workFieldOther: profile?.workFieldOther,
+    workYearsExperience: profile?.workYearsExperience,
+    researchField: profile?.researchField,
+    researchYearsExperience: profile?.researchYearsExperience,
+    additionalInterests: profile?.additionalInterests,
+    additionalInterestsOther: profile?.additionalInterestsOther,
+    spacedRepExperience: profile?.spacedRepExperience,
+    technicalityPreference: profile?.technicalityPreference,
+    breadthPreference: profile?.breadthPreference,
+  } as Parameters<typeof buildPersonaPrompt>[0]);
+  const diagramStyle = `
 7. **diagram** - For STRUCTURAL or COMPARATIVE knowledge that benefits from visual representation.
    When to use: taxonomies, hierarchies, system architectures, X vs Y comparisons, process flows
    The diagram_prompt describes what image to generate - be specific about layout, relationships, and visual structure.
    Example:
    {"style":"diagram","question":"What are the two main branches of supervised learning?","answer":"Classification (predicts categories) and Regression (predicts continuous values)","diagram_prompt":"A tree diagram with 'Supervised Learning' at the top, branching into two nodes: 'Classification' (with examples: spam detection, image recognition) and 'Regression' (with examples: price prediction, temperature forecasting)","tags":{"content_type":"concept","domain":"machine_learning","technicality":2}}
-` : '';
+`;
 
   return `You are a spaced repetition card generator. Create cards that produce durable understanding through retrieval practice.
 ${personaPrompt}
@@ -116,22 +207,19 @@ export default async function handler(
     return;
   }
 
-  const { user, profile } = authResult;
+  const { profile } = authResult;
 
-  // Check usage limits
-  const usage = checkUsageLimit(profile);
-  if (!usage.allowed) {
-    res.status(402).json({
-      error: 'usage_limit_reached',
-      message: `You've used all ${usage.limit} free cards this month. Upgrade to Pro for unlimited cards.`,
-      remaining: 0,
-      limit: usage.limit
-    });
+
+  // Parse request body
+  const body = req.body as GenerateCardsRequest;
+
+  // Refinement mode: refine a single card instead of generating a batch
+  if (body.refineCard && body.refinementAction) {
+    await handleRefineCard(res, body);
     return;
   }
 
-  // Parse request body
-  const { selection, context, url, title, focusText, customPrompt } = req.body as GenerateCardsRequest;
+  const { selection, context, url, title, focusText, customPrompt } = body;
 
   if (!selection) {
     res.status(400).json({ error: 'Missing selection text' });
@@ -153,10 +241,9 @@ Generate 4-8 spaced repetition cards for the highlighted selection, depending on
   }
 
   // Determine if user is Pro (for diagram feature access)
-  const isPro = profile.subscription_status === 'active' || profile.subscription_status === 'admin';
 
   // Use custom prompt or build based on subscription status and learning profile
-  const systemPrompt = customPrompt || buildSystemPrompt(isPro, profile);
+  const systemPrompt = customPrompt || buildSystemPrompt(profile);
 
   try {
     // Call Claude API with server-side key
@@ -218,19 +305,8 @@ Generate 4-8 spaced repetition cards for the highlighted selection, depending on
       res.status(500).json({ error: 'Invalid response format from AI' });
       return;
     }
-
-    // Increment usage count (number of cards generated)
-    await incrementCardCount(user.id, parsed.cards.length);
-
-    // Return cards with updated usage info and subscription status
     res.status(200).json({
-      cards: parsed.cards,
-      isPro,
-      usage: {
-        remaining: usage.remaining === Infinity ? 'unlimited' : usage.remaining - parsed.cards.length,
-        limit: usage.limit,
-        subscription: profile.subscription_status
-      }
+      cards: parsed.cards
     });
 
   } catch (error) {

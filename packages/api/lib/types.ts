@@ -3,7 +3,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
+import type { User as DbUser } from '../db/schema.js';
 
 /**
  * Vercel API handler type
@@ -27,17 +27,10 @@ export type BreadthLevel = 1 | 2 | 3 | 4;
 export interface UserProfile {
   id: string;
   email?: string;
-  username?: string | null;
   display_name?: string | null;
-  bio?: string | null;
   avatar_url?: string | null;
-  profile_is_public?: boolean;
   created_at?: string;
   updated_at?: string;
-  subscription_status: 'free' | 'active' | 'past_due' | 'canceled' | 'admin';
-  stripe_customer_id?: string | null;
-  cards_generated_this_month?: number;
-  current_period_start?: string | null;
   mochi_api_key?: string | null;
   mochi_deck_id?: string | null;
   // Onboarding & learning profile
@@ -62,8 +55,8 @@ export interface UserProfile {
  * Authentication result - success case
  */
 export interface AuthSuccess {
-  user: SupabaseUser;
-  profile: UserProfile;
+  user: DbUser;
+  profile: DbUser;
   error?: undefined;
   status?: undefined;
 }
@@ -84,15 +77,6 @@ export interface AuthError {
 export type AuthResult = AuthSuccess | AuthError;
 
 /**
- * Usage limit check result
- */
-export interface UsageLimitResult {
-  allowed: boolean;
-  remaining: number;
-  limit?: number;
-}
-
-/**
  * Generate cards request body
  */
 export interface GenerateCardsRequest {
@@ -102,6 +86,11 @@ export interface GenerateCardsRequest {
   title?: string;
   focusText?: string;
   customPrompt?: string;
+  // Per-card refinement (when present, takes the refinement path instead of full generation)
+  refineCard?: GeneratedCard;
+  refinementAction?: 'rephrase' | 'simplify' | 'harder';
+  sourceSelection?: string;
+  sourceContext?: string;
 }
 
 /**
@@ -191,10 +180,7 @@ export interface PortalRequest {
 export interface UpdateUserSettingsRequest {
   mochiApiKey?: string | null;
   mochiDeckId?: string | null;
-  username?: string | null;
   displayName?: string | null;
-  bio?: string | null;
-  profileIsPublic?: boolean;
   // Learning profile fields
   onboardingCompleted?: boolean;
   primaryCategory?: PrimaryCategory | null;
@@ -232,21 +218,10 @@ export interface ApiErrorResponse {
 }
 
 /**
- * Usage info included in responses
- */
-export interface UsageInfo {
-  remaining: number | 'unlimited';
-  limit?: number;
-  subscription: string;
-}
-
-/**
  * Cards generation response
  */
 export interface GenerateCardsSuccessResponse {
   cards: GeneratedCard[];
-  isPro?: boolean;
-  usage: UsageInfo;
 }
 
 /**
@@ -290,48 +265,6 @@ export interface MochiCardResponse {
   id: string;
   content?: string;
   [key: string]: unknown;
-}
-
-/**
- * Public profile data
- */
-export interface PublicProfile {
-  id: string;
-  username: string;
-  display_name?: string | null;
-  bio?: string | null;
-  avatar_url?: string | null;
-  created_at: string;
-}
-
-/**
- * Public card data
- */
-export interface PublicCard {
-  id: string;
-  question: string;
-  answer: string;
-  style?: string;
-  tags?: Record<string, string>;
-  created_at: string;
-}
-
-/**
- * Activity day data
- */
-export interface ActivityDay {
-  review_date: string;
-  total_reviews: number;
-}
-
-/**
- * Username availability check response
- */
-export interface UsernameCheckResponse {
-  available: boolean;
-  reason?: 'invalid_format' | 'reserved' | 'taken';
-  message?: string;
-  username?: string;
 }
 
 /**

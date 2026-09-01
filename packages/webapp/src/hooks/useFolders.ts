@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getSupabaseClient } from '@pluckk/shared/supabase';
+import { api } from '@pluckk/shared/api';
 import type { Folder, FolderUpdates, OperationResult, UseFoldersReturn } from '../types';
-
-const supabase = getSupabaseClient();
 
 export function useFolders(userId: string | undefined): UseFoldersReturn {
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -14,24 +12,9 @@ export function useFolders(userId: string | undefined): UseFoldersReturn {
       setLoading(false);
       return;
     }
-
     setLoading(true);
-
     try {
-      // Use type assertion since Supabase types don't include folders table
-      const { data, error } = await (supabase
-        .from('folders') as any)
-        .select('*')
-        .eq('user_id', userId)
-        .order('sort_order', { ascending: true })
-        .order('name', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching folders:', error);
-        setFolders([]);
-      } else {
-        setFolders((data as Folder[]) || []);
-      }
+      setFolders((await api.folders.list()) as unknown as Folder[]);
     } catch (error) {
       console.error('Error fetching folders:', error);
       setFolders([]);
@@ -40,82 +23,35 @@ export function useFolders(userId: string | undefined): UseFoldersReturn {
     }
   }, [userId]);
 
-  useEffect(() => {
-    fetchFolders();
-  }, [fetchFolders]);
+  useEffect(() => { fetchFolders(); }, [fetchFolders]);
 
-  const createFolder = useCallback(
-    async (name: string): Promise<OperationResult<Folder>> => {
-      if (!userId || !name.trim()) {
-        return { error: new Error('Invalid folder name') };
-      }
+  const createFolder = useCallback(async (name: string): Promise<OperationResult<Folder>> => {
+    if (!userId || !name.trim()) return { error: new Error('Invalid folder name') };
+    try {
+      const data = (await api.folders.create(name.trim())) as unknown as Folder;
+      setFolders((prev) => [...prev, data]);
+      return { data };
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      return { error };
+    }
+  }, [userId]);
 
-      try {
-        // Use type assertion since Supabase types don't include folders table
-        const { data, error } = await (supabase
-          .from('folders') as any)
-          .insert({
-            user_id: userId,
-            name: name.trim(),
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Error creating folder:', error);
-          return { error };
-        }
-
-        setFolders((prev) => [...prev, data as Folder]);
-        return { data: data as Folder };
-      } catch (error) {
-        console.error('Error creating folder:', error);
-        return { error };
-      }
-    },
-    [userId]
-  );
-
-  const updateFolder = useCallback(
-    async (folderId: string, updates: FolderUpdates): Promise<OperationResult<Folder>> => {
-      try {
-        // Use type assertion since Supabase types don't include folders table
-        const { data, error } = await (supabase
-          .from('folders') as any)
-          .update(updates)
-          .eq('id', folderId)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Error updating folder:', error);
-          return { error };
-        }
-
-        setFolders((prev) =>
-          prev.map((folder) => (folder.id === folderId ? { ...folder, ...(data as Folder) } : folder))
-        );
-
-        return { data: data as Folder };
-      } catch (error) {
-        console.error('Error updating folder:', error);
-        return { error };
-      }
-    },
-    []
-  );
+  const updateFolder = useCallback(async (folderId: string, updates: FolderUpdates): Promise<OperationResult<Folder>> => {
+    try {
+      const data = (await api.folders.update(folderId, updates as Record<string, never>)) as unknown as Folder;
+      setFolders((prev) => prev.map((f) => (f.id === folderId ? { ...f, ...data } : f)));
+      return { data };
+    } catch (error) {
+      console.error('Error updating folder:', error);
+      return { error };
+    }
+  }, []);
 
   const deleteFolder = useCallback(async (folderId: string): Promise<OperationResult> => {
     try {
-      // Use type assertion since Supabase types don't include folders table
-      const { error } = await (supabase.from('folders') as any).delete().eq('id', folderId);
-
-      if (error) {
-        console.error('Error deleting folder:', error);
-        return { error };
-      }
-
-      setFolders((prev) => prev.filter((folder) => folder.id !== folderId));
+      await api.folders.remove(folderId);
+      setFolders((prev) => prev.filter((f) => f.id !== folderId));
       return { success: true };
     } catch (error) {
       console.error('Error deleting folder:', error);
@@ -123,12 +59,5 @@ export function useFolders(userId: string | undefined): UseFoldersReturn {
     }
   }, []);
 
-  return {
-    folders,
-    loading,
-    refetch: fetchFolders,
-    createFolder,
-    updateFolder,
-    deleteFolder,
-  };
+  return { folders, loading, refetch: fetchFolders, createFolder, updateFolder, deleteFolder };
 }

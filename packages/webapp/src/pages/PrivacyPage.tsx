@@ -154,9 +154,9 @@ export default function PrivacyPage(): JSX.Element {
             <li className="flex items-start gap-2">
               <span className="text-gray-400 dark:text-gray-500 mt-1">*</span>
               <span>
-                <strong>Supabase</strong> - for authentication and data storage (
+                <strong>Neon</strong> - for data storage (
                 <a
-                  href="https://supabase.com/privacy"
+                  href="https://neon.tech/privacy-policy"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-500 dark:text-gray-400 underline hover:text-gray-800 dark:hover:text-gray-200"
@@ -177,7 +177,7 @@ export default function PrivacyPage(): JSX.Element {
           <h2 className="text-lg font-medium text-gray-800 dark:text-gray-100 mb-4">Data Storage</h2>
           <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
             Your flashcards, account information, and integration credentials (such as your Mochi
-            API key) are stored securely in our database hosted on Supabase.
+            API key) are stored securely in our database hosted on Neon.
           </p>
           <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
             Some user preferences may be stored locally in your browser using Chrome's storage API

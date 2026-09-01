@@ -9,12 +9,11 @@ export type MessageAction =
   | 'generateCardsFromImage'
   | 'answerQuestion'
   | 'sendToMochi'
-  | 'saveToSupabase'
   | 'getMochiStatus'
-  | 'getAuthStatus'
   | 'getSelection'
   | 'getDOMContext'
   | 'captureViewport'
+  | 'refineCard'
   | 'ping';
 
 // Selection data from content script
@@ -77,14 +76,6 @@ export interface SendToMochiMessage extends ExtensionMessage {
   sourceTextOffset?: number;
 }
 
-// Save to Supabase message
-export interface SaveToSupabaseMessage extends ExtensionMessage {
-  action: 'saveToSupabase';
-  question: string;
-  answer: string;
-  sourceUrl: string;
-}
-
 // Content script messages
 export interface GetSelectionMessage extends ExtensionMessage {
   action: 'getSelection';
@@ -100,6 +91,22 @@ export interface GetDOMContextMessage extends ExtensionMessage {
 
 export interface CaptureViewportMessage extends ExtensionMessage {
   action: 'captureViewport';
+}
+
+// Refine card message
+export type RefinementAction = 'rephrase' | 'simplify' | 'harder';
+
+export interface RefineCardMessage extends ExtensionMessage {
+  action: 'refineCard';
+  card: GeneratedCard;
+  refinementAction: RefinementAction;
+  sourceSelection?: string;
+  sourceContext?: string;
+}
+
+export interface RefineCardResponse {
+  card?: GeneratedCard;
+  error?: string;
 }
 
 // Response types
@@ -125,7 +132,7 @@ export interface AuthStatusResponse {
 
 export interface SendToMochiResponse {
   mochi: MochiResult;
-  supabase: SupabaseResult;
+  save: SaveResult;
 }
 
 export interface MochiResult {
@@ -135,7 +142,7 @@ export interface MochiResult {
   message?: string;
 }
 
-export interface SupabaseResult {
+export interface SaveResult {
   success?: boolean;
   cardId?: string;
   error?: string;

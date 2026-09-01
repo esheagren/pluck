@@ -36,7 +36,22 @@ export default function Sidebar(): JSX.Element {
             <path d="M10 22h4"></path>
             <path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"></path>
           </svg>
-          <span>Review</span>
+          <span>Mix Review</span>
+        </NavLink>
+        <NavLink to="/focus" className={navLinkClass}>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <circle cx="12" cy="12" r="9"></circle>
+            <circle cx="12" cy="12" r="4.5"></circle>
+            <circle cx="12" cy="12" r="0.5" fill="currentColor"></circle>
+          </svg>
+          <span>Focused Review</span>
         </NavLink>
 
         <NavLink to="/cards" className={navLinkClass}>
@@ -59,20 +74,6 @@ export default function Sidebar(): JSX.Element {
 
       {/* Feedback & Settings at bottom */}
       <div className="p-3 border-t border-gray-200 dark:border-dark-border flex flex-col gap-1">
-        <NavLink to="/feedback" className={navLinkClass}>
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M3 11l18-5v12L3 13v-2z"></path>
-            <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path>
-          </svg>
-          <span>Feedback</span>
-        </NavLink>
         <NavLink to="/info" className={navLinkClass}>
           <svg
             width="20"
@@ -87,6 +88,21 @@ export default function Sidebar(): JSX.Element {
             <line x1="12" y1="8" x2="12.01" y2="8"></line>
           </svg>
           <span>About</span>
+        </NavLink>
+        <NavLink to="/architecture" className={navLinkClass} reloadDocument>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+            <path d="M10 6.5h4a3 3 0 0 1 3 3V14M6.5 10v4a3 3 0 0 0 3 3H14"></path>
+          </svg>
+          <span>Architecture</span>
         </NavLink>
         <NavLink to="/profile" className={navLinkClass}>
           <svg

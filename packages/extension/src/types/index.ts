@@ -12,7 +12,6 @@ export type {
   GenerateCardsFromImageMessage,
   AnswerQuestionMessage,
   SendToMochiMessage,
-  SaveToSupabaseMessage,
   GetSelectionMessage,
   GetDOMContextMessage,
   CaptureViewportMessage,
@@ -22,7 +21,7 @@ export type {
   AuthStatusResponse,
   SendToMochiResponse,
   MochiResult,
-  SupabaseResult,
+  SaveResult,
   GeneratedCard,
   CardPrompt,
   CardStyle,
@@ -32,6 +31,9 @@ export type {
   DOMContextResponse,
   ViewportScreenshotResponse,
   PageContext,
+  RefinementAction,
+  RefineCardMessage,
+  RefineCardResponse,
 } from './messages';
 
 // Storage types
@@ -41,7 +43,6 @@ export type {
   LocalStorageData,
   PluckkSession,
   SessionUser,
-  ProfileCache,
   UserProfile,
   SyncStorageKey,
   LocalStorageKey,

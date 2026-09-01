@@ -1,19 +1,18 @@
 import type { JSX } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from './hooks/useAuth';
+import { useAuth, AUTH_CALLBACK_PATH, consumeReturnTo } from './hooks/useAuth';
 import { useCards } from './hooks/useCards';
 import { useFolders } from './hooks/useFolders';
 import Layout from './components/Layout';
-import OnboardingWizard from './components/OnboardingWizard';
 import ReviewPage from './pages/ReviewPage';
 import CardsPage from './pages/CardsPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
-import PublicProfilePage from './pages/PublicProfilePage';
-import FeedbackPage from './pages/FeedbackPage';
+import FocusPage from './pages/FocusPage';
 import LandingPage from './pages/LandingPage';
 import InfoPage from './pages/InfoPage';
 import PrivacyPage from './pages/PrivacyPage';
+import ArchitecturePage from './pages/ArchitecturePage';
 
 // Loading Screen Component
 function LoadingScreen(): JSX.Element {
@@ -32,14 +31,8 @@ export default function App(): JSX.Element {
   const {
     user,
     loading: authLoading,
-    billingInfo,
-    showOnboarding,
     signIn,
     signOut,
-    handleUpgrade,
-    handleManageSubscription,
-    completeOnboarding,
-    skipOnboarding,
   } = useAuth();
   const { cards, loading: cardsLoading, updateCard, deleteCard, moveCardToFolder } = useCards(
     user?.id
@@ -54,18 +47,18 @@ export default function App(): JSX.Element {
   if (location.pathname === '/privacy') {
     return <PrivacyPage />;
   }
-  // Public profile pages
-  if (location.pathname.startsWith('/u/')) {
-    return (
-      <Routes>
-        <Route path="/u/:username" element={<PublicProfilePage />} />
-      </Routes>
-    );
+  if (location.pathname === '/architecture') {
+    return <ArchitecturePage />;
   }
 
-  // Show loading while checking auth
+  // Show loading while checking auth (also covers the /auth/callback exchange)
   if (authLoading) {
     return <LoadingScreen />;
+  }
+  // Exchange finished: leave the callback route via the router (history.replaceState
+  // in the hook doesn't update React Router's location).
+  if (location.pathname === AUTH_CALLBACK_PATH) {
+    return <Navigate to={consumeReturnTo()} replace />;
   }
 
   // Show landing page if not authenticated
@@ -76,13 +69,7 @@ export default function App(): JSX.Element {
   // Authenticated - show main app
   return (
     <>
-      {showOnboarding && (
-        <OnboardingWizard
-          onComplete={completeOnboarding}
-          onSkip={skipOnboarding}
-        />
-      )}
-      <div className={showOnboarding ? 'blur-sm pointer-events-none' : ''}>
+      <div>
         <Routes>
         <Route element={<Layout />}>
         <Route
@@ -116,17 +103,11 @@ export default function App(): JSX.Element {
         <Route
           path="/settings"
           element={
-            <SettingsPage
-              user={user}
-              billingInfo={billingInfo}
-              onSignOut={signOut}
-              onUpgrade={handleUpgrade}
-              onManage={handleManageSubscription}
-            />
+            <SettingsPage user={user} onSignOut={signOut} />
           }
         />
+        <Route path="/focus" element={<FocusPage />} />
         <Route path="/activity" element={<Navigate to="/profile" replace />} />
-        <Route path="/feedback" element={<FeedbackPage />} />
       </Route>
       </Routes>
       </div>

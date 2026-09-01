@@ -1,37 +1,38 @@
 // Pluckk - Background Service Worker
 // Handles API calls via backend proxy and message routing
 
-import { createSupabaseClient } from '@pluckk/shared/supabase';
 import {
   BACKEND_URL,
   DEFAULT_SYSTEM_PROMPT
 } from '@pluckk/shared/constants';
-import { getSession, getAccessToken, getUserProfile } from './auth';
+import { getSession, getAccessToken, getUserProfile, api } from './auth';
 import type {
   SelectionData,
   GeneratedCard,
   GenerateCardsResponse,
   MochiResult,
-  SupabaseResult,
-  AuthStatusResponse,
+  SaveResult,
   MochiStatusResponse,
   ExtensionMessage,
 } from './types';
 
-// Initialize Supabase client
-const supabase = createSupabaseClient({
-  onError: (msg: string, err: unknown) => console.error('[Pluckk]', msg, err)
-});
+/** Upload a base64 image for a card via the API (Vercel Blob) and set cards.image_url. */
+async function uploadCardImage(cardId: string, imageData: string, mimeType: string): Promise<string> {
+  const { image_url } = await api.images.upload(cardId, imageData, mimeType);
+  return image_url;
+}
 
 // Open side panel when extension icon is clicked
 chrome.action.onClicked.addListener((tab) => {
-  if (tab.windowId) {
+  if (tab.windowId && chrome.sidePanel) {
     chrome.sidePanel.open({ windowId: tab.windowId });
   }
 });
 
-// Enable side panel to be opened
-chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+// Enable side panel to be opened (guard for Brave/other Chromium browsers)
+if (chrome.sidePanel?.setPanelBehavior) {
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+}
 
 /**
  * Get system prompt from storage (or use default)
@@ -249,10 +250,6 @@ async function generateCards(selectionData: SelectionData, focusText = ''): Prom
       throw new Error('not_authenticated');
     }
 
-    if (response.status === 402) {
-      throw new Error('usage_limit_reached');
-    }
-
     console.error('Backend API error:', response.status, errorData);
     throw new Error(`API error (${response.status}): ${errorData.error || 'Unknown error'}`);
   }
@@ -317,10 +314,6 @@ async function handleGenerateCards(
 
     if (errorMessage === 'not_authenticated') {
       return { error: 'not_authenticated' };
-    }
-
-    if (errorMessage === 'usage_limit_reached') {
-      return { error: 'usage_limit_reached' };
     }
 
     if (errorMessage.includes('429')) {
@@ -429,7 +422,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 /**
- * Background task to generate and attach image to a Mochi card (and optionally Supabase)
+ * Background task to generate and attach image to a Mochi card (and optionally Pluckk)
  * This runs asynchronously after the card is created (fire-and-forget)
  */
 async function generateAndAttachImage(
@@ -437,7 +430,7 @@ async function generateAndAttachImage(
   question: string,
   answer: string,
   sourceUrl: string,
-  supabaseCardId: string | null = null,
+  savedCardId: string | null = null,
   diagramPrompt: string | null = null
 ): Promise<void> {
   const taskId = `${mochiCardId}-${Date.now()}`;
@@ -489,18 +482,14 @@ async function generateAndAttachImage(
       }
     }
 
-    // Upload to Supabase Storage if we have a Supabase card ID
-    if (supabaseCardId) {
+    // Upload to Pluckk Storage if we have a Pluckk card ID
+    if (savedCardId) {
       try {
-        console.log('[Pluckk] Uploading image to Supabase Storage...');
-        const imageUrl = await supabase.uploadImage(imageResult.data, imageResult.mimeType, supabaseCardId);
-        console.log('[Pluckk] Image uploaded to Supabase:', imageUrl);
-
-        console.log('[Pluckk] Updating Supabase card with image URL...');
-        await supabase.updateCardImage(supabaseCardId, imageUrl);
-        console.log('[Pluckk] Supabase card updated with image URL!');
-      } catch (supabaseError) {
-        console.error('[Pluckk] Supabase image upload failed:', (supabaseError as Error).message);
+        console.log('[Pluckk] Uploading image to Pluckk...');
+        const imageUrl = await uploadCardImage(savedCardId, imageResult.data, imageResult.mimeType);
+        console.log('[Pluckk] Image uploaded:', imageUrl);
+      } catch (uploadError) {
+        console.error('[Pluckk] Image upload failed:', (uploadError as Error).message);
       }
     }
   } catch (error) {
@@ -515,21 +504,21 @@ async function generateAndAttachImage(
 }
 
 /**
- * Background task to generate image and upload to Supabase only (no Mochi)
+ * Background task to generate image and upload to Pluckk only (no Mochi)
  * Used when Mochi is not configured
  */
-async function generateImageForSupabase(
-  supabaseCardId: string,
+async function generateImageForCard(
+  savedCardId: string,
   question: string,
   answer: string,
   diagramPrompt: string | null = null
 ): Promise<void> {
-  const taskId = `supabase-${supabaseCardId}-${Date.now()}`;
+  const taskId = `supabase-${savedCardId}-${Date.now()}`;
   pendingTasks.add(taskId);
   startKeepAlive();
 
   try {
-    console.log('[Pluckk] Starting Supabase-only image generation task:', taskId, diagramPrompt ? '(diagram)' : '');
+    console.log('[Pluckk] Starting Pluckk-only image generation task:', taskId, diagramPrompt ? '(diagram)' : '');
 
     // Check if user is authenticated (required for backend image generation)
     const isAuthenticated = await checkAuth();
@@ -538,21 +527,15 @@ async function generateImageForSupabase(
       return;
     }
 
-    console.log('[Pluckk] Generating image for Supabase card:', supabaseCardId);
+    console.log('[Pluckk] Generating image for Pluckk card:', savedCardId);
     const imageResult = await generateImageWithBackend(question, answer, diagramPrompt);
     console.log('[Pluckk] Image generated successfully, mimeType:', imageResult.mimeType);
 
-    // Upload to Supabase Storage
-    console.log('[Pluckk] Uploading image to Supabase Storage...');
-    const imageUrl = await supabase.uploadImage(imageResult.data, imageResult.mimeType, supabaseCardId);
-    console.log('[Pluckk] Image uploaded to Supabase:', imageUrl);
-
-    // Update Supabase card with image URL
-    console.log('[Pluckk] Updating Supabase card with image URL...');
-    await supabase.updateCardImage(supabaseCardId, imageUrl);
-    console.log('[Pluckk] Supabase card updated with image URL!');
+    console.log('[Pluckk] Uploading image to Pluckk...');
+    const imageUrl = await uploadCardImage(savedCardId, imageResult.data, imageResult.mimeType);
+    console.log('[Pluckk] Image uploaded:', imageUrl);
   } catch (error) {
-    console.error('[Pluckk] Failed to generate/upload image for Supabase:', (error as Error).message, error);
+    console.error('[Pluckk] Failed to generate/upload image for Pluckk:', (error as Error).message, error);
   } finally {
     pendingTasks.delete(taskId);
     console.log('[Pluckk] Task completed:', taskId, 'Remaining tasks:', pendingTasks.size);
@@ -563,33 +546,29 @@ async function generateImageForSupabase(
 }
 
 /**
- * Background task to upload a screenshot to Supabase only
+ * Background task to upload a screenshot to Pluckk only
  * Used when user pastes a screenshot for card generation
- * Note: Screenshots are NOT sent to Mochi, only to Pluckk's Supabase storage
+ * Note: Screenshots are NOT sent to Mochi, only to Pluckk's Pluckk storage
  */
-async function uploadScreenshotToSupabase(
-  supabaseCardId: string,
+async function uploadScreenshotForCard(
+  savedCardId: string,
   screenshotData: string,
   screenshotMimeType: string
 ): Promise<void> {
-  if (!supabaseCardId) {
-    console.log('[Pluckk] No Supabase card ID, skipping screenshot upload');
+  if (!savedCardId) {
+    console.log('[Pluckk] No Pluckk card ID, skipping screenshot upload');
     return;
   }
 
-  const taskId = `screenshot-${supabaseCardId}-${Date.now()}`;
+  const taskId = `screenshot-${savedCardId}-${Date.now()}`;
   pendingTasks.add(taskId);
   startKeepAlive();
 
   try {
     console.log('[Pluckk] Starting screenshot upload task:', taskId);
-    console.log('[Pluckk] Uploading screenshot to Supabase Storage...');
-    const imageUrl = await supabase.uploadImage(screenshotData, screenshotMimeType, supabaseCardId);
-    console.log('[Pluckk] Screenshot uploaded to Supabase:', imageUrl);
-
-    console.log('[Pluckk] Updating Supabase card with image URL...');
-    await supabase.updateCardImage(supabaseCardId, imageUrl);
-    console.log('[Pluckk] Supabase card updated with image URL!');
+    console.log('[Pluckk] Uploading screenshot to Pluckk...');
+    const imageUrl = await uploadCardImage(savedCardId, screenshotData, screenshotMimeType);
+    console.log('[Pluckk] Screenshot uploaded:', imageUrl);
   } catch (error) {
     console.error('[Pluckk] Failed to upload screenshot:', (error as Error).message, error);
   } finally {
@@ -708,11 +687,12 @@ interface AnswerQuestionRequest extends ExtensionMessage {
   title?: string;
 }
 
-interface SaveToSupabaseRequest extends ExtensionMessage {
-  action: 'saveToSupabase';
-  question: string;
-  answer: string;
-  sourceUrl: string;
+interface RefineCardRequest extends ExtensionMessage {
+  action: 'refineCard';
+  card: GeneratedCard;
+  refinementAction: 'rephrase' | 'simplify' | 'harder';
+  sourceSelection?: string;
+  sourceContext?: string;
 }
 
 type MessageRequest =
@@ -720,9 +700,8 @@ type MessageRequest =
   | SendToMochiRequest
   | GenerateCardsFromImageRequest
   | AnswerQuestionRequest
-  | SaveToSupabaseRequest
+  | RefineCardRequest
   | { action: 'getMochiStatus' }
-  | { action: 'getAuthStatus' }
   | { action: 'captureViewport' }
   | { action: 'getDOMContext' };
 
@@ -755,19 +734,19 @@ chrome.runtime.onMessage.addListener(
 
     if (request.action === 'sendToMochi') {
       const req = request as SendToMochiRequest;
-      // Save to Supabase first, then send to Mochi via backend API
+      // Save to Pluckk first, then send to Mochi via backend API
       (async () => {
-        let supabaseResult: { supabase: SupabaseResult } = { supabase: { success: true } };
-        let supabaseCardId: string | null = null;
+        let saveResult: { save: SaveResult } = { save: { success: true } };
+        let savedCardId: string | null = null;
 
-        // Get user session for user_id
-        const { session, user } = await getSession();
+        // Get user session
+        const { user } = await getSession();
 
         // Require authentication to save cards
         if (!user?.id) {
           sendResponse({
             mochi: { error: 'not_authenticated', message: 'Please sign in to save cards' },
-            supabase: { error: 'not_authenticated', message: 'Please sign in to save cards' }
+            save: { error: 'not_authenticated', message: 'Please sign in to save cards' }
           });
           return;
         }
@@ -775,26 +754,22 @@ chrome.runtime.onMessage.addListener(
         // Check if this is a screenshot-based card
         const hasScreenshot = req.screenshotData && req.screenshotMimeType;
 
-        // First, save to Supabase with user association
+        // First, save the card via the API
         try {
-          const result = await supabase.saveCard(
-            req.question,
-            req.answer,
-            req.sourceUrl,
-            {
-              userId: user.id,
-              accessToken: session?.access_token,
-              sourceSelection: req.sourceSelection,
-              sourceContext: req.sourceContext,
-              sourceTitle: req.sourceTitle,
-              sourceSelector: req.sourceSelector,
-              sourceTextOffset: req.sourceTextOffset
-            }
-          );
-          supabaseCardId = result.cardId || null;
-          supabaseResult = { supabase: result };
+          const card = await api.cards.create({
+            question: req.question,
+            answer: req.answer,
+            source_url: req.sourceUrl,
+            source_selection: req.sourceSelection,
+            source_context: req.sourceContext,
+            source_title: req.sourceTitle,
+            source_selector: req.sourceSelector,
+            source_text_offset: req.sourceTextOffset
+          });
+          savedCardId = card.id;
+          saveResult = { save: { success: true, cardId: card.id } };
         } catch (error) {
-          supabaseResult = { supabase: { error: 'supabase_error', message: (error as Error).message } };
+          saveResult = { save: { error: 'save_error', message: (error as Error).message } };
         }
 
         // Send to Mochi via backend API
@@ -812,9 +787,9 @@ chrome.runtime.onMessage.addListener(
             );
             mochiResult = { mochi: result };
 
-            // Also upload screenshot to Supabase
-            if (supabaseCardId) {
-              uploadScreenshotToSupabase(supabaseCardId, req.screenshotData!, req.screenshotMimeType!);
+            // Also upload screenshot to Pluckk
+            if (savedCardId) {
+              uploadScreenshotForCard(savedCardId, req.screenshotData!, req.screenshotMimeType!);
             }
           } else {
             // Create card without image first (fast response)
@@ -829,18 +804,18 @@ chrome.runtime.onMessage.addListener(
             const diagramPrompt = shouldGenerateImage ? req.diagramPrompt : null;
 
             if (result.success && result.cardId && shouldGenerateImage) {
-              // Fire-and-forget: generate AI image and attach to Mochi and Supabase
-              generateAndAttachImage(result.cardId, req.question, req.answer, req.sourceUrl, supabaseCardId, diagramPrompt || null);
-            } else if (result.error === 'mochi_not_configured' && supabaseCardId && shouldGenerateImage) {
-              // Mochi isn't configured but we have a Supabase card
-              generateImageForSupabase(supabaseCardId, req.question, req.answer, diagramPrompt || null);
+              // Fire-and-forget: generate AI image and attach to Mochi and Pluckk
+              generateAndAttachImage(result.cardId, req.question, req.answer, req.sourceUrl, savedCardId, diagramPrompt || null);
+            } else if (result.error === 'mochi_not_configured' && savedCardId && shouldGenerateImage) {
+              // Mochi isn't configured but we have a Pluckk card
+              generateImageForCard(savedCardId, req.question, req.answer, diagramPrompt || null);
             }
           }
         } catch (error) {
           mochiResult = { mochi: { error: 'mochi_error', message: (error as Error).message } };
         }
 
-        sendResponse({ ...mochiResult, ...supabaseResult });
+        sendResponse({ ...mochiResult, ...saveResult });
       })();
 
       return true; // Keep message channel open for async response
@@ -890,11 +865,6 @@ chrome.runtime.onMessage.addListener(
 
             if (response.status === 401) {
               sendResponse({ error: 'not_authenticated' });
-              return;
-            }
-
-            if (response.status === 402) {
-              sendResponse({ error: 'usage_limit_reached' });
               return;
             }
 
@@ -954,11 +924,6 @@ chrome.runtime.onMessage.addListener(
               return;
             }
 
-            if (response.status === 402) {
-              sendResponse({ error: 'usage_limit_reached' });
-              return;
-            }
-
             if (response.status === 429) {
               sendResponse({ error: 'rate_limit', message: 'Too many requests, please try again later' });
               return;
@@ -990,6 +955,57 @@ chrome.runtime.onMessage.addListener(
       return true;
     }
 
+    if (request.action === 'refineCard') {
+      const req = request as RefineCardRequest;
+      (async () => {
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
+          sendResponse({ error: 'not_authenticated' });
+          return;
+        }
+
+        try {
+          const response = await fetch(`${BACKEND_URL}/api/generate-cards`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({
+              refineCard: req.card,
+              refinementAction: req.refinementAction,
+              sourceSelection: req.sourceSelection,
+              sourceContext: req.sourceContext
+            })
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+
+            if (response.status === 401) {
+              sendResponse({ error: 'not_authenticated' });
+              return;
+            }
+            if (response.status === 429) {
+              sendResponse({ error: 'rate_limit', message: 'Too many requests' });
+              return;
+            }
+
+            sendResponse({ error: 'api_error', message: errorData.error || 'Failed to refine card' });
+            return;
+          }
+
+          const data: { card: GeneratedCard } = await response.json();
+          sendResponse({ card: data.card });
+        } catch (error) {
+          console.error('Card refinement failed:', error);
+          sendResponse({ error: 'api_error', message: (error as Error).message });
+        }
+      })();
+
+      return true;
+    }
+
     if (request.action === 'getMochiStatus') {
       (async () => {
         try {
@@ -1001,49 +1017,6 @@ chrome.runtime.onMessage.addListener(
           sendResponse({ configured: false } as MochiStatusResponse);
         }
       })();
-
-      return true;
-    }
-
-    if (request.action === 'saveToSupabase') {
-      const req = request as SaveToSupabaseRequest;
-      (async () => {
-        try {
-          const { session, user } = await getSession();
-
-          // Require authentication to save cards
-          if (!user?.id) {
-            sendResponse({ error: 'not_authenticated', message: 'Please sign in to save cards' });
-            return;
-          }
-
-          const result = await supabase.saveCard(
-            req.question,
-            req.answer,
-            req.sourceUrl,
-            {
-              userId: user.id,
-              accessToken: session?.access_token
-            }
-          );
-          sendResponse(result);
-        } catch (error) {
-          sendResponse({ error: 'supabase_error', message: (error as Error).message });
-        }
-      })();
-
-      return true;
-    }
-
-    if (request.action === 'getAuthStatus') {
-      getSession()
-        .then(({ session, user }) => {
-          sendResponse({
-            authenticated: !!session,
-            user: user ? { email: user.email, id: user.id } : null
-          } as AuthStatusResponse);
-        })
-        .catch(error => sendResponse({ authenticated: false, error: (error as Error).message } as AuthStatusResponse));
 
       return true;
     }

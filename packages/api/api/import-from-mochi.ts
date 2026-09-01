@@ -4,7 +4,8 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { authenticateRequest, isAuthError } from '../lib/auth.js';
-import { supabaseAdmin } from '../lib/supabase-admin.js';
+import { eq } from 'drizzle-orm';
+import { getDb, schema } from '../lib/db.js';
 import type { MochiCard, MochiDeck, ImportFromMochiRequest, ImportResult } from '../lib/types.js';
 
 const MOCHI_API_URL = 'https://app.mochi.cards/api';
@@ -120,12 +121,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   const { user, profile } = authResult;
 
-  if (!profile.mochi_api_key) {
+  if (!profile.mochiApiKey) {
     res.status(400).json({ error: 'Mochi API key not configured' });
     return;
   }
 
-  const mochiApiKey = profile.mochi_api_key;
+  const mochiApiKey = profile.mochiApiKey;
+  const db = getDb();
 
   // GET - Fetch decks
   if (req.method === 'GET') {
@@ -181,28 +183,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const deckPathMap = buildDeckPathMap(allDecks);
 
       // Get existing questions for duplicate detection
-      const { data: existingCards } = await supabaseAdmin
-        .from('cards')
-        .select('question')
-        .eq('user_id', user.id);
-
-      const existingQuestions = new Set(
-        (existingCards || []).map((c: { question: string }) => normalizeQuestion(c.question))
-      );
+      const existingCards = await db.select({ question: schema.cards.question }).from(schema.cards).where(eq(schema.cards.userId, user.id));
+      const existingQuestions = new Set(existingCards.map((c) => normalizeQuestion(c.question)));
 
       // Create folders if needed
       const folderIdMap = new Map<string, string>();
 
       if (createFolders) {
         // Get existing folders
-        const { data: existingFolders } = await supabaseAdmin
-          .from('folders')
-          .select('id, name')
-          .eq('user_id', user.id);
-
-        const existingFolderNames = new Map(
-          (existingFolders || []).map((f: { id: string; name: string }) => [f.name, f.id])
-        );
+        const existingFolders = await db.select({ id: schema.folders.id, name: schema.folders.name }).from(schema.folders).where(eq(schema.folders.userId, user.id));
+        const existingFolderNames = new Map(existingFolders.map((f) => [f.name, f.id]));
 
         // Create folders for selected decks
         for (const deckId of deckIds) {
@@ -215,32 +205,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           if (existingFolderNames.has(folderName)) {
             folderIdMap.set(deckId, existingFolderNames.get(folderName)!);
           } else {
-            const { data: newFolder, error: folderError } = await supabaseAdmin
-              .from('folders')
-              .insert({ user_id: user.id, name: folderName })
-              .select('id')
-              .single();
-
-            if (folderError) {
-              if (folderError.code === '23505') {
-                // Duplicate - fetch existing
-                const { data: existing } = await supabaseAdmin
-                  .from('folders')
-                  .select('id')
-                  .eq('user_id', user.id)
-                  .eq('name', folderName)
-                  .single();
-                if (existing) {
-                  folderIdMap.set(deckId, existing.id);
-                  existingFolderNames.set(folderName, existing.id);
-                }
-              } else {
-                result.errors.push(`Failed to create folder "${folderName}": ${folderError.message}`);
-              }
-            } else if (newFolder) {
+            try {
+              const [newFolder] = await db.insert(schema.folders).values({ userId: user.id, name: folderName }).returning({ id: schema.folders.id });
               folderIdMap.set(deckId, newFolder.id);
               existingFolderNames.set(folderName, newFolder.id);
               result.foldersCreated.push(folderName);
+            } catch (folderError) {
+              result.errors.push(`Failed to create folder "${folderName}": ${folderError instanceof Error ? folderError.message : String(folderError)}`);
             }
           }
         }
@@ -271,13 +242,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             existingQuestions.add(normalizeQuestion(question));
 
             cardsToInsert.push({
-              user_id: user.id,
+              userId: user.id,
               question,
               answer,
               style: 'qa',
               tags: [...(card.tags || []), 'imported:mochi'],
-              folder_id: folderIdMap.get(deckId) || null,
-              source_title: 'Imported from Mochi',
+              folderId: folderIdMap.get(deckId) || null,
+              sourceTitle: 'Imported from Mochi',
             });
           }
 
@@ -287,12 +258,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
           for (let i = 0; i < cardsToInsert.length; i += BATCH_SIZE) {
             const batch = cardsToInsert.slice(i, i + BATCH_SIZE);
-            const { error: insertError } = await supabaseAdmin.from('cards').insert(batch);
-
-            if (insertError) {
-              result.errors.push(`Failed to insert cards from "${deckName}": ${insertError.message}`);
-            } else {
+            try {
+              await db.insert(schema.cards).values(batch);
               result.imported += batch.length;
+            } catch (insertError) {
+              result.errors.push(`Failed to insert cards from "${deckName}": ${insertError instanceof Error ? insertError.message : String(insertError)}`);
             }
           }
         } catch (deckError) {

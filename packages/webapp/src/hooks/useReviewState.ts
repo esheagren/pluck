@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getSupabaseClient } from '@pluckk/shared/supabase';
+import { api } from '@pluckk/shared/api';
 import {
   calculateNextReview,
   previewIntervals,
@@ -20,9 +20,11 @@ import type {
   RestoredSession,
   ReviewSubmitResult,
   UseReviewStateReturn,
+  SessionConfig,
+  SessionMeta,
 } from '../types';
 
-const supabase = getSupabaseClient();
+const DEFAULT_CONFIG: SessionConfig = { mode: 'scheduled' };
 
 const DEFAULT_NEW_CARDS_PER_DAY = 10;
 const NEW_CARDS_KEY = 'pluckk_new_cards_per_day';
@@ -31,12 +33,16 @@ const SESSION_KEY = 'pluckk_review_session';
 /**
  * Save the current review session to sessionStorage.
  */
+// Stamped onto saved sessions so a Mix session never resumes inside a Focus/Backlog one.
+let activeConfigKey = '';
+
 function saveSession(cardIds: string[], currentIndex: number): void {
   try {
     const session: SavedSession = {
       cardIds,
       currentIndex,
       timestamp: Date.now(),
+      configKey: activeConfigKey,
     };
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
   } catch (_e) {
@@ -101,12 +107,15 @@ function getNewCardsPerDay(): number {
  * Hook for managing spaced repetition review state.
  * Fetches due cards, handles rating submissions, and logs reviews.
  */
-export function useReviewState(userId: string | undefined): UseReviewStateReturn {
+export function useReviewState(userId: string | undefined, config: SessionConfig = DEFAULT_CONFIG): UseReviewStateReturn {
+  const configKey = JSON.stringify([config.mode, config.folderId ?? '*', config.size ?? 0, config.mix ?? null]);
+  activeConfigKey = configKey;
   const [dueCards, setDueCards] = useState<CardWithReviewState[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [totalNewCards, setTotalNewCards] = useState(0);
   const [newCardsAvailableToday, setNewCardsAvailableToday] = useState(0);
+  const [sessionMeta, setSessionMeta] = useState<SessionMeta | null>(null);
 
   /**
    * Try to restore a saved session by fetching fresh data for saved card IDs.
@@ -119,27 +128,14 @@ export function useReviewState(userId: string | undefined): UseReviewStateReturn
       }
 
       try {
-        // Fetch fresh card data for the saved IDs
-        const { data: cards, error: cardsError } = await supabase
-          .from('cards')
-          .select('*, folder:folders(*)')
-          .eq('user_id', userId)
-          .in('id', session.cardIds);
-
-        if (cardsError || !cards) {
-          return null;
-        }
-
-        // Get review states for these cards
-        const { data: reviewStates } = await supabase
-          .from('card_review_state')
-          .select('*')
-          .eq('user_id', userId)
-          .in('card_id', session.cardIds);
+        // Fetch fresh data for the saved IDs (one round trip: cards + states)
+        const wanted = new Set(session.cardIds);
+        const queue = await api.review.queue();
+        const cards = queue.cards.filter((c) => wanted.has(c.id)) as unknown as CardWithReviewState[];
 
         const stateMap = new Map<string, CardReviewState>();
-        (reviewStates || []).forEach((state: CardReviewState & { card_id: string }) => {
-          stateMap.set(state.card_id, state);
+        queue.states.forEach((state) => {
+          if (wanted.has(state.card_id)) stateMap.set(state.card_id, state as unknown as CardReviewState);
         });
 
         // Create a map for quick lookup
@@ -209,7 +205,8 @@ export function useReviewState(userId: string | undefined): UseReviewStateReturn
         // Try to restore from saved session (unless forcing refresh)
         if (!forceRefresh) {
           const session = loadSession();
-          if (session) {
+          // Only resume a session dealt under the same mode/deck as the current URL.
+          if (session && (session.configKey ?? '') === configKey) {
             const restored = await tryRestoreSession(session);
             if (restored) {
               setDueCards(restored.cards);
@@ -226,122 +223,31 @@ export function useReviewState(userId: string | undefined): UseReviewStateReturn
 
         // Clear any stale session since we're fetching fresh
         clearSession();
-        // Fetch all user's cards - required to include cards without review state
-        const { data: cards, error: cardsError } = await supabase
-          .from('cards')
-          .select('*, folder:folders(*)')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
-
-        if (cardsError) {
-          console.error('Error fetching cards:', cardsError);
-          setDueCards([]);
-          setLoading(false);
-          return;
-        }
-
-        // Get review states for these cards (skip if no cards to avoid empty IN clause)
-        const cardIds = (cards as CardWithReviewState[]).map((c) => c.id);
-        let reviewStates: Array<CardReviewState & { card_id: string }> = [];
-
-        if (cardIds.length > 0) {
-          // Use type assertion since Supabase types don't include card_review_state table
-          const { data, error: statesError } = await (supabase
-            .from('card_review_state') as any)
-            .select('*')
-            .eq('user_id', userId)
-            .in('card_id', cardIds);
-
-          if (statesError) {
-            console.error('Error fetching review states:', statesError);
-            // Continue without states - treat all as new
-          } else {
-            reviewStates = (data as Array<CardReviewState & { card_id: string }>) || [];
-          }
-        }
-
-        // Create a map of card_id -> review_state
-        const stateMap = new Map<string, CardReviewState & { card_id: string }>();
-        reviewStates.forEach((state) => {
-          stateMap.set(state.card_id, state);
+        // The server-side mixer selects and orders the session (quotas, per-folder
+        // new-card caps, pauses); we only annotate the dealt cards.
+        const session = await api.review.session({
+          mode: config.mode,
+          size: config.size,
+          folder_id: config.mode === 'focus' || config.mode === 'backlog' ? config.folderId ?? null : undefined,
+          mix: config.mix,
         });
+        setSessionMeta(session.meta);
+        const stateMap = new Map(session.states.map((st) => [st.card_id, st as unknown as CardReviewState]));
+        const dealt: CardWithReviewState[] = (session.cards as unknown as CardWithReviewState[]).map((card) => ({
+          ...card,
+          review_state: stateMap.get(card.id) ?? null,
+          is_new: !stateMap.has(card.id),
+          is_due: true,
+        }));
 
-        // Merge cards with their state and categorize
-        const now = new Date();
-        const cardsWithState: CardWithReviewState[] = (cards as CardWithReviewState[]).map(
-          (card) => {
-            const state = stateMap.get(card.id) || null;
-            return {
-              ...card,
-              review_state: state,
-              is_new: !state,
-              is_due: !state || new Date((state as unknown as { due_at: string }).due_at) <= now,
-            };
-          }
-        );
+        const folderTotals = Object.values(session.meta.per_folder);
+        setTotalNewCards(folderTotals.reduce((s, f) => s + f.new, 0));
+        setNewCardsAvailableToday(dealt.filter((c) => c.is_new).length);
 
-        // Separate into review cards (due, have state) and new cards (no state)
-        const reviewCards = cardsWithState.filter((c) => c.is_due && !c.is_new);
-        const newCards = cardsWithState.filter((c) => c.is_new);
-
-        // Store total new cards count
-        setTotalNewCards(newCards.length);
-
-        // Apply new cards per day limit
-        const newCardsLimit = getNewCardsPerDay();
-        let limitedNewCards = newCards;
-        let availableToday = newCards.length; // Default to all new cards if unlimited
-
-        // If limit is 0, that means unlimited; otherwise apply the limit
-        if (newCardsLimit > 0) {
-          // Check how many new cards have already been reviewed today
-          // Use local midnight for consistent day boundaries
-          const todayStart = new Date(new Date().toDateString());
-
-          const { data: todayLogs, error: logsError } = await supabase
-            .from('review_logs')
-            .select('card_id')
-            .eq('user_id', userId)
-            .gte('reviewed_at', todayStart.toISOString())
-            .eq('previous_status', STATUS.NEW);
-
-          if (logsError) {
-            console.error('Error fetching review logs:', logsError);
-            // Fail safe: if we can't count, show no new cards to prevent exceeding limit
-            limitedNewCards = [];
-            availableToday = 0;
-          } else {
-            // Deduplicate by card_id in case same card was reviewed multiple times
-            const uniqueCardIds = new Set(
-              (todayLogs as Array<{ card_id: string }>)?.map((log) => log.card_id) || []
-            );
-            const newCardsReviewedToday = uniqueCardIds.size;
-            const remainingNewCards = Math.max(0, newCardsLimit - newCardsReviewedToday);
-
-            // Track how many new cards are available today (min of remaining allowance and available cards)
-            availableToday = Math.min(remainingNewCards, newCards.length);
-
-            // Limit new cards to the remaining allowance
-            limitedNewCards = newCards.slice(0, remainingNewCards);
-          }
-        }
-
-        // Store available new cards for today
-        setNewCardsAvailableToday(availableToday);
-
-        // Combine review cards and limited new cards, then shuffle
-        const allDue = [...reviewCards, ...limitedNewCards];
-        const shuffled = allDue.sort(() => Math.random() - 0.5);
-
-        setDueCards(shuffled);
+        setDueCards(dealt);
         setCurrentIndex(0);
-
-        // Save the new session
-        if (shuffled.length > 0) {
-          saveSession(
-            shuffled.map((c) => c.id),
-            0
-          );
+        if (dealt.length > 0) {
+          saveSession(dealt.map((c) => c.id), 0);
         }
       } catch (error) {
         console.error('Error fetching due cards:', error);
@@ -350,7 +256,8 @@ export function useReviewState(userId: string | undefined): UseReviewStateReturn
         setLoading(false);
       }
     },
-    [userId, tryRestoreSession]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [userId, tryRestoreSession, configKey]
   );
 
   /**
@@ -368,35 +275,9 @@ export function useReviewState(userId: string | undefined): UseReviewStateReturn
       setLoading(true);
 
       try {
-        // Fetch all user's cards
-        const { data: cards, error: cardsError } = await supabase
-          .from('cards')
-          .select('*, folder:folders(*)')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
-
-        if (cardsError) {
-          console.error('Error fetching cards:', cardsError);
-          setDueCards([]);
-          setLoading(false);
-          return;
-        }
-
-        // Get review states to identify new cards
-        const cardIds = (cards as CardWithReviewState[]).map((c) => c.id);
-        let reviewStates: Array<{ card_id: string }> = [];
-
-        if (cardIds.length > 0) {
-          const { data, error: statesError } = await supabase
-            .from('card_review_state')
-            .select('card_id')
-            .eq('user_id', userId)
-            .in('card_id', cardIds);
-
-          if (!statesError) {
-            reviewStates = (data as Array<{ card_id: string }>) || [];
-          }
-        }
+        const queue = await api.review.queue();
+        const cards = queue.cards as unknown as CardWithReviewState[];
+        const reviewStates: Array<{ card_id: string }> = queue.states;
 
         // Find cards without review state (new cards)
         const reviewedCardIds = new Set(reviewStates.map((s) => s.card_id));
@@ -420,26 +301,12 @@ export function useReviewState(userId: string | undefined): UseReviewStateReturn
         } else if (newCardsLimit > 0) {
           const todayStart = new Date(new Date().toDateString());
 
-          const { data: todayLogs, error: logsError } = await supabase
-            .from('review_logs')
-            .select('card_id')
-            .eq('user_id', userId)
-            .gte('reviewed_at', todayStart.toISOString())
-            .eq('previous_status', STATUS.NEW);
+          void todayStart;
+          const newCardsReviewedToday = new Set(queue.new_reviewed_today).size;
+          const remainingNewCards = Math.max(0, newCardsLimit - newCardsReviewedToday);
 
-          if (logsError) {
-            limitedNewCards = [];
-            availableToday = 0;
-          } else {
-            const uniqueCardIds = new Set(
-              (todayLogs as Array<{ card_id: string }>)?.map((log) => log.card_id) || []
-            );
-            const newCardsReviewedToday = uniqueCardIds.size;
-            const remainingNewCards = Math.max(0, newCardsLimit - newCardsReviewedToday);
-
-            availableToday = Math.min(remainingNewCards, newCards.length);
-            limitedNewCards = newCards.slice(0, remainingNewCards);
-          }
+          availableToday = Math.min(remainingNewCards, newCards.length);
+          limitedNewCards = newCards.slice(0, remainingNewCards);
         }
 
         setNewCardsAvailableToday(availableToday);
@@ -496,86 +363,20 @@ export function useReviewState(userId: string | undefined): UseReviewStateReturn
         const previousState = currentCard.review_state || getInitialState();
         const newState = calculateNextReview(previousState, rating);
 
-        // Upsert the review state
-        let stateId = (previousState as CardReviewState & { id?: string }).id;
-        if (!stateId) {
-          // Create new review state
-          // Use type assertion since Supabase types don't include card_review_state table
-          const { data: insertedState, error: insertError } = await (supabase
-            .from('card_review_state') as any)
-            .insert({
-              card_id: currentCard.id,
-              user_id: userId,
-              status: newState.status,
-              due_at: newState.due_at,
-              interval_days: newState.interval_days,
-              ease_factor: newState.ease_factor,
-              review_count: 1,
-              lapse_count: rating === RATINGS.AGAIN ? 1 : 0,
-              streak: rating === RATINGS.AGAIN ? 0 : 1,
-              last_reviewed_at: new Date().toISOString(),
-            })
-            .select()
-            .single();
-
-          if (insertError) {
-            console.error('Error creating review state:', insertError);
-            return { error: insertError };
-          }
-          stateId = (insertedState as { id: string }).id;
-        } else {
-          // Update existing review state
-          // Use type assertion since Supabase types don't include card_review_state table
-          const { error: updateError } = await (supabase
-            .from('card_review_state') as any)
-            .update({
-              status: newState.status,
-              due_at: newState.due_at,
-              interval_days: newState.interval_days,
-              ease_factor: newState.ease_factor,
-              review_count: ((previousState as CardReviewState & { review_count?: number }).review_count || 0) + 1,
-              lapse_count:
-                ((previousState as CardReviewState & { lapse_count?: number }).lapse_count || 0) +
-                (rating === RATINGS.AGAIN ? 1 : 0),
-              streak:
-                rating === RATINGS.AGAIN
-                  ? 0
-                  : ((previousState as CardReviewState & { streak?: number }).streak || 0) + 1,
-              last_reviewed_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', stateId);
-
-          if (updateError) {
-            console.error('Error updating review state:', updateError);
-            return { error: updateError };
-          }
-        }
-
-        // Log the review
-        // Use type assertion since Supabase types don't include review_logs table
-        const { error: logError } = await (supabase.from('review_logs') as any).insert({
-          card_review_state_id: stateId,
-          user_id: userId,
+        // Server upserts card_review_state (counts, streak, lapses) and writes the review log.
+        void userId; void STATUS;
+        const { state: savedState } = await api.review.submit({
           card_id: currentCard.id,
-          review_mode: 'standard',
-          rating: rating,
-          previous_status: previousState.status || STATUS.NEW,
-          previous_interval: previousState.interval_days || 0,
-          previous_ease: previousState.ease_factor || 2.5,
-          previous_due: (previousState as CardReviewState & { due_at?: string }).due_at || null,
-          new_status: newState.status,
-          new_interval: newState.interval_days,
-          new_ease: newState.ease_factor,
-          new_due: newState.due_at,
+          rating,
+          new_state: {
+            status: newState.status,
+            due_at: newState.due_at,
+            interval_days: newState.interval_days,
+            ease_factor: newState.ease_factor,
+          },
           algorithm_version: ALGORITHM_VERSION,
-          reviewed_at: new Date().toISOString(),
         });
-
-        if (logError) {
-          console.error('Error logging review:', logError);
-          // Don't fail the whole operation for logging errors
-        }
+        const stateId = savedState.id;
 
         // If this was a new card, decrement today's available count
         if (currentCard.is_new) {
@@ -714,6 +515,7 @@ export function useReviewState(userId: string | undefined): UseReviewStateReturn
   }, [fetchDueCards]);
 
   return {
+    sessionMeta,
     dueCards,
     currentCard,
     currentIndex,

@@ -1,7 +1,15 @@
 // Pluckk - Page Annotations Module
 // Injects margin annotations showing cards created from the current page
 
-import { SUPABASE_URL, SUPABASE_KEY } from '@pluckk/shared/constants';
+import { createApiClient } from '@pluckk/shared/api';
+
+// Content scripts can read chrome.storage.local, so the bearer token is available here.
+const api = createApiClient({
+  getToken: async () => {
+    const r = await chrome.storage.local.get('pluckk_session');
+    return (r.pluckk_session as { access_token?: string } | undefined)?.access_token ?? null;
+  },
+});
 
 interface CardAnnotation {
   id: string;
@@ -25,23 +33,15 @@ async function fetchCardsForPage(url: string): Promise<CardAnnotation[]> {
     normalizedUrl.search = '';
     const baseUrl = normalizedUrl.toString();
 
-    // Query Supabase for cards with this source URL that have selectors
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/cards?source_url=like.${encodeURIComponent(baseUrl)}*&source_selector=not.is.null&select=id,question,answer,source_selector,source_text_offset`,
-      {
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        }
-      }
-    );
-
-    if (!response.ok) {
-      console.error('Failed to fetch cards for page:', response.statusText);
-      return [];
-    }
-
-    return await response.json() as CardAnnotation[];
+    // Query the API for the user's cards from this page that have selectors
+    const cards = await api.cards.list({ source_url_prefix: baseUrl });
+    return cards
+      .filter((c) => c.source_selector)
+      .map((c) => ({
+        id: c.id, question: c.question, answer: c.answer,
+        source_selector: c.source_selector as string,
+        source_text_offset: c.source_text_offset ?? 0,
+      }));
   } catch (error) {
     console.error('Error fetching cards for page:', error);
     return [];
@@ -315,28 +315,11 @@ export async function handleDeepLink(): Promise<void> {
 
   try {
     // Fetch the specific card
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/cards?id=eq.${encodeURIComponent(cardId)}&select=source_selector,source_text_offset,source_selection`,
-      {
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        }
-      }
-    );
-
-    if (!response.ok) {
-      console.error('[Pluckk] Failed to fetch card for deep link:', response.statusText);
-      return;
-    }
-
-    const cards = await response.json() as Array<{
-      source_selector: string | null;
-      source_text_offset: number | null;
-      source_selection: string | null;
-    }>;
-
-    const card = cards[0];
+    const card = await api.cards.get(cardId).catch((err: unknown) => {
+      console.error('[Pluckk] Failed to fetch card for deep link:', err);
+      return null;
+    });
+    if (!card) return;
     console.log('[Pluckk] Card data retrieved:', {
       hasSelector: !!card?.source_selector,
       selector: card?.source_selector,

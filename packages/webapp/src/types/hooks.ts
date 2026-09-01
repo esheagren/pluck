@@ -2,7 +2,7 @@
  * Type definitions for custom React hooks
  */
 
-import type { User } from '@pluckk/shared/supabase';
+import type { AuthUser as User } from '@pluckk/shared/api';
 import type {
   CardReviewState,
   IntervalPreviews,
@@ -62,29 +62,13 @@ export interface CardWithReviewState extends Card {
 // ============================================================================
 
 /**
- * Billing information for the user
- */
-export interface BillingInfo {
-  isPro: boolean;
-  cardsUsed: number;
-  limit: number;
-}
-
-/**
  * Return type for useAuth hook
  */
 export interface UseAuthReturn {
   user: User | null;
   loading: boolean;
-  billingInfo: BillingInfo | null;
-  learningProfile: LearningProfile | null;
-  showOnboarding: boolean;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
-  handleUpgrade: () => Promise<void>;
-  handleManageSubscription: () => Promise<void>;
-  completeOnboarding: (profile: Omit<LearningProfile, 'onboardingCompleted'>) => Promise<void>;
-  skipOnboarding: () => Promise<void>;
 }
 
 // ============================================================================
@@ -474,6 +458,8 @@ export interface SavedSession {
   cardIds: string[];
   currentIndex: number;
   timestamp: number;
+  /** Which session config dealt these cards; a saved Mix session must not resume inside a Focus session. */
+  configKey?: string;
 }
 
 /**
@@ -496,7 +482,23 @@ export interface ReviewSubmitResult {
 /**
  * Return type for useReviewState hook
  */
+/** Review-mixer session request (mirrors POST /api/v1/review/session). */
+export interface SessionConfig {
+  mode: 'scheduled' | 'focus' | 'backlog';
+  folderId?: string | null;      // focus/backlog (null = unfiled)
+  size?: number;                 // omit → server default
+  mix?: Array<{ folder_id: string | null; pct: number }>;
+}
+
+export interface SessionMeta {
+  mode: string;
+  per_folder: Record<string, { due: number; new: number; dealt: number }>;
+  due_total: number;
+  backlog_remaining?: number;
+}
+
 export interface UseReviewStateReturn {
+  sessionMeta: SessionMeta | null;
   dueCards: CardWithReviewState[];
   currentCard: CardWithReviewState | null;
   currentIndex: number;
@@ -558,10 +560,7 @@ export interface CardsPageProps {
  */
 export interface SettingsPageProps {
   user: User | null;
-  billingInfo: BillingInfo | null;
   onSignOut: () => void;
-  onUpgrade: () => void;
-  onManage: () => void;
 }
 
 /**

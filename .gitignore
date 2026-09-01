@@ -24,3 +24,4 @@ packages/*/dist/
 .env
 .env.local
 .env.*.local
+.vercel

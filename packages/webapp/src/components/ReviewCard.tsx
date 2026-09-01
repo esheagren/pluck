@@ -165,8 +165,23 @@ export default function ReviewCard({
               </span>
             </div>
           )}
-          <div className="text-lg leading-relaxed text-center text-gray-800 dark:text-gray-100">
-            {displayQuestion}
+          <div className="flex flex-col items-center gap-4">
+            <div className="text-lg leading-relaxed text-center text-gray-800 dark:text-gray-100">
+              {displayQuestion}
+            </div>
+            {/* Image on the front too — for imported image-question decks (e.g. art)
+                the picture IS the question. */}
+            {card.image_url && (
+              <img
+                src={card.image_url}
+                alt=""
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsImageExpanded(true);
+                }}
+                className="max-h-56 rounded-lg object-contain cursor-zoom-in hover:opacity-90 transition-opacity"
+              />
+            )}
           </div>
         </div>
 

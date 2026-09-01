@@ -2,12 +2,13 @@
 // Main UI logic for card generation and Mochi integration
 
 import { escapeHtml } from '@pluckk/shared/utils';
-import { FREE_TIER_LIMIT, BACKEND_URL, SUPABASE_URL, SUPABASE_KEY } from '@pluckk/shared/constants';
+import { BACKEND_URL } from '@pluckk/shared/constants';
+
 import {
   signInWithGoogle,
   getSession,
-  getUserProfile,
-  getAccessToken
+  getAccessToken,
+  api
 } from '../src/auth';
 import { initSandAnimation, type CleanupFunction } from './sand-animation';
 import { initializeTheme, toggleTheme, type Theme } from '../src/theme';
@@ -19,8 +20,9 @@ import type {
   SelectionData,
   EditedCard,
   CardToSave,
-  ProfileCache,
   SelectionResponse,
+  RefinementAction,
+  RefineCardResponse,
 } from '../src/types';
 
 // DOM Elements - Main UI
@@ -29,7 +31,6 @@ const errorState = document.getElementById('error-state') as HTMLElement | null;
 const noSelectionState = document.getElementById('no-selection-state') as HTMLElement | null;
 const screenshotState = document.getElementById('screenshot-state') as HTMLElement | null;
 const apiKeyState = document.getElementById('api-key-state') as HTMLElement | null;
-const usageLimitState = document.getElementById('usage-limit-state') as HTMLElement | null;
 const cardsState = document.getElementById('cards-state') as HTMLElement | null;
 const readyStateWrapper = document.getElementById('ready-state-wrapper') as HTMLElement | null;
 const cardsList = document.getElementById('cards-list') as HTMLElement | null;
@@ -41,7 +42,6 @@ const readyHint = document.getElementById('ready-hint') as HTMLElement | null;
 const generateBtn = document.getElementById('generate-btn') as HTMLButtonElement | null;
 const regenerateBtn = document.getElementById('regenerate-btn') as HTMLButtonElement | null;
 const openSettingsBtn = document.getElementById('open-settings-btn') as HTMLButtonElement | null;
-const upgradeBtn = document.getElementById('upgrade-btn') as HTMLButtonElement | null;
 const closeBtn = document.getElementById('close-btn') as HTMLButtonElement | null;
 const selectedCountEl = document.getElementById('selected-count') as HTMLElement | null;
 const totalCountEl = document.getElementById('total-count') as HTMLElement | null;
@@ -59,17 +59,15 @@ const settingsDrawer = document.getElementById('settings-drawer') as HTMLElement
 const drawerAuthLoggedOut = document.getElementById('drawer-auth-logged-out') as HTMLElement | null;
 const drawerAuthLoggedIn = document.getElementById('drawer-auth-logged-in') as HTMLElement | null;
 const drawerSignInBtn = document.getElementById('drawer-sign-in-btn') as HTMLButtonElement | null;
-const drawerUsageRow = document.getElementById('drawer-usage-row') as HTMLElement | null;
-const drawerUsageBar = document.getElementById('drawer-usage-bar') as HTMLElement | null;
-const drawerUsageText = document.getElementById('drawer-usage-text') as HTMLElement | null;
-const drawerBillingRow = document.getElementById('drawer-billing-row') as HTMLElement | null;
-const drawerProRow = document.getElementById('drawer-pro-row') as HTMLElement | null;
-const drawerUpgradeBtn = document.getElementById('drawer-upgrade-btn') as HTMLButtonElement | null;
-const drawerProBtn = document.getElementById('drawer-pro-btn') as HTMLButtonElement | null;
 const drawerVersion = document.getElementById('drawer-version') as HTMLElement | null;
 const drawerThemeToggle = document.getElementById('drawer-theme-toggle') as HTMLInputElement | null;
 const drawerKeepOpenToggle = document.getElementById('drawer-keep-open-toggle') as HTMLInputElement | null;
 const pageContextToggle = document.getElementById('page-context-toggle') as HTMLInputElement | null;
+// DOM Elements - Shortcuts Overlay
+const shortcutsOverlay = document.getElementById('shortcuts-overlay') as HTMLElement | null;
+const shortcutsCloseBtn = document.getElementById('shortcuts-close') as HTMLButtonElement | null;
+const helpBtn = document.getElementById('help-btn') as HTMLButtonElement | null;
+
 // DOM Elements - Review Card
 const reviewCardContainer = document.getElementById('review-card-container') as HTMLElement | null;
 const reviewCard = document.getElementById('review-card') as HTMLElement | null;
@@ -102,7 +100,6 @@ let sourceUrl = '';
 let editedCards: Record<number, EditedCard> = {};
 let _mochiConfigured = false;
 let cachedSelectionData: SelectionData | null = null; // Cache selection for regeneration
-let currentIsPro = false; // Track subscription status for usage updates
 
 // Screenshot/Image mode state
 let isImageMode = false;
@@ -129,7 +126,6 @@ let _isQuestionMode = false;
 
 // Diagram generation state (tracks which diagram cards should generate images)
 let diagramGenerateFlags: Record<number, boolean> = {}; // { cardIndex: boolean }
-let _userIsPro = false; // Track if user is Pro (for diagram feature)
 
 // Keep open preference
 let keepOpenAfterStoring = false;
@@ -146,7 +142,7 @@ let sandAnimationCleanup: CleanupFunction | null = null;
  * Also manages selection polling (only poll when in ready state)
  */
 function showState(state: HTMLElement | null): void {
-  const states = [loadingState, errorState, noSelectionState, screenshotState, apiKeyState, usageLimitState, cardsState];
+  const states = [loadingState, errorState, noSelectionState, screenshotState, apiKeyState, cardsState];
   states.forEach(s => s?.classList.add('hidden'));
   state?.classList.remove('hidden');
 
@@ -249,13 +245,16 @@ function renderCards(): void {
       renderStandardCard(cardEl, card, index, edited);
     }
 
-    // Handle card selection (toggle) - skip if clicking on editable content or checkbox
+    // Handle card selection (toggle) - skip if clicking on editable content, checkbox, or menu
     cardEl.addEventListener('click', (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (target.hasAttribute('contenteditable') && target.isContentEditable) {
         return;
       }
       if (target.classList.contains('diagram-checkbox') || target.closest('.diagram-checkbox-label')) {
+        return;
+      }
+      if (target.closest('.card-menu')) {
         return;
       }
       toggleCard(index);
@@ -290,9 +289,11 @@ function renderStandardCard(cardEl: HTMLElement, card: GeneratedCard, index: num
       <div class="card-divider"></div>
       <div class="card-answer" contenteditable="true" data-field="answer">${escapeHtml(answer)}</div>
     </div>
+    ${createRefinementMenu(index)}
   `;
 
   setupStandardEditHandlers(cardEl, index);
+  setupRefinementMenu(cardEl, index);
 }
 
 /**
@@ -321,9 +322,11 @@ function renderBidirectionalCard(cardEl: HTMLElement, card: GeneratedCard, index
         <div class="card-answer" contenteditable="true" data-field="reverseAnswer">${escapeHtml(reverseA)}</div>
       </div>
     </div>
+    ${createRefinementMenu(index)}
   `;
 
   setupBidirectionalEditHandlers(cardEl, index);
+  setupRefinementMenu(cardEl, index);
 }
 
 /**
@@ -349,9 +352,11 @@ function renderDiagramCard(cardEl: HTMLElement, card: GeneratedCard, index: numb
         </label>
       </div>
     </div>
+    ${createRefinementMenu(index)}
   `;
 
   setupStandardEditHandlers(cardEl, index);
+  setupRefinementMenu(cardEl, index);
 
   // Handle diagram checkbox
   const checkbox = cardEl.querySelector('.diagram-checkbox') as HTMLInputElement | null;
@@ -423,6 +428,110 @@ function setupBidirectionalEditHandlers(cardEl: HTMLElement, index: number): voi
       });
     }
   });
+}
+
+/**
+ * Create refinement menu HTML for a card
+ */
+function createRefinementMenu(index: number): string {
+  return `
+    <div class="card-menu">
+      <button class="card-menu-btn" data-menu-index="${index}" title="Refine card">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+        </svg>
+      </button>
+      <div class="card-menu-dropdown hidden" data-dropdown-index="${index}">
+        <button class="card-menu-action" data-action="rephrase" data-card-index="${index}">Rephrase</button>
+        <button class="card-menu-action" data-action="simplify" data-card-index="${index}">Simplify</button>
+        <button class="card-menu-action" data-action="harder" data-card-index="${index}">Make harder</button>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Setup refinement menu handlers for a card element
+ */
+function setupRefinementMenu(cardEl: HTMLElement, index: number): void {
+  const menuBtn = cardEl.querySelector(`.card-menu-btn[data-menu-index="${index}"]`) as HTMLElement | null;
+  const dropdown = cardEl.querySelector(`.card-menu-dropdown[data-dropdown-index="${index}"]`) as HTMLElement | null;
+
+  if (!menuBtn || !dropdown) return;
+
+  menuBtn.addEventListener('click', (e: MouseEvent) => {
+    e.stopPropagation();
+    // Close any other open dropdowns
+    document.querySelectorAll('.card-menu-dropdown').forEach(d => {
+      if (d !== dropdown) d.classList.add('hidden');
+    });
+    dropdown.classList.toggle('hidden');
+  });
+
+  // Handle action clicks
+  const actions = cardEl.querySelectorAll<HTMLElement>(`.card-menu-action[data-card-index="${index}"]`);
+  actions.forEach(actionBtn => {
+    actionBtn.addEventListener('click', (e: MouseEvent) => {
+      e.stopPropagation();
+      const action = actionBtn.dataset.action as RefinementAction;
+      dropdown.classList.add('hidden');
+      refineCard(index, action);
+    });
+  });
+}
+
+/**
+ * Refine a single card via the backend
+ */
+async function refineCard(index: number, action: RefinementAction): Promise<void> {
+  const card = cards[index];
+  if (!card) return;
+
+  const cardEl = cardsList?.children[index] as HTMLElement | undefined;
+  if (!cardEl) return;
+
+  // Show loading state on this card
+  cardEl.classList.add('card-refining');
+
+  try {
+    const response: RefineCardResponse = await chrome.runtime.sendMessage({
+      action: 'refineCard',
+      card,
+      refinementAction: action,
+      sourceSelection: cachedSelectionData?.selection,
+      sourceContext: cachedSelectionData?.context,
+    });
+
+    if (!response || response.error || !response.card) {
+      cardEl.classList.remove('card-refining');
+      // Brief error flash
+      cardEl.classList.add('card-refine-error');
+      setTimeout(() => cardEl.classList.remove('card-refine-error'), 1500);
+      return;
+    }
+
+    // Replace card in-place
+    cards[index] = response.card;
+    delete editedCards[index];
+
+    // Preserve selection state
+    const wasSelected = selectedIndices.has(index);
+
+    // Re-render cards and restore state
+    renderCards();
+
+    if (wasSelected) {
+      selectedIndices.add(index);
+      const newCardEl = cardsList?.children[index] as HTMLElement | undefined;
+      newCardEl?.classList.add('selected');
+      updateSelectionCount();
+    }
+  } catch (error) {
+    console.error('Card refinement failed:', error);
+    cardEl.classList.remove('card-refining');
+    cardEl.classList.add('card-refine-error');
+    setTimeout(() => cardEl.classList.remove('card-refine-error'), 1500);
+  }
 }
 
 /**
@@ -508,7 +617,7 @@ function getSelectedCards(): CardToSave[] {
 }
 
 /**
- * Send selected cards to Supabase (and optionally Mochi if configured)
+ * Send selected cards to Pluckk (and optionally Mochi if configured)
  */
 async function sendToMochi(): Promise<void> {
   const selectedCards = getSelectedCards();
@@ -570,17 +679,17 @@ async function sendToMochi(): Promise<void> {
 
       const response: SendToMochiResponse = await chrome.runtime.sendMessage(messageData);
 
-      // Track Supabase success (primary storage)
-      if (response.supabase?.success || response.supabase?.cardId) {
+      // Track Pluckk success (primary storage)
+      if (response.save?.success || response.save?.cardId) {
         savedCount++;
-      } else if (response.supabase?.error) {
-        supabaseErrors.push(response.supabase.message || response.supabase.error);
+      } else if (response.save?.error) {
+        supabaseErrors.push(response.save.message || response.save.error);
       }
 
       // Track Mochi success (optional integration) - we don't need to track count
-      // Just note if Mochi isn't configured (that's fine, Supabase is primary)
+      // Just note if Mochi isn't configured (that's fine, Pluckk is primary)
       if (response.mochi?.error === 'mochi_api_key_missing' || response.mochi?.error === 'mochi_deck_not_selected') {
-        // Mochi not set up, that's fine - Supabase is primary storage
+        // Mochi not set up, that's fine - Pluckk is primary storage
       }
 
       if (btnText) btnText.textContent = `Storing ${savedCount}/${totalCards}...`;
@@ -945,12 +1054,6 @@ async function generateCardsFromImage(focusText = '', isRetry = false): Promise<
     }
 
     // Update usage display if included in response
-    if (response.usage) {
-      applyProfileToUI({
-        usage: { cardsThisMonth: response.usage.cardsThisMonth || 0, limit: response.usage.limit || FREE_TIER_LIMIT },
-        subscription: { isPro: currentIsPro }
-      });
-    }
 
     renderCards();
     showState(cardsState);
@@ -999,12 +1102,6 @@ async function generateCards(focusText = '', useCache = false): Promise<void> {
     editedCards = {};
 
     // Update usage display if included in response
-    if (response.usage) {
-      applyProfileToUI({
-        usage: { cardsThisMonth: response.usage.cardsThisMonth || 0, limit: response.usage.limit || FREE_TIER_LIMIT },
-        subscription: { isPro: currentIsPro }
-      });
-    }
 
     renderCards();
     showState(cardsState);
@@ -1075,12 +1172,6 @@ async function generateFromQuestion(): Promise<void> {
     questionSubmitBtn?.classList.add('hidden');
 
     // Update usage display if included in response
-    if (response.usage) {
-      applyProfileToUI({
-        usage: { cardsThisMonth: response.usage.cardsThisMonth || 0, limit: response.usage.limit || FREE_TIER_LIMIT },
-        subscription: { isPro: currentIsPro }
-      });
-    }
 
     renderCards();
     showState(cardsState);
@@ -1110,8 +1201,14 @@ async function checkSelectionState(): Promise<void> {
 
     if (selectionData?.selection) {
       // We have text selected - show generate button, hide hint
+      // But only if question input is empty (question submit takes priority)
       readyHint?.classList.add('hidden');
-      generateBtn?.classList.remove('hidden');
+      const hasQuestionInput = questionInput?.value.trim();
+      if (!hasQuestionInput) {
+        generateBtn?.classList.remove('hidden');
+      } else {
+        generateBtn?.classList.add('hidden');
+      }
     } else {
       // No selection - hide generate button, show hint
       readyHint?.classList.remove('hidden');
@@ -1150,11 +1247,9 @@ function stopSelectionPolling(): void {
 /**
  * Format date as YYYY-MM-DD (local timezone)
  */
+// The API buckets activity by UTC date; use the same calendar so the grids agree with the webapp.
 function formatDateLocal(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return date.toISOString().slice(0, 10);
 }
 
 /**
@@ -1163,7 +1258,7 @@ function formatDateLocal(date: Date): string {
 async function getCachedActivity(): Promise<ActivityCache | null> {
   try {
     const result = await chrome.storage.local.get([ACTIVITY_CACHE_KEY]);
-    return result[ACTIVITY_CACHE_KEY] || null;
+    return (result[ACTIVITY_CACHE_KEY] as ActivityCache | undefined) || null;
   } catch {
     return null;
   }
@@ -1181,14 +1276,11 @@ async function cacheActivity(cache: ActivityCache): Promise<void> {
 }
 
 /**
- * Fetch activity data from Supabase (last 12 weeks)
+ * Fetch activity data from Pluckk (last 12 weeks)
  */
 async function fetchActivityData(): Promise<ActivityDataMap | null> {
   const { session } = await getSession();
   if (!session?.user?.id) return null;
-
-  const userId = session.user.id;
-  const accessToken = session.access_token;
 
   // Calculate date 84 days ago (12 weeks)
   const startDate = new Date();
@@ -1196,32 +1288,10 @@ async function fetchActivityData(): Promise<ActivityDataMap | null> {
   const startDateStr = formatDateLocal(startDate);
 
   try {
-    // Fetch review data
-    const reviewsResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/user_daily_review_summary?user_id=eq.${userId}&review_date=gte.${startDateStr}&select=review_date,total_reviews`,
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'apikey': SUPABASE_KEY
-        }
-      }
-    );
-
-    // Fetch card creation data
-    const cardsResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/user_daily_card_summary?user_id=eq.${userId}&created_date=gte.${startDateStr}&select=created_date,cards_created`,
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'apikey': SUPABASE_KEY
-        }
-      }
-    );
-
-    if (!reviewsResponse.ok && !cardsResponse.ok) return null;
-
-    const reviewsData = reviewsResponse.ok ? await reviewsResponse.json() : [];
-    const cardsData = cardsResponse.ok ? await cardsResponse.json() : [];
+    // Server aggregates by day; trim to the 12-week window here.
+    const activity = await api.activity.get();
+    const reviewsData = activity.reviews.filter((r) => r.review_date >= startDateStr);
+    const cardsData = activity.cards.filter((c) => c.created_date >= startDateStr);
 
     // Combine into activity map
     const activityData: ActivityDataMap = {};
@@ -1311,22 +1381,25 @@ function renderMiniActivityGrid(activityData: ActivityDataMap): void {
         }
       }
 
-      // Build tooltip text
+      // Build tooltip content
       const formattedDate = formatDateForTooltip(currentDate);
-      let tooltip = formattedDate;
+      let tooltipActivity = '';
       if (!isFuture) {
         if (reviews > 0 || cardsCreated > 0) {
           const parts: string[] = [];
           if (reviews > 0) parts.push(`${reviews} review${reviews !== 1 ? 's' : ''}`);
           if (cardsCreated > 0) parts.push(`${cardsCreated} card${cardsCreated !== 1 ? 's' : ''} created`);
-          tooltip = `${formattedDate}\n${parts.join(', ')}`;
+          tooltipActivity = parts.join(', ');
         } else {
-          tooltip = `${formattedDate}\nNo activity`;
+          tooltipActivity = 'No activity';
         }
       }
 
       const visibility = isFuture ? 'style="visibility: hidden;"' : '';
-      html += `<div class="activity-day level-${level}" ${visibility} title="${tooltip}"></div>`;
+      const tooltipHtml = !isFuture
+        ? `<div class="activity-tooltip"><div class="tooltip-date">${formattedDate}</div><div class="tooltip-activity">${tooltipActivity}</div></div>`
+        : '';
+      html += `<div class="activity-day level-${level}" ${visibility}>${tooltipHtml}</div>`;
 
       currentDate.setDate(currentDate.getDate() + 1);
     }
@@ -1456,9 +1529,6 @@ function handleError(response: GenerateCardsResponse): void {
     case 'api_key_missing':
       showState(apiKeyState);
       break;
-    case 'usage_limit_reached':
-      showState(usageLimitState);
-      break;
     case 'api_key_invalid':
       showError('Invalid API key. Please check your settings.');
       break;
@@ -1499,119 +1569,21 @@ function showSettingsStatus(message: string, type: string): void {
  */
 const PROFILE_CACHE_KEY = 'pluckk_profile_cache';
 
-/**
- * Get cached profile data
- */
-async function getCachedProfile(): Promise<ProfileCache | null> {
-  try {
-    const result = await chrome.storage.local.get([PROFILE_CACHE_KEY]);
-    return result[PROFILE_CACHE_KEY] || null;
-  } catch (error) {
-    return null;
-  }
-}
 
-/**
- * Cache profile data
- */
-async function cacheProfile(profile: ProfileCache): Promise<void> {
-  try {
-    await chrome.storage.local.set({ [PROFILE_CACHE_KEY]: profile });
-  } catch (error) {
-    console.error('Failed to cache profile:', error);
-  }
-}
 
-/**
- * Clear cached profile (on sign out)
- */
-async function clearCachedProfile(): Promise<void> {
-  try {
-    await chrome.storage.local.remove([PROFILE_CACHE_KEY]);
-  } catch (error) {
-    console.error('Failed to clear profile cache:', error);
-  }
-}
 
-/**
- * Apply profile data to the UI (drawer elements)
- */
-function applyProfileToUI(profile: ProfileCache | null): void {
-  if (!profile) return;
-
-  const used = profile.usage?.cardsThisMonth || 0;
-  const limit = profile.usage?.limit || FREE_TIER_LIMIT;
-  const isPro = profile.subscription?.isPro || profile.subscription?.status === 'active';
-
-  // Store for later use in card generation response
-  currentIsPro = isPro;
-
-  // Always show "X cards created"
-  if (drawerUsageText) drawerUsageText.textContent = `${used} cards created`;
-
-  if (isPro) {
-    // Pro users: hide bar, show Pro badge
-    drawerUsageRow?.classList.add('pro');
-    if (drawerUsageBar) drawerUsageBar.style.width = '0%';
-    drawerBillingRow?.classList.add('hidden');
-    drawerProRow?.classList.remove('hidden');
-    drawerUpgradeBtn?.classList.remove('at-limit');
-  } else {
-    // Free users: show bar
-    drawerUsageRow?.classList.remove('pro');
-    const percentage = Math.min((used / limit) * 100, 100);
-    if (drawerUsageBar) drawerUsageBar.style.width = `${percentage}%`;
-    drawerBillingRow?.classList.remove('hidden');
-    drawerProRow?.classList.add('hidden');
-
-    drawerUsageBar?.classList.remove('warning', 'full');
-    drawerUpgradeBtn?.classList.remove('at-limit');
-
-    if (percentage >= 100) {
-      drawerUsageBar?.classList.add('full');
-      drawerUpgradeBtn?.classList.add('at-limit');
-    } else if (percentage >= 75) {
-      drawerUsageBar?.classList.add('warning');
-    }
-  }
-}
 
 /**
  * Update auth display in drawer
  */
 async function updateAuthDisplay(): Promise<void> {
   const { user } = await getSession();
-
   if (user) {
     drawerAuthLoggedOut?.classList.add('hidden');
     drawerAuthLoggedIn?.classList.remove('hidden');
-
-    // First, apply cached profile immediately (no flash)
-    const cachedProfile = await getCachedProfile();
-    if (cachedProfile) {
-      applyProfileToUI(cachedProfile);
-    }
-
-    // Then fetch fresh data in background
-    const freshProfile = await getUserProfile();
-    if (freshProfile) {
-      const profileCache: ProfileCache = {
-        usage: {
-          cardsThisMonth: freshProfile.cards_generated_this_month || freshProfile.usage?.cardsThisMonth || 0,
-          limit: freshProfile.usage?.limit || FREE_TIER_LIMIT
-        },
-        subscription: {
-          isPro: freshProfile.subscription_status === 'active' || freshProfile.subscription?.isPro || false,
-          status: freshProfile.subscription_status || freshProfile.subscription?.status
-        }
-      };
-      applyProfileToUI(profileCache);
-      cacheProfile(profileCache);
-    }
   } else {
     drawerAuthLoggedOut?.classList.remove('hidden');
     drawerAuthLoggedIn?.classList.add('hidden');
-    clearCachedProfile();
   }
 }
 
@@ -1649,101 +1621,7 @@ async function handleGoogleSignIn(): Promise<void> {
   }
 }
 
-/**
- * Handle upgrade button - open Stripe Checkout
- */
-async function handleUpgrade(): Promise<void> {
-  if (drawerUpgradeBtn) {
-    drawerUpgradeBtn.disabled = true;
-    drawerUpgradeBtn.textContent = '...';
-  }
 
-  try {
-    const accessToken = await getAccessToken();
-    if (!accessToken) {
-      showSettingsStatus('Please sign in first', 'error');
-      return;
-    }
-
-    const response = await fetch(`${BACKEND_URL}/api/checkout`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      },
-      body: JSON.stringify({
-        successUrl: 'https://pluckk.app/success',
-        cancelUrl: 'https://pluckk.app/cancel'
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error('Checkout failed');
-    }
-
-    interface CheckoutResponse {
-      url: string;
-    }
-    const { url }: CheckoutResponse = await response.json();
-    chrome.tabs.create({ url });
-  } catch (error) {
-    console.error('Upgrade error:', error);
-    showSettingsStatus('Failed to start checkout', 'error');
-  } finally {
-    if (drawerUpgradeBtn) {
-      drawerUpgradeBtn.disabled = false;
-      drawerUpgradeBtn.textContent = 'Upgrade to Pro';
-    }
-  }
-}
-
-/**
- * Handle manage subscription - open Stripe Customer Portal
- */
-async function handleManageSubscription(): Promise<void> {
-  if (drawerProBtn) {
-    drawerProBtn.disabled = true;
-    drawerProBtn.textContent = '...';
-  }
-
-  try {
-    const accessToken = await getAccessToken();
-    if (!accessToken) {
-      showSettingsStatus('Please sign in first', 'error');
-      return;
-    }
-
-    const response = await fetch(`${BACKEND_URL}/api/portal`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      },
-      body: JSON.stringify({
-        returnUrl: 'https://pluckk.app'
-      })
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Portal failed');
-    }
-
-    interface PortalResponse {
-      url: string;
-    }
-    const { url }: PortalResponse = await response.json();
-    chrome.tabs.create({ url });
-  } catch (error) {
-    console.error('Portal error:', error);
-    showSettingsStatus('Failed to open subscription portal', 'error');
-  } finally {
-    if (drawerProBtn) {
-      drawerProBtn.disabled = false;
-      drawerProBtn.textContent = 'Pro';
-    }
-  }
-}
 
 /**
  * Close the side panel
@@ -1806,8 +1684,31 @@ focusInput?.addEventListener('keydown', (e: KeyboardEvent) => {
   }
 });
 openSettingsBtn?.addEventListener('click', handleGoogleSignIn);
-upgradeBtn?.addEventListener('click', handleUpgrade);
 closeBtn?.addEventListener('click', closePanel);
+
+// Shortcuts Overlay Toggle Functions
+function toggleShortcutsOverlay(): void {
+  const isOpen = !shortcutsOverlay?.classList.contains('hidden');
+  if (isOpen) {
+    shortcutsOverlay?.classList.add('hidden');
+  } else {
+    shortcutsOverlay?.classList.remove('hidden');
+  }
+}
+
+function closeShortcutsOverlay(): void {
+  shortcutsOverlay?.classList.add('hidden');
+}
+
+// Event Listeners - Shortcuts Overlay
+helpBtn?.addEventListener('click', toggleShortcutsOverlay);
+shortcutsCloseBtn?.addEventListener('click', closeShortcutsOverlay);
+shortcutsOverlay?.addEventListener('click', (e: MouseEvent) => {
+  // Close when clicking the backdrop (not the panel itself)
+  if (e.target === shortcutsOverlay) {
+    closeShortcutsOverlay();
+  }
+});
 
 // Settings Drawer Toggle Functions
 function toggleSettingsDrawer(): void {
@@ -1825,8 +1726,6 @@ function closeSettingsDrawer(): void {
 
 // Event Listeners - Settings Drawer
 drawerSignInBtn?.addEventListener('click', handleGoogleSignIn);
-drawerUpgradeBtn?.addEventListener('click', handleUpgrade);
-drawerProBtn?.addEventListener('click', handleManageSubscription);
 
 // Event Listener - Review Card
 reviewCard?.addEventListener('click', () => {
@@ -1840,7 +1739,7 @@ reviewSettingsBtn?.addEventListener('click', (e) => {
   toggleSettingsDrawer();
 });
 
-// Close drawer when clicking outside
+// Close drawer and card menus when clicking outside
 document.addEventListener('click', (e: MouseEvent) => {
   const target = e.target as HTMLElement;
   const isDrawerOpen = !settingsDrawer?.classList.contains('hidden');
@@ -1849,6 +1748,11 @@ document.addEventListener('click', (e: MouseEvent) => {
 
   if (isDrawerOpen && !clickedInDrawer && !clickedSettingsBtn) {
     closeSettingsDrawer();
+  }
+
+  // Close any open card refinement dropdowns
+  if (!target.closest('.card-menu')) {
+    document.querySelectorAll('.card-menu-dropdown').forEach(d => d.classList.add('hidden'));
   }
 });
 
@@ -1890,8 +1794,11 @@ questionInput?.addEventListener('input', () => {
   const hasContent = questionInput.value.trim().length > 0;
 
   // Show/hide submit button based on content
+  // When question input has content, show question submit and hide generate button
+  // When empty, hide question submit (generateBtn visibility managed by checkSelectionState)
   if (hasContent) {
     questionSubmitBtn?.classList.remove('hidden');
+    generateBtn?.classList.add('hidden');
   } else {
     questionSubmitBtn?.classList.add('hidden');
   }
@@ -1939,9 +1846,16 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     toggleFocusInput();
   }
 
-  // Escape to close (drawer first, then focus input, then panel)
+  // ? to toggle keyboard shortcuts help
+  if (e.key === '?' && !isTyping) {
+    toggleShortcutsOverlay();
+  }
+
+  // Escape to close (shortcuts overlay first, then drawer, then focus input, then panel)
   if (e.key === 'Escape') {
-    if (!settingsDrawer?.classList.contains('hidden')) {
+    if (!shortcutsOverlay?.classList.contains('hidden')) {
+      closeShortcutsOverlay();
+    } else if (!settingsDrawer?.classList.contains('hidden')) {
       closeSettingsDrawer();
     } else if (!focusInputContainer?.classList.contains('hidden')) {
       focusInputContainer?.classList.add('hidden');

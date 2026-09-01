@@ -3,17 +3,10 @@
 // PATCH updates user settings (Mochi config) and profile fields
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { authenticateRequest, checkUsageLimit, isAuthError } from '../../lib/auth.js';
-import { supabaseAdmin } from '../../lib/supabase-admin.js';
+import { eq } from 'drizzle-orm';
+import { authenticateRequest, isAuthError } from '../../lib/auth.js';
+import { getDb, schema } from '../../lib/db.js';
 import type { UpdateUserSettingsRequest } from '../../lib/types.js';
-
-// Validate username format (matches database function)
-function isValidUsernameFormat(username: string | null | undefined): boolean {
-  if (!username || typeof username !== 'string') return false;
-  if (username.length < 3 || username.length > 30) return false;
-  // Must start with letter, only lowercase letters/numbers/underscores
-  return /^[a-z][a-z0-9_]*$/.test(username);
-}
 
 // Basic HTML tag sanitization to prevent XSS
 function sanitizeText(text: string | null | undefined): string | null {
@@ -43,47 +36,33 @@ export default async function handler(
 
   // GET - Return user info, profile, and settings
   if (req.method === 'GET') {
-    const usage = checkUsageLimit(profile);
-
     res.status(200).json({
       user: {
         id: user.id,
         email: user.email,
-        username: profile.username || null,
-        displayName: profile.display_name || null,
-        bio: profile.bio || null,
-        avatarUrl: profile.avatar_url || null,
-        profileIsPublic: profile.profile_is_public !== false,
-        createdAt: profile.created_at
-      },
-      subscription: {
-        status: profile.subscription_status,
-        isPro: profile.subscription_status === 'active'
-      },
-      usage: {
-        cardsThisMonth: profile.cards_generated_this_month || 0,
-        limit: usage.limit,
-        remaining: usage.remaining === Infinity ? 'unlimited' : usage.remaining
+        displayName: profile.displayName || null,
+        avatarUrl: profile.avatarUrl || null,
+        createdAt: profile.createdAt
       },
       settings: {
-        mochiApiKey: profile.mochi_api_key || null,
-        mochiDeckId: profile.mochi_deck_id || null
+        mochiApiKey: profile.mochiApiKey || null,
+        mochiDeckId: profile.mochiDeckId || null
       },
       learningProfile: {
-        onboardingCompleted: profile.onboarding_completed ?? false,
-        primaryCategory: profile.primary_category || null,
-        studentLevel: profile.student_level || null,
-        studentField: profile.student_field || null,
-        workFields: profile.work_fields || [],
-        workFieldOther: profile.work_field_other || null,
-        workYearsExperience: profile.work_years_experience || null,
-        researchField: profile.research_field || null,
-        researchYearsExperience: profile.research_years_experience || null,
-        additionalInterests: profile.additional_interests || [],
-        additionalInterestsOther: profile.additional_interests_other || null,
-        spacedRepExperience: profile.spaced_rep_experience || null,
-        technicalityPreference: profile.technicality_preference || null,
-        breadthPreference: profile.breadth_preference || null
+        onboardingCompleted: profile.onboardingCompleted ?? false,
+        primaryCategory: profile.primaryCategory || null,
+        studentLevel: profile.studentLevel || null,
+        studentField: profile.studentField || null,
+        workFields: profile.workFields || [],
+        workFieldOther: profile.workFieldOther || null,
+        workYearsExperience: profile.workYearsExperience || null,
+        researchField: profile.researchField || null,
+        researchYearsExperience: profile.researchYearsExperience || null,
+        additionalInterests: profile.additionalInterests || [],
+        additionalInterestsOther: profile.additionalInterestsOther || null,
+        spacedRepExperience: profile.spacedRepExperience || null,
+        technicalityPreference: profile.technicalityPreference || null,
+        breadthPreference: profile.breadthPreference || null
       }
     });
     return;
@@ -92,7 +71,7 @@ export default async function handler(
   // PATCH - Update user settings and profile
   if (req.method === 'PATCH') {
     const {
-      mochiApiKey, mochiDeckId, username, displayName, bio, profileIsPublic,
+      mochiApiKey, mochiDeckId, displayName,
       onboardingCompleted, primaryCategory, studentLevel, studentField,
       workFields, workFieldOther, workYearsExperience,
       researchField, researchYearsExperience,
@@ -110,63 +89,9 @@ export default async function handler(
       updates.mochi_deck_id = mochiDeckId || null;
     }
 
-    // Profile fields
-    if (username !== undefined) {
-      const normalizedUsername = username ? username.toLowerCase().trim() : null;
-
-      if (normalizedUsername) {
-        // Validate format
-        if (!isValidUsernameFormat(normalizedUsername)) {
-          res.status(400).json({
-            error: 'Invalid username format',
-            details: 'Username must be 3-30 characters, start with a letter, and contain only lowercase letters, numbers, and underscores'
-          });
-          return;
-        }
-
-        // Check if reserved
-        const { data: reserved } = await supabaseAdmin
-          .from('reserved_usernames')
-          .select('username')
-          .eq('username', normalizedUsername)
-          .single();
-
-        if (reserved) {
-          res.status(400).json({ error: 'This username is reserved' });
-          return;
-        }
-
-        // Check if taken by another user
-        const { data: existing } = await supabaseAdmin
-          .from('users')
-          .select('id')
-          .ilike('username', normalizedUsername)
-          .neq('id', user.id)
-          .single();
-
-        if (existing) {
-          res.status(409).json({ error: 'Username already taken' });
-          return;
-        }
-
-        updates.username = normalizedUsername;
-      } else {
-        updates.username = null;
-      }
-    }
-
     if (displayName !== undefined) {
       const sanitized = sanitizeText(displayName);
       updates.display_name = sanitized ? sanitized.slice(0, 100) : null;
-    }
-
-    if (bio !== undefined) {
-      const sanitized = sanitizeText(bio);
-      updates.bio = sanitized ? sanitized.slice(0, 500) : null;
-    }
-
-    if (profileIsPublic !== undefined) {
-      updates.profile_is_public = Boolean(profileIsPublic);
     }
 
     // Learning profile fields
@@ -267,19 +192,15 @@ export default async function handler(
       return;
     }
 
-    const { error } = await supabaseAdmin
-      .from('users')
-      .update(updates)
-      .eq('id', user.id);
-
-    if (error) {
-      console.error('Error updating user settings:', error.message, error.code, error.details, error.hint);
-      console.error('Attempted updates:', JSON.stringify(updates));
-      if (error.code === '23505' && error.message.includes('username')) {
-        res.status(409).json({ error: 'Username already taken' });
-        return;
-      }
-      res.status(500).json({ error: 'Failed to update settings', details: error.message });
+    // `updates` is keyed by snake_case column names; map to schema properties.
+    const toCamel = (k: string) => k.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+    const set = Object.fromEntries(Object.entries(updates).map(([k, v]) => [toCamel(k), v]));
+    try {
+      await getDb().update(schema.users).set(set).where(eq(schema.users.id, user.id));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('Error updating user settings:', message, JSON.stringify(updates));
+      res.status(500).json({ error: 'Failed to update settings', details: message });
       return;
     }
 

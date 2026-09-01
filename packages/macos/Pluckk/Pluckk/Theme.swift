@@ -8,6 +8,11 @@ struct PluckkTheme {
     static let accent = Color(hex: "c9a66b")       // Warm tan/ochre - PRIMARY BRAND COLOR
     static let accentLight = Color(hex: "d4b896") // Lighter tan
 
+    // MARK: - Card Type Accent Colors
+    static let bidirectionalAccent = Color(hex: "3b82f6")  // Blue
+    static let listAccent = Color(hex: "10b981")           // Emerald
+    static let diagramAccent = Color(hex: "6366f1")        // Indigo
+
     // MARK: - Light Theme Colors
     struct Light {
         static let background = Color(hex: "fafafa")

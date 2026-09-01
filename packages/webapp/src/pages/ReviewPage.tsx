@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, type ReactNode, type JSX } from 'react';
+import { useState, useEffect, useCallback, useMemo, type ReactNode, type JSX } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import ReviewCard from '../components/ReviewCard';
 import ReviewProgressBar from '../components/ReviewProgressBar';
 import { useReviewState } from '../hooks/useReviewState';
-import type { ReviewPageProps } from '../types';
+import type { ReviewPageProps, SessionConfig } from '../types';
 import type { Rating } from '@pluckk/shared/scheduler';
 
 interface CenteredWrapperProps {
@@ -22,7 +23,17 @@ export default function ReviewPage({
   onUpdateCard,
   onDeleteCard,
 }: ReviewPageProps): JSX.Element {
+  // Session mode comes from the URL: / = Mix; /?mode=focus|backlog&folder=<id|unfiled>
+  // (set by the Focused Review page).
+  const [searchParams] = useSearchParams();
+  const sessionConfig = useMemo<SessionConfig>(() => {
+    const mode = searchParams.get('mode');
+    if (mode !== 'focus' && mode !== 'backlog') return { mode: 'scheduled' };
+    const folder = searchParams.get('folder');
+    return { mode, folderId: folder === 'unfiled' || folder === null ? null : folder };
+  }, [searchParams]);
   const {
+    sessionMeta,
     currentCard,
     loading,
     isComplete,
@@ -39,7 +50,7 @@ export default function ReviewPage({
     removeCard,
     startNewCardsSession,
     RATINGS,
-  } = useReviewState(userId);
+  } = useReviewState(userId, sessionConfig);
 
   const [isFlipped, setIsFlipped] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -176,12 +187,24 @@ export default function ReviewPage({
     );
   }
 
+  const focusHeader = sessionConfig.mode !== 'scheduled' ? (
+    <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
+      <Link to="/focus" className="hover:text-gray-700 dark:hover:text-gray-300">← All decks</Link>
+      <span>{sessionConfig.mode === 'backlog' ? 'Backlog' : 'Focused'} session</span>
+      {sessionConfig.mode === 'backlog' && (sessionMeta?.backlog_remaining ?? 0) > 0 && (
+        <span>{sessionMeta!.backlog_remaining} more due after this batch</span>
+      )}
+    </div>
+  ) : null;
+
   // Empty state - no cards in queue
   if (totalCards === 0) {
     const hasNewCards = newCardsAvailableToday > 0;
 
     return (
       <CenteredWrapper>
+        <div className="flex w-full flex-col items-center gap-8">
+        {focusHeader}
         <div className="flex flex-col items-center justify-center text-center gap-4">
           <div className="w-20 h-20 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-2">
             <svg
@@ -221,6 +244,7 @@ export default function ReviewPage({
           ) : (
             <p className="text-gray-400 dark:text-gray-500 text-sm">No new cards to learn.</p>
           )}
+        </div>
         </div>
       </CenteredWrapper>
     );
@@ -285,7 +309,8 @@ export default function ReviewPage({
   // Review state
   return (
     <CenteredWrapper>
-      <div className="flex flex-col items-center gap-8">
+      <div className="flex w-full flex-col items-center gap-8">
+        {focusHeader}
         {/* Progress indicator */}
         <ReviewProgressBar currentIndex={currentIndex} dueCards={dueCards} />
 

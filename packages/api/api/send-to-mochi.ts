@@ -33,7 +33,7 @@ export default async function handler(
   const { profile } = authResult;
 
   // Check Mochi configuration
-  const mochiApiKey = profile.mochi_api_key;
+  const mochiApiKey = profile.mochiApiKey;
 
   if (!mochiApiKey) {
     res.status(400).json({
@@ -50,7 +50,7 @@ export default async function handler(
   }
 
   // Otherwise, it's a "create new card" request - need deck ID
-  const mochiDeckId = profile.mochi_deck_id;
+  const mochiDeckId = profile.mochiDeckId;
   if (!mochiDeckId) {
     res.status(400).json({
       error: 'mochi_deck_not_selected',

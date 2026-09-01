@@ -47,7 +47,6 @@ export interface SidepanelElements {
   noSelectionState: HTMLElement | null;
   screenshotState: HTMLElement | null;
   apiKeyState: HTMLElement | null;
-  usageLimitState: HTMLElement | null;
   cardsState: HTMLElement | null;
 
   // Main UI elements
@@ -132,7 +131,6 @@ export interface OptionsElements {
   usageText: HTMLElement | null;
   billingActions: HTMLElement | null;
   proActions: HTMLElement | null;
-  upgradeBtn: HTMLButtonElement | null;
   manageSubscriptionBtn: HTMLButtonElement | null;
 
   // Prompt settings
@@ -145,11 +143,6 @@ export interface OptionsElements {
   statusEl: HTMLElement | null;
   shortcutDisplay: HTMLElement | null;
   closePageBtn: HTMLButtonElement | null;
-
-  // Mochi settings
-  mochiApiKeyInput: HTMLInputElement | null;
-  mochiDeckSelect: HTMLSelectElement | null;
-  fetchDecksBtn: HTMLButtonElement | null;
 }
 
 /**
