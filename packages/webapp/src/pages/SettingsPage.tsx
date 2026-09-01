@@ -2,6 +2,7 @@ import { useState, useEffect, type JSX } from 'react';
 import { BACKEND_URL, MOCHI_API_URL } from '@pluckk/shared/constants';
 import { getAccessToken, api } from '@pluckk/shared/api';
 import { useTheme } from '../hooks/useTheme';
+import DeckSettings from '../components/DeckSettings';
 import type {
   SettingsPageProps,
   MochiDeck,
@@ -40,6 +41,16 @@ export default function SettingsPage({ user, onSignOut }: SettingsPageProps): JS
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [learningProfileOpen, setLearningProfileOpen] = useState(false);
   const [newCardsPerDay, setNewCardsPerDay] = useState<number | ''>(DEFAULT_NEW_CARDS_PER_DAY);
+  const [sessionSize, setSessionSize] = useState<number | ''>(100);
+
+  const handleSessionSizeChange = (value: string): void => {
+    if (value === '') { setSessionSize(''); return; }
+    const num = parseInt(value, 10);
+    if (!isNaN(num) && num > 0) {
+      setSessionSize(num);
+      api.review.updateSettings({ session_size: num }).catch(() => {});
+    }
+  };
 
   // Learning profile state
   const [primaryCategory, setPrimaryCategory] = useState<PrimaryCategory | null>(null);
@@ -88,6 +99,7 @@ export default function SettingsPage({ user, onSignOut }: SettingsPageProps): JS
       // Server value wins over localStorage (source of truth since the review mixer).
       api.review.settings().then((s) => {
         if (Number.isFinite(s.new_cards_per_day)) setNewCardsPerDay(s.new_cards_per_day);
+        if (Number.isFinite(s.session_size)) setSessionSize(s.session_size);
       }).catch(() => {});
 
       const response = await fetch(`${BACKEND_URL}/api/user/me`, {
@@ -498,6 +510,24 @@ export default function SettingsPage({ user, onSignOut }: SettingsPageProps): JS
         </div>
 
         {/* Study Settings */}
+        {/* Review session defaults + per-deck configuration (read by the review mixer) */}
+        <div className="px-5 py-4">
+          <label className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide block mb-1">
+            Session Size
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="number"
+              min="1"
+              max="1000"
+              value={sessionSize}
+              onChange={(e) => handleSessionSizeChange(e.target.value)}
+              className="w-20 px-3 py-2 border border-gray-200 dark:border-dark-border rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 bg-white dark:bg-dark-bg dark:text-gray-200"
+            />
+            <span className="text-sm text-gray-500 dark:text-gray-400">cards per Mix/Focus session</span>
+          </div>
+        </div>
+
         <div className="px-5 py-4">
           <label className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide block mb-1">
             New Cards Per Day
@@ -515,8 +545,15 @@ export default function SettingsPage({ user, onSignOut }: SettingsPageProps): JS
             <span className="text-sm text-gray-500 dark:text-gray-400">cards</span>
           </div>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
-            Maximum number of new cards to study each day. Set to 0 for unlimited.
+            Default introduction rate; each deck can override it below.
           </p>
+        </div>
+
+        <div className="px-5 py-4">
+          <label className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide block mb-1">
+            Review Decks
+          </label>
+          <DeckSettings />
         </div>
 
         {/* Appearance */}
