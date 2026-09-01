@@ -36,7 +36,22 @@ export default function Sidebar(): JSX.Element {
             <path d="M10 22h4"></path>
             <path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"></path>
           </svg>
-          <span>Review</span>
+          <span>Mix Review</span>
+        </NavLink>
+        <NavLink to="/focus" className={navLinkClass}>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <circle cx="12" cy="12" r="9"></circle>
+            <circle cx="12" cy="12" r="4.5"></circle>
+            <circle cx="12" cy="12" r="0.5" fill="currentColor"></circle>
+          </svg>
+          <span>Focused Review</span>
         </NavLink>
 
         <NavLink to="/cards" className={navLinkClass}>

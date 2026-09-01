@@ -11,6 +11,7 @@ import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import PublicProfilePage from './pages/PublicProfilePage';
 import FeedbackPage from './pages/FeedbackPage';
+import FocusPage from './pages/FocusPage';
 import LandingPage from './pages/LandingPage';
 import InfoPage from './pages/InfoPage';
 import PrivacyPage from './pages/PrivacyPage';
@@ -125,6 +126,7 @@ export default function App(): JSX.Element {
             <SettingsPage user={user} onSignOut={signOut} />
           }
         />
+        <Route path="/focus" element={<FocusPage />} />
         <Route path="/activity" element={<Navigate to="/profile" replace />} />
         <Route path="/feedback" element={<FeedbackPage />} />
       </Route>

@@ -84,6 +84,12 @@ async function main() {
     check('backlog reports remaining', bl.meta.backlog_remaining === 20 - 8, bl.meta.backlog_remaining);
     check('backlog only due cards', bl.cards.every((c) => c.due_at !== null));
 
+    // 4b. focus/backlog on a PAUSED deck works (pause only guards the Mix)
+    m = mock('POST', '/api/v1/review/session', { token, body: { mode: 'backlog', size: 5, folder_id: fc.id } });
+    await v1(m.req, m.res);
+    const pc = m.result().body as { cards: Array<{ folder_id: string }> };
+    check('backlog on paused deck deals its due cards', pc.cards.length === 5 && pc.cards.every((c) => c.folder_id === fc.id), { n: pc.cards.length });
+
     // 5. settings roundtrip
     m = mock('PATCH', '/api/v1/review/settings', { token, body: { session_size: 42 } }); await v1(m.req, m.res);
     m = mock('GET', '/api/v1/review/settings', { token }); await v1(m.req, m.res);

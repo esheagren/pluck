@@ -50,6 +50,10 @@ export interface ReviewSession {
   };
 }
 export interface ReviewSettings { session_size: number; new_cards_per_day: number }
+export interface DeckSummary {
+  folder_id: string | null; name: string | null; is_paused: boolean;
+  total: number; new: number; due: number;
+}
 export interface ActivityData {
   reviews: Array<{ review_date: string; total_reviews: number }>;
   cards: Array<{ created_date: string; cards_created: number }>;
@@ -134,6 +138,7 @@ export function createApiClient(opts: ApiClientOptions) {
         folder_id?: string | null;
         mix?: Array<{ folder_id: string | null; pct: number }>;
       }) => request<ReviewSession>('POST', '/api/v1/review/session', payload),
+      decks: () => request<{ decks: DeckSummary[] }>('GET', '/api/v1/review/decks'),
       settings: () => request<ReviewSettings>('GET', '/api/v1/review/settings'),
       updateSettings: (s: Partial<ReviewSettings>) => request<{ success: true }>('PATCH', '/api/v1/review/settings', s),
       submit: (payload: { card_id: string; rating: string; new_state: { status: string; due_at: string; interval_days: number; ease_factor: number }; algorithm_version?: string; response_time_ms?: number }) =>

@@ -52,7 +52,9 @@ function shuffle<T>(arr: T[]): T[] {
 export function selectSession(input: MixerInput): MixerResult {
   const now = input.now ?? new Date();
   const paused = new Set(input.folders.filter((f) => f.isPaused).map((f) => f.id));
-  const candidates = input.candidates.filter((c) => !(c.folderId && paused.has(c.folderId)));
+  // Pause guards the Mix only: explicitly focusing/backlogging a paused deck is deliberate.
+  const target = input.mode !== 'scheduled' ? input.folderId ?? null : undefined;
+  const candidates = input.candidates.filter((c) => !(c.folderId && paused.has(c.folderId) && c.folderId !== target));
 
   // Partition per folder into due (state exists, due_at <= now) and new (no state).
   const byFolder = new Map<string | null, { due: CandidateRow[]; fresh: CandidateRow[] }>();
