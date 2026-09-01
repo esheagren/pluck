@@ -143,11 +143,12 @@ export const diagrams: DiagramDef[] = [
   N-->>U: “12 cards due today” (not implemented)
   U->>W: open pluckk.app
   W->>W: bearer token in localStorage? else Google sign-in → /auth/callback
-  W->>API: GET /api/v1/review/queue
-  API->>DB: cards + card_review_state + today's new-card review_logs
+  U->>W: pick mode — Mix (proportions) · Focus (one deck) · Backlog (burn down due pile)
+  W->>API: POST /api/v1/review/session {mode, size, mix?, folder_id?}
+  API->>DB: candidate cards + states + folders (weights, pauses, new/day)
   DB-->>API: rows
-  API-->>W: {cards, states, new_reviewed_today}
-  W->>W: due = state.due_at ≤ now · new = no state<br/>cap new cards by per-day setting · shuffle · save session
+  API->>API: mixer: per-deck quotas · due→new fill ·<br/>deficit redistribution · paused decks excluded · interleave
+  API-->>W: {dealt cards, states, meta per deck}
   loop each card in queue
     W-->>U: show question (Space to reveal)
     U->>W: reveal

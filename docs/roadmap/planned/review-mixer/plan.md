@@ -1,6 +1,6 @@
 # Review mixer: deck-scoped, proportion-controlled review sessions
 
-**Status:** planned 2026-09-01 · prerequisite for importing the Mochi/Anki decks
+**Status:** BUILT + imports done 2026-09-01 — mixer live (scheduled/focus/backlog); Great Works 3×~645 and Spanish 4,972 imported, all paused
 **Context:** Pluckk has 307 curated cards in one global review queue. Erik wants to import
 Great Works of Art (1,953 cards, 3 subdecks) and Essential Spanish Top 5000 (~10k) from Mochi
 (both already live there; key verified). A global queue would be drowned, so review must become
