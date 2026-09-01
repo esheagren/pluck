@@ -5,9 +5,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { authenticateRequest, isAuthError } from '../lib/auth.js';
 import type { GenerateCardsFromImageRequest, GeneratedCard } from '../lib/types.js';
 import type { ClaudeResponse } from '../lib/claude-types.js';
+import { CLAUDE_MODEL, extractJson, responseText } from '../lib/models.js';
 
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-const CLAUDE_MODEL = 'claude-opus-4-5-20251101';
 
 const VISION_SYSTEM_PROMPT = `You are a spaced repetition prompt generator that analyzes images (screenshots, diagrams, handwritten notes, textbook photos) to create effective flashcards.
 
@@ -184,16 +184,12 @@ export default async function handler(
       },
       body: JSON.stringify({
         model: CLAUDE_MODEL,
-        max_tokens: 2500,
+        max_tokens: 4000,
         system: VISION_SYSTEM_PROMPT,
         messages: [
           {
             role: 'user',
             content: messageContent
-          },
-          {
-            role: 'assistant',
-            content: '{"cards":['
           }
         ]
       })
@@ -218,22 +214,13 @@ export default async function handler(
 
     const data = await claudeResponse.json() as ClaudeResponse;
 
-    // Extract text content from Claude's response
-    const content = data.content?.[0]?.text;
+    const content = responseText(data);
     if (!content) {
       res.status(500).json({ error: 'Empty response from AI' });
       return;
     }
 
-    // Claude continues from the prefill '{"cards":[', so prepend it
-    let jsonStr = '{"cards":[' + content.trim();
-
-    // Handle if Claude still wrapped in code blocks
-    if (jsonStr.includes('```')) {
-      jsonStr = jsonStr.replace(/```(?:json)?\n?/g, '').replace(/\n?```/g, '');
-    }
-
-    const parsed = JSON.parse(jsonStr) as { cards: GeneratedCard[] };
+    const parsed = JSON.parse(extractJson(content)) as { cards: GeneratedCard[] };
 
     if (!parsed.cards || !Array.isArray(parsed.cards)) {
       res.status(500).json({ error: 'Invalid response format from AI' });

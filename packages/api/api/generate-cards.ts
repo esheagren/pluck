@@ -7,10 +7,9 @@ import { buildPersonaPrompt } from '../lib/prompts.js';
 import { authenticateRequest, isAuthError } from '../lib/auth.js';
 import type { GenerateCardsRequest, GeneratedCard } from '../lib/types.js';
 import type { ClaudeResponse } from '../lib/claude-types.js';
+import { CLAUDE_FAST_MODEL, CLAUDE_MODEL, extractJson, responseText } from '../lib/models.js';
 
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
-const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 
 type RefinementAction = 'rephrase' | 'simplify' | 'harder';
 
@@ -54,8 +53,8 @@ Output format: {"card":{...}}`;
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: HAIKU_MODEL,
-        max_tokens: 500,
+        model: CLAUDE_FAST_MODEL,
+        max_tokens: 1000,
         system: systemPrompt,
         messages: [{ role: 'user', content: userMessage }],
       }),
@@ -73,18 +72,13 @@ Output format: {"card":{...}}`;
     }
 
     const data = await claudeResponse.json() as ClaudeResponse;
-    const content = data.content?.[0]?.text;
+    const content = responseText(data);
     if (!content) {
       res.status(500).json({ error: 'Empty response from AI' });
       return;
     }
 
-    let jsonStr = content.trim();
-    if (jsonStr.startsWith('```')) {
-      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-    }
-
-    const parsed = JSON.parse(jsonStr) as { card: GeneratedCard };
+    const parsed = JSON.parse(extractJson(content)) as { card: GeneratedCard };
     if (!parsed.card) {
       res.status(500).json({ error: 'Invalid response format from AI' });
       return;
@@ -256,7 +250,7 @@ Generate 4-8 spaced repetition cards for the highlighted selection, depending on
       },
       body: JSON.stringify({
         model: CLAUDE_MODEL,
-        max_tokens: 2500,
+        max_tokens: 4000,
         system: systemPrompt,
         messages: [
           {
@@ -286,20 +280,13 @@ Generate 4-8 spaced repetition cards for the highlighted selection, depending on
 
     const data = await claudeResponse.json() as ClaudeResponse;
 
-    // Extract text content from Claude's response
-    const content = data.content?.[0]?.text;
+    const content = responseText(data);
     if (!content) {
       res.status(500).json({ error: 'Empty response from AI' });
       return;
     }
 
-    // Parse JSON from response (handle markdown code blocks)
-    let jsonStr = content.trim();
-    if (jsonStr.startsWith('```')) {
-      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-    }
-
-    const parsed = JSON.parse(jsonStr) as { cards: GeneratedCard[] };
+    const parsed = JSON.parse(extractJson(content)) as { cards: GeneratedCard[] };
 
     if (!parsed.cards || !Array.isArray(parsed.cards)) {
       res.status(500).json({ error: 'Invalid response format from AI' });
