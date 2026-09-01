@@ -10,12 +10,12 @@ deployed and usable. Erik's touches are marked **[Erik]**; everything else is Cl
 3. **[Erik]** Give Art · Artists a Mix % in Settings (or just use Focused Review) — start the art deck for real.
 4. Supabase project `grjkoedivfrjlbtfskif`: leave paused until ~Oct 1, then delete. (Calendar note.)
 
-**Decisions Erik owns (answer once, in this order):**
+**Decisions (Erik, 2026-09-01): D-A yes · D-B yes · D-C yes.**
 - D-A **Private-first.** Yes = delete onboarding, usernames, public profiles, feedback form, all Pro/usage UI. (Recommended.)
 - D-B **macOS = thin capture client.** Yes = port now; delete its review/browser. (Recommended, per the Notion use case.)
 - D-C **Scheduler: stay SM-2 for now, FSRS after the notes model.** (Recommended; revisit when the backlog feels wrong.)
 
-## Phase 1 — Cut (one session)
+## Phase 1 — Cut (one session) — ✅ DONE 2026-09-01, commit 68cf44a (111 files, −7,754 lines)
 
 Horizon A of the audit, executed as one PR of deletions:
 Stripe/usage/Pro remnants in every client · onboarding wizard · usernames/reserved/public profiles/feedback ·
