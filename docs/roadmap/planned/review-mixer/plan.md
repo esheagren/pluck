@@ -10,8 +10,11 @@ deck-aware first. Erik's requirements, verbatim in spirit:
 2. A **daily session target** (e.g. 100 cards) with **per-folder proportions** ("10% from this,
    30% from that").
 3. **Focus mode**: pick one folder and work only on it.
-4. **Practice mode**: due-agnostic — just deal N interleaved cards under the same proportion
-   constraints, ignoring due dates.
+4. **Backlog mode** (Erik's "practice", clarified 2026-09-01): a deck he hasn't touched in months
+   has a huge pile *already due* — he wants to grind through all of a deck's slated reviews,
+   ignoring the daily session size. These are genuinely due cards, so they are **normal SM-2
+   reviews** (rate → reschedule); no special scheduling semantics needed.
+   A true due-agnostic shuffle mode is deferred (would have to be log-only, see watchlist).
 
 ## Design
 
@@ -28,7 +31,7 @@ deck-aware first. Erik's requirements, verbatim in spirit:
 ```jsonc
 {
   "size": 100,                     // target cards this session
-  "mode": "scheduled" | "focus" | "practice",
+  "mode": "scheduled" | "focus" | "backlog",
   "folder_id": "…",               // focus mode only
   "mix": [                         // scheduled/practice; omit → saved default mix
     { "folder_id": "…", "pct": 30 },
@@ -47,16 +50,16 @@ new cards capped by that folder's `new_per_day`. If a folder can't fill its quot
 **redistributed** to the other folders in proportion [D3]. Deal order: weighted-random interleave so
 no folder runs in streaks; persist the dealt list in the existing sessionStorage session.
 
-Practice mode: same quotas, but sampled uniformly at random from **all** cards in the folder
-(due-ness ignored). Focus mode: one folder, quota = size.
+Focus mode: one folder, quota = size. Backlog mode: one folder, **no size cap** — deal every due
+card (oldest first, batched by 50 per request so payloads stay small); the UI shows "n of N due"
+progress. New cards excluded in backlog mode unless asked for.
 
-### Practice reviews don't touch the schedule [D1]
+### Backlog reviews are ordinary reviews [D1 — revised 2026-09-01]
 
-`review_logs.review_mode` already exists (`'standard'` default). Practice submissions post
-`review_mode: 'practice'`; the API logs them but **does not upsert `card_review_state`**. Rationale:
-SM-2 has no early-review correction — multiplying an interval that hasn't elapsed inflates schedules
-and corrupts retention data. Practice is extra exposure, not evidence for scheduling. (Revisit if we
-adopt FSRS, which handles early reviews natively.)
+Backlog mode deals cards that are already due, so every rating is a normal SM-2 review
+(state upserted, log written). The earlier "practice = log-only" rule now applies only to the
+deferred due-agnostic mode: if we ever deal cards *before* they are due, those go through
+`review_mode: 'practice'` and skip the state upsert (SM-2 has no early-review correction).
 
 ### Budgets: reviews vs introductions [D2]
 
@@ -87,15 +90,24 @@ defaults (session size, global new/day). Per-folder counts come from the session
 
 Verified against the live Mochi account (key valid 2026-09-01):
 
-- **Great Works of Art** (Artists 651 · Titles 651 · Periods 651): **template cards — `content` is
-  empty.** Data is in `fields` (painting image `![](@media/377.jpg)`, artist, title, date,
-  movement) + `template-id`. The current importer parses only `content` → would import blanks.
-  Work: fetch the deck's template to learn which fields are front/back per subdeck, build Q/A from
-  fields, **download `@media/` attachments** (Mochi `GET /cards/{id}/attachments/{name}`) → Vercel
-  Blob → `image_url`. ~651 images (the three subdecks share them; dedupe by filename).
-- **Essential Spanish Top 5000** (~10k): inspect one card first — likely template cards too, and the
-  source Anki deck ships **audio**, which Pluckk has no player for. Plan: import text fields, drop
-  audio (note it in tags), consider audio support later.
+**Investigated 2026-09-01 — import from the LOCAL ANKI COLLECTION, not Mochi.** The "blank"
+Mochi cards are not broken: they are Anki-style template cards. `content` is empty because the card
+text lives in named `fields` (Artwork = `![](@media/377.jpg)`, Artist, Title, Date, Movement,
+Medium, Note) and the question/answer layout lives in a per-subdeck template
+(e.g. "Art - Artist?" = front `Artist?` + artwork image, back Artist / "Title" / (Date) / Note).
+Three templates over the same 651 notes produce the three subdecks. Mochi renders these fine, but
+its API 404s on the `@media` attachments, and Mochi renamed the files on import — so Mochi is a bad
+export source. The **local Anki collection has everything under original names**:
+`collection.anki2` notes carry `<img src="2014-08-31_182145.jpg">` + all text fields, and the files
+are in `collection.media/` (35,548 files, 1.2 GB).
+
+- **Great Works of Art**: read the 651 notes from Anki (deck ids 1667589475433/4/5), build the three
+  question directions from the templates above, upload each note's image once to Blob
+  (`anki-media/<file>` — ~651 images, shared across the 3 folders), set `image_url`.
+- **Essential Spanish Top 5000** (~10k): Anki note = `word (pos) · picture · translation ·
+  [sound:….mp3] · frequency-rank`. Import word→translation (and picture → Blob); **drop the audio**
+  (Pluckk has no player) and keep the frequency rank as a tag so introduction order can follow
+  frequency. Audio support is a separate icebox item.
 - Import lands each deck in its own folder with `is_paused = true` — invisible until Erik flips it
   on with a proportion.
 - **Do not import Anki review history** (only ~500 cards ever reviewed; Great Works ≈246). Fresh
@@ -103,7 +115,7 @@ Verified against the live Mochi account (key valid 2026-09-01):
 
 ## Decisions taken (defaults — Erik can override)
 
-- **[D1] Practice mode is log-only** (no schedule mutation).
+- **[D1] Backlog mode = normal reviews** (cards are due; full reschedule). Due-agnostic shuffle deferred; if built, it is log-only.
 - **[D2] Session size and new-card budgets are separate**; new/day is per folder.
 - **[D3] Quota deficit redistributes** to other folders (session always reaches `size` when cards exist).
 - **[D4] Review config moves server-side** into `user_study_settings` (today's localStorage value
@@ -115,7 +127,7 @@ Verified against the live Mochi account (key valid 2026-09-01):
 - Backlog display: per-folder due counts in the mix editor make vacation pile-ups visible.
 - Extension side panel and macOS keep using the plain queue; mixer is webapp-first.
 - `GET /api/v1/cards` (library) needs pagination once >2k cards; separate small task.
-- Blob budget: ~651 art images ≈ tens of MB — fine.
+- Blob budget: ~651 art images + Spanish pictures ≈ low hundreds of MB — within Blob free allotment; verify before Spanish.
 - Activity grid: practice reviews counted, badged separately (`review_mode`).
 
 ## Steps
@@ -124,4 +136,6 @@ Verified against the live Mochi account (key valid 2026-09-01):
 2. API: `POST /api/v1/review/session` (+ practice logging path in `POST /review`).
 3. Webapp: mode toggle + mix editor + server-backed settings; session flow unchanged.
 4. Smoke tests for the selector (quotas, spillover, pause, practice-no-mutation).
-5. Phase 2: template-aware Mochi import with media → import GWoA (paused), then Spanish.
+5. Phase 2: one-off Anki importer script (`scripts/import-anki.ts`: reads collection.anki2 +
+   collection.media directly) → import GWoA (3 paused folders), verify, then Spanish (paused,
+   frequency-ordered introduction).
