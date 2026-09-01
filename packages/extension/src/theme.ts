@@ -9,7 +9,7 @@ const STORAGE_KEY = 'theme';
  */
 export async function getThemePreference(): Promise<Theme> {
   const result = await chrome.storage.sync.get([STORAGE_KEY]);
-  return result[STORAGE_KEY] || 'light';
+  return (result[STORAGE_KEY] as Theme | undefined) || 'light';
 }
 
 /**
@@ -44,7 +44,7 @@ export async function initializeTheme(
   // Listen for theme changes from other extension pages
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'sync' && changes[STORAGE_KEY]) {
-      const newTheme: Theme = changes[STORAGE_KEY].newValue || 'light';
+      const newTheme = (changes[STORAGE_KEY].newValue as Theme | undefined) || 'light';
       applyTheme(newTheme);
       onThemeChange?.(newTheme);
     }

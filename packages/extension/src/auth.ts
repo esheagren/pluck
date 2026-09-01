@@ -29,7 +29,7 @@ export function getRedirectUrl(): string {
 }
 
 function toSessionUser(u: AuthUser): SessionUser {
-  return { id: u.id, email: u.email ?? '', user_metadata: { display_name: u.display_name, avatar_url: u.avatar_url, username: u.username } };
+  return { id: u.id, email: u.email ?? '', user_metadata: { display_name: u.display_name, avatar_url: u.avatar_url } };
 }
 
 /**

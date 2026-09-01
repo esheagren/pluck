@@ -12,7 +12,6 @@
     "@pluckk/shared": "*"
   },
   "devDependencies": {
-    "@crxjs/vite-plugin": "^2.2.1",
     "@types/chrome": "^0.1.33"
   }
 }

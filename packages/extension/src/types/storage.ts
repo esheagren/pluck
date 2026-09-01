@@ -21,7 +21,6 @@ export interface MochiDeck {
 // Local storage - device-specific data
 export interface LocalStorageData {
   pluckk_session?: PluckkSession | null;
-  pluckk_profile_cache?: ProfileCache | null;
 }
 
 // Session stored after OAuth
@@ -41,30 +40,8 @@ export interface SessionUser {
   user_metadata?: Record<string, unknown>;
 }
 
-// Cached profile data
-export interface ProfileCache {
-  usage?: {
-    cardsThisMonth: number;
-    limit: number;
-  };
-  subscription?: {
-    isPro: boolean;
-    status?: string;
-  };
-}
-
 // User profile from backend API
 export interface UserProfile {
-  cards_generated_this_month?: number;
-  subscription_status?: string;
-  usage?: {
-    cardsThisMonth: number;
-    limit: number;
-  };
-  subscription?: {
-    isPro: boolean;
-    status?: string;
-  };
   settings?: {
     mochiApiKey: string | null;
     mochiDeckId: string | null;

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import {
-  api,
   getAccessToken,
   getStoredUser,
   onAuthStateChange,
@@ -11,7 +10,7 @@ import {
   clearSession,
 } from '@pluckk/shared/api';
 import type { AuthUser } from '@pluckk/shared/api';
-import type { UseAuthReturn, LearningProfile } from '../types';
+import type { UseAuthReturn } from '../types';
 
 export const AUTH_CALLBACK_PATH = '/auth/callback';
 
@@ -48,49 +47,19 @@ export function consumeReturnTo(): string {
 export function useAuth(): UseAuthReturn {
   const [user, setUser] = useState<AuthUser | null>(() => (getAccessToken() ? getStoredUser() : null));
   const [loading, setLoading] = useState(true);
-  const [learningProfile, setLearningProfile] = useState<LearningProfile | null>(null);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-
-  const fetchUserInfo = async (): Promise<void> => {
-    try {
-      const data = await api.user.me();
-      const lp = data.learningProfile as Partial<LearningProfile>;
-      const profile: LearningProfile = {
-        onboardingCompleted: lp.onboardingCompleted ?? false,
-        primaryCategory: lp.primaryCategory || null,
-        studentLevel: lp.studentLevel || null,
-        studentField: lp.studentField || null,
-        workFields: lp.workFields || [],
-        workFieldOther: lp.workFieldOther || null,
-        workYearsExperience: lp.workYearsExperience || null,
-        researchField: lp.researchField || null,
-        researchYearsExperience: lp.researchYearsExperience || null,
-        additionalInterests: lp.additionalInterests || [],
-        additionalInterestsOther: lp.additionalInterestsOther || null,
-        spacedRepExperience: lp.spacedRepExperience || null,
-        technicalityPreference: lp.technicalityPreference || null,
-        breadthPreference: lp.breadthPreference || null,
-      };
-      setLearningProfile(profile);
-      if (!profile.onboardingCompleted) setShowOnboarding(true);
-    } catch (error) {
-      console.error('Failed to fetch user info:', error);
-    }
-  };
 
   useEffect(() => {
     const init = async (): Promise<void> => {
       if (window.location.pathname === AUTH_CALLBACK_PATH) {
         try {
           const u = await completeGoogleSignIn();
-          if (u) { setUser(u); await fetchUserInfo(); }
+          if (u) setUser(u);
         } catch (error) {
           console.error('Sign in failed:', error);
           clearSession();
         }
       } else if (getAccessToken()) {
         setUser(getStoredUser());
-        await fetchUserInfo();
       }
       setLoading(false);
     };
@@ -101,8 +70,6 @@ export function useAuth(): UseAuthReturn {
         setUser(u);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
-        setLearningProfile(null);
-        setShowOnboarding(false);
       }
     });
   }, []);
@@ -114,27 +81,5 @@ export function useAuth(): UseAuthReturn {
     setUser(null);
   };
 
-  const completeOnboarding = async (profile: Omit<LearningProfile, 'onboardingCompleted'>): Promise<void> => {
-    try {
-      await api.user.update({ onboardingCompleted: true, ...profile });
-      setLearningProfile({ ...profile, onboardingCompleted: true });
-    } catch (error) {
-      console.error('Failed to save onboarding:', error);
-    } finally {
-      setShowOnboarding(false);
-    }
-  };
-
-  const skipOnboarding = async (): Promise<void> => {
-    try {
-      await api.user.update({ onboardingCompleted: true });
-      setLearningProfile((prev) => (prev ? { ...prev, onboardingCompleted: true } : null));
-    } catch (error) {
-      console.error('Failed to skip onboarding:', error);
-    } finally {
-      setShowOnboarding(false);
-    }
-  };
-
-  return { user, loading, learningProfile, showOnboarding, signIn, signOut, completeOnboarding, skipOnboarding };
+  return { user, loading, signIn, signOut };
 }

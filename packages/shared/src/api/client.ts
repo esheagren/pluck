@@ -7,7 +7,6 @@ import { BACKEND_URL } from '../constants/api';
 export interface AuthUser {
   id: string;
   email: string | null;
-  username: string | null;
   display_name: string | null;
   avatar_url: string | null;
   created_at: string;
@@ -23,7 +22,7 @@ export interface CardRow {
   id: string; user_id: string | null; question: string; answer: string;
   source_url: string | null; image_url: string | null; folder_id: string | null;
   style: string | null; answer_type: string | null; tags: string[] | null;
-  is_public: boolean; created_at: string;
+  created_at: string;
   source_selection: string | null; source_context: string | null; source_title: string | null;
   source_selector: string | null; source_text_offset: number | null;
   numeric_answer: number | null; numeric_lower: number | null; numeric_upper: number | null;
@@ -121,7 +120,7 @@ export function createApiClient(opts: ApiClientOptions) {
       list: (params: { source_url_prefix?: string } = {}) => request<CardRow[]>('GET', `/api/v1/cards${q(params)}`),
       get: (id: string) => request<CardRow>('GET', `/api/v1/cards/${id}`),
       create: (card: NewCardInput) => request<CardRow>('POST', '/api/v1/cards', card),
-      update: (id: string, updates: Partial<NewCardInput> & { is_public?: boolean }) => request<CardRow>('PATCH', `/api/v1/cards/${id}`, updates),
+      update: (id: string, updates: Partial<NewCardInput>) => request<CardRow>('PATCH', `/api/v1/cards/${id}`, updates),
       remove: (id: string) => request<{ success: true }>('DELETE', `/api/v1/cards/${id}`),
     },
     folders: {
@@ -145,7 +144,6 @@ export function createApiClient(opts: ApiClientOptions) {
         request<{ state: ReviewStateRow }>('POST', '/api/v1/review', payload),
     },
     activity: { get: () => request<ActivityData>('GET', '/api/v1/activity') },
-    feedback: { submit: (feedback_text: string) => request<{ success: true }>('POST', '/api/v1/feedback', { feedback_text }) },
     images: {
       upload: (card_id: string, image_data: string, mime_type: string) =>
         request<{ image_url: string }>('POST', '/api/v1/images', { card_id, image_data, mime_type }),
@@ -156,9 +154,7 @@ export function createApiClient(opts: ApiClientOptions) {
 export type ApiClient = ReturnType<typeof createApiClient>;
 
 export interface UserMeResponse {
-  user: { id: string; email: string | null; username: string | null; displayName: string | null; bio: string | null; avatarUrl: string | null; profileIsPublic: boolean; createdAt: string };
-  subscription: { status: string; isPro: boolean };
-  usage: { cardsThisMonth: number; limit?: number; remaining: number | 'unlimited' };
+  user: { id: string; email: string | null; displayName: string | null; avatarUrl: string | null; createdAt: string };
   settings: { mochiApiKey: string | null; mochiDeckId: string | null };
   learningProfile: Record<string, unknown> & { onboardingCompleted: boolean };
 }

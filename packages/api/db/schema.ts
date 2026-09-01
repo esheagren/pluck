@@ -1,13 +1,12 @@
 // Pluckk database schema (Neon Postgres via Drizzle).
 // Ported 2026-08-28 from the Supabase project (migrations 001–009 + live dump).
-// Dropped on purpose: Stripe/usage-limit columns, the four rollup views
-// (activity summaries are computed in /api/activity), and every RLS policy —
-// authorization now lives in the API layer (`where user_id = …`).
+// Dropped on purpose: Stripe/usage-limit columns, usernames/public profiles/feedback
+// (private-first, 2026-09), the four rollup views (activity is computed in /api/v1/activity),
+// and every RLS policy — authorization lives in the API layer (`where user_id = …`).
 
 import {
   pgTable, uuid, text, boolean, integer, numeric, timestamp, jsonb, index, uniqueIndex,
 } from 'drizzle-orm/pg-core';
-import { sql } from 'drizzle-orm';
 
 const num = (name: string) => numeric(name, { mode: 'number' });
 const ts = (name: string) => timestamp(name, { withTimezone: true, mode: 'string' });
@@ -19,11 +18,8 @@ export const users = pgTable('users', {
   createdAt: ts('created_at').defaultNow().notNull(),
   mochiApiKey: text('mochi_api_key'),
   mochiDeckId: text('mochi_deck_id'),
-  username: text('username'),
   displayName: text('display_name'),
-  bio: text('bio'),
   avatarUrl: text('avatar_url'),
-  profileIsPublic: boolean('profile_is_public').default(true).notNull(),
   onboardingCompleted: boolean('onboarding_completed').default(false).notNull(),
   primaryCategory: text('primary_category'),
   studentLevel: text('student_level'),
@@ -39,7 +35,6 @@ export const users = pgTable('users', {
   technicalityPreference: integer('technicality_preference'),
   breadthPreference: integer('breadth_preference'),
 }, (t) => [
-  uniqueIndex('users_username_lower_idx').on(sql`lower(${t.username})`),
   uniqueIndex('users_email_idx').on(t.email),
 ]);
 
@@ -52,10 +47,6 @@ export const apiTokens = pgTable('api_tokens', {
   createdAt: ts('created_at').defaultNow().notNull(),
   lastUsedAt: ts('last_used_at'),
   expiresAt: ts('expires_at'),
-});
-
-export const reservedUsernames = pgTable('reserved_usernames', {
-  username: text('username').primaryKey(),
 });
 
 export const folders = pgTable('folders', {
@@ -81,7 +72,6 @@ export const cards = pgTable('cards', {
   createdAt: ts('created_at').defaultNow().notNull(),
   imageUrl: text('image_url'),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
-  isPublic: boolean('is_public').default(false).notNull(),
   folderId: uuid('folder_id').references(() => folders.id, { onDelete: 'set null' }),
   style: text('style'),
   answerType: text('answer_type').default('text'),
@@ -101,13 +91,6 @@ export const cards = pgTable('cards', {
   index('cards_folder_idx').on(t.folderId),
   index('cards_source_url_idx').on(t.sourceUrl),
 ]);
-
-export const feedback = pgTable('feedback', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id'),
-  feedbackText: text('feedback_text').notNull(),
-  createdAt: ts('created_at').defaultNow().notNull(),
-});
 
 export const algorithmConfigs = pgTable('algorithm_configs', {
   id: uuid('id').primaryKey().defaultRandom(),

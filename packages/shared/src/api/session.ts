@@ -48,8 +48,3 @@ export async function signOut(): Promise<void> {
   clearSession();
 }
 
-/** Kept for call-site compatibility (FeedbackPage/FeedbackModal). */
-export async function submitFeedback(_userId: string, feedbackText: string): Promise<{ success: true }> {
-  if (!feedbackText?.trim()) throw new Error('Feedback text is required');
-  return api.feedback.submit(feedbackText.trim());
-}

@@ -5,7 +5,7 @@ export type {
 } from './client';
 export {
   api, getAccessToken, getStoredUser, setSession, clearSession, onAuthStateChange,
-  signInWithGoogleCredential, signOut, submitFeedback,
+  signInWithGoogleCredential, signOut,
 } from './session';
 export type { AuthEvent } from './session';
 export { buildGoogleAuthUrl, parseIdToken, randomNonce } from './google';

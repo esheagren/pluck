@@ -9,9 +9,7 @@ export type MessageAction =
   | 'generateCardsFromImage'
   | 'answerQuestion'
   | 'sendToMochi'
-  | 'saveToSupabase'
   | 'getMochiStatus'
-  | 'getAuthStatus'
   | 'getSelection'
   | 'getDOMContext'
   | 'captureViewport'
@@ -78,14 +76,6 @@ export interface SendToMochiMessage extends ExtensionMessage {
   sourceTextOffset?: number;
 }
 
-// Save to Supabase message
-export interface SaveToSupabaseMessage extends ExtensionMessage {
-  action: 'saveToSupabase';
-  question: string;
-  answer: string;
-  sourceUrl: string;
-}
-
 // Content script messages
 export interface GetSelectionMessage extends ExtensionMessage {
   action: 'getSelection';
@@ -142,7 +132,7 @@ export interface AuthStatusResponse {
 
 export interface SendToMochiResponse {
   mochi: MochiResult;
-  supabase: SupabaseResult;
+  save: SaveResult;
 }
 
 export interface MochiResult {
@@ -152,7 +142,7 @@ export interface MochiResult {
   message?: string;
 }
 
-export interface SupabaseResult {
+export interface SaveResult {
   success?: boolean;
   cardId?: string;
   error?: string;

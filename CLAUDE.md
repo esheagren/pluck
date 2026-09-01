@@ -1,99 +1,54 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working in this repository.
 
 ## Project Overview
 
-**Pluckk** is a Chrome extension that captures highlighted text from any webpage, generates spaced repetition flashcard options using Claude API, and sends them directly to Mochi (or copies to clipboard).
+**Pluckk** is a private-first spaced-repetition system (users = Erik and people he invites; no billing,
+no public profiles, no social features — decided 2026-09-01). A Chrome extension captures highlighted text
+in the browser; a macOS app (`⌘⌘`) captures from any native app; a web app (pluckk.app) is the single
+review surface. All three talk to one API. Product doc: `docs/README.md`. Architecture audit and forward
+plan: `docs/audit/2026-09-01-architecture-audit.md`, `docs/roadmap/planned/consolidation/plan.md`.
 
-**Core flow:** Highlight → Trigger extension (click or Cmd+Shift+M) → Select from 2-3 generated cards → Edit if needed → Send to Mochi
+**Stack (since the 2026-08 migration off Supabase):** Neon Postgres via Drizzle, Vercel serverless
+functions, Vercel Blob for card images, Google Sign-In → opaque bearer tokens. No Stripe, no usage limits.
 
-## Development Commands
+## Packages
 
-```bash
-# Load extension in Chrome for testing:
-# 1. Navigate to chrome://extensions
-# 2. Enable "Developer Mode" (top right)
-# 3. Click "Load unpacked"
-# 4. Select this directory
+| Package | What | Run |
+|---|---|---|
+| `packages/api` | Vercel functions. `api/v1.ts` is one function routing all `/api/v1/*` data/auth paths via a `vercel.json` rewrite (Hobby plan caps 12 functions; Vercel’s `[...path]` catch-all did not match nested paths). `db/schema.ts` is the Drizzle schema. | `npm run typecheck`, `npm run db:push`, `npm run db:studio`, `vercel --prod` |
+| `packages/shared` | `api/` (fetch client, session store, Google OIDC helpers), `scheduler/` (SM-2), `constants/`, `utils/` | imported by the others |
+| `packages/webapp` | Vite + React 18, pluckk.app. Hooks in `src/hooks/` call `@pluckk/shared/api`. | `npm run dev:webapp`, `npm run build:webapp` |
+| `packages/extension` | Manifest V3. `src/auth.ts` owns sign-in + the API client; background/content built by esbuild as IIFE. | `npm run build:extension`, load unpacked from `packages/extension/dist` |
+| `packages/macos` | Swift app. **Still on the old Supabase flow — dark until the thin-client port (plan Phase 2).** | Xcode |
 
-# After code changes, click the refresh icon on the extension card in chrome://extensions
-```
+## Rules
 
-## Architecture
+- **All data access goes through `packages/api`.** Clients never hold DB credentials. Every query in the
+  API is scoped `where user_id = <authenticated user>` — there is no RLS any more, so never omit it.
+- **Auth:** `POST /api/v1/auth/google { credential }` verifies a Google ID token and issues a `pk_…` token
+  (sha256-hashed in `api_tokens`). `lib/auth.ts#authenticateRequest` is the single verifier. Webapp stores
+  the token in localStorage, extension in `chrome.storage.local['pluckk_session']`.
+- **API JSON is snake_case** (the old Supabase row shape) — `lib/serialize.ts#snake` at the boundary.
+  Drizzle properties are camelCase. Don't mix them.
+- **Schema changes:** edit `packages/api/db/schema.ts`, then `npm run db:push` (prototype) or
+  `db:generate` + `db:migrate`. The historical Supabase SQL lives in `docs/history/supabase-migrations/` —
+  reference only, never applied.
+- **Adding an endpoint:** add a route to `api/v1.ts`, not a new file, unless the function count
+  allows it.
+- `import.meta` is not available in the esbuild IIFE builds (background/content) — keep shared constants
+  plain values.
+- Env vars for the API live in Vercel (`vercel env pull .env.local` inside `packages/api`); see
+  `packages/api/.env.example`. `GOOGLE_CLIENT_ID` (public) is a constant in `packages/shared/src/constants/api.ts`.
 
-```
-┌────────────────────────────────────────────────────────────────┐
-│                    CHROME EXTENSION                            │
-│                                                                │
-│  ┌──────────────┐      ┌──────────────┐      ┌──────────────┐ │
-│  │   Content    │      │  Background  │      │  Side Panel  │ │
-│  │   Script     │─────▶│   Worker     │─────▶│   (UI)       │ │
-│  │              │      │              │      │              │ │
-│  │ - Selection  │      │ - Claude API │      │ - Show cards │ │
-│  │ - Context    │      │ - Mochi API  │      │ - Edit       │ │
-│  │ - URL/Title  │      │ - Storage    │      │ - Send/Copy  │ │
-│  └──────────────┘      └──────────────┘      └──────────────┘ │
-└────────────────────────────────────────────────────────────────┘
-```
+## Roadmap workflow
 
-### Component Responsibilities
+`docs/roadmap/` — `icebox.md` → `planned/<feature>/plan.md` → `completed/<feature>/`. The current
+sequence of work is `docs/roadmap/planned/consolidation/plan.md` (phases 0–6).
 
-- **Content Script (`content.js`)**: Runs on all pages. Captures selection via `window.getSelection()`, extracts surrounding context (500 chars or parent paragraphs), grabs URL/title, sends to background worker. Site-specific adapters handle ChatGPT/Claude.ai conversation context.
+## Verification
 
-- **Background Worker (`background.js`)**: Service worker that receives context, calls Claude API with card generation prompt, stores API key in `chrome.storage.sync`, returns generated cards to popup.
-
-- **Side Panel (`sidepanel/`)**: Full-height panel on right side of browser. Displays 2-3 card options, allows selection and inline editing of Q&A, sends to Mochi or copies to clipboard.
-
-- **Utils (`utils/mochi-format.js`)**: Mochi markdown formatter utility.
-
-- **Options (`options/`)**: Settings page for API key entry.
-
-## Mochi Output Format
-
-```markdown
-# {Question}
----
-{Answer}
-
----
-Source: {URL}
-```
-
-## Claude API Card Generation
-
-Cards must be: atomic (one concept), clear (unambiguous), testable (verifiable answer), context-independent (makes sense without source).
-
-Output JSON with 2-3 cards, each having `style` (qa/cloze/conceptual), `question`, and `answer`.
-
-## Required Permissions
-
-- `activeTab`: Access current tab content on click
-- `storage`: Store API key
-- `clipboardWrite`: Copy formatted markdown
-- `host_permissions` for `https://api.anthropic.com/*`
-
-## Target Surfaces
-
-| Surface | Priority |
-|---------|----------|
-| Web articles | P0 |
-| Notion (browser) | P0 |
-| ChatGPT | P0 |
-| Claude.ai | P0 |
-| Any other webpage | P1 |
-
-## Setup
-
-1. Load extension in Chrome (see Development Commands)
-2. Click extension icon → Settings (gear icon)
-3. Enter Claude API key (get from console.anthropic.com)
-4. Enter Mochi API key and select a deck (optional, for direct integration)
-5. Highlight text on any page → trigger extension → select card → send to Mochi
-
-## Keyboard Shortcuts
-
-- `Cmd+Shift+M` (Mac) / `Ctrl+Shift+M` (Windows): Open Pluckk side panel
-- `1`, `2`, `3`: Select card by number
-- `Enter`: Send to Mochi (or copy if Mochi not configured)
-- `R`: Regenerate cards
+Before deploying the API: `npm run smoke` and `npx dotenv -e .env.local -- tsx scripts/smoke-mixer.ts` in
+`packages/api`. Deploy with `bash scripts-deploy-api.sh` / `bash scripts-deploy-webapp.sh` from the repo root
+(the Vercel projects have Root Directory set, so the CLI needs the project identity from env).

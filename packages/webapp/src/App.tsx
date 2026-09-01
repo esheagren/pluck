@@ -4,13 +4,10 @@ import { useAuth, AUTH_CALLBACK_PATH, consumeReturnTo } from './hooks/useAuth';
 import { useCards } from './hooks/useCards';
 import { useFolders } from './hooks/useFolders';
 import Layout from './components/Layout';
-import OnboardingWizard from './components/OnboardingWizard';
 import ReviewPage from './pages/ReviewPage';
 import CardsPage from './pages/CardsPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
-import PublicProfilePage from './pages/PublicProfilePage';
-import FeedbackPage from './pages/FeedbackPage';
 import FocusPage from './pages/FocusPage';
 import LandingPage from './pages/LandingPage';
 import InfoPage from './pages/InfoPage';
@@ -34,11 +31,8 @@ export default function App(): JSX.Element {
   const {
     user,
     loading: authLoading,
-    showOnboarding,
     signIn,
     signOut,
-    completeOnboarding,
-    skipOnboarding,
   } = useAuth();
   const { cards, loading: cardsLoading, updateCard, deleteCard, moveCardToFolder } = useCards(
     user?.id
@@ -55,14 +49,6 @@ export default function App(): JSX.Element {
   }
   if (location.pathname === '/architecture') {
     return <ArchitecturePage />;
-  }
-  // Public profile pages
-  if (location.pathname.startsWith('/u/')) {
-    return (
-      <Routes>
-        <Route path="/u/:username" element={<PublicProfilePage />} />
-      </Routes>
-    );
   }
 
   // Show loading while checking auth (also covers the /auth/callback exchange)
@@ -83,13 +69,7 @@ export default function App(): JSX.Element {
   // Authenticated - show main app
   return (
     <>
-      {showOnboarding && (
-        <OnboardingWizard
-          onComplete={completeOnboarding}
-          onSkip={skipOnboarding}
-        />
-      )}
-      <div className={showOnboarding ? 'blur-sm pointer-events-none' : ''}>
+      <div>
         <Routes>
         <Route element={<Layout />}>
         <Route
@@ -128,7 +108,6 @@ export default function App(): JSX.Element {
         />
         <Route path="/focus" element={<FocusPage />} />
         <Route path="/activity" element={<Navigate to="/profile" replace />} />
-        <Route path="/feedback" element={<FeedbackPage />} />
       </Route>
       </Routes>
       </div>

@@ -102,11 +102,10 @@ Output format: {"card":{...}}`;
 }
 
 /**
- * Build the system prompt based on user's subscription status and learning profile
- * Pro users get access to the diagram card style
+ * Build the system prompt from the user's learning profile
  * Learning profile adds personalization context
  */
-function buildSystemPrompt(isPro: boolean, profile?: DbUser): string {
+function buildSystemPrompt(profile?: DbUser): string {
   // Build persona prompt from learning profile
   // DB columns are plain text/int; the persona builder wants the literal unions.
   // Values were validated on write in /api/user/me, so the cast is safe.
@@ -125,13 +124,13 @@ function buildSystemPrompt(isPro: boolean, profile?: DbUser): string {
     technicalityPreference: profile?.technicalityPreference,
     breadthPreference: profile?.breadthPreference,
   } as Parameters<typeof buildPersonaPrompt>[0]);
-  const diagramStyle = isPro ? `
+  const diagramStyle = `
 7. **diagram** - For STRUCTURAL or COMPARATIVE knowledge that benefits from visual representation.
    When to use: taxonomies, hierarchies, system architectures, X vs Y comparisons, process flows
    The diagram_prompt describes what image to generate - be specific about layout, relationships, and visual structure.
    Example:
    {"style":"diagram","question":"What are the two main branches of supervised learning?","answer":"Classification (predicts categories) and Regression (predicts continuous values)","diagram_prompt":"A tree diagram with 'Supervised Learning' at the top, branching into two nodes: 'Classification' (with examples: spam detection, image recognition) and 'Regression' (with examples: price prediction, temperature forecasting)","tags":{"content_type":"concept","domain":"machine_learning","technicality":2}}
-` : '';
+`;
 
   return `You are a spaced repetition card generator. Create cards that produce durable understanding through retrieval practice.
 ${personaPrompt}
@@ -242,10 +241,9 @@ Generate 4-8 spaced repetition cards for the highlighted selection, depending on
   }
 
   // Determine if user is Pro (for diagram feature access)
-  const isPro = true;
 
   // Use custom prompt or build based on subscription status and learning profile
-  const systemPrompt = customPrompt || buildSystemPrompt(isPro, profile);
+  const systemPrompt = customPrompt || buildSystemPrompt(profile);
 
   try {
     // Call Claude API with server-side key
@@ -307,17 +305,8 @@ Generate 4-8 spaced repetition cards for the highlighted selection, depending on
       res.status(500).json({ error: 'Invalid response format from AI' });
       return;
     }
-
-
-    // Return cards with updated usage info and subscription status
     res.status(200).json({
-      cards: parsed.cards,
-      isPro,
-      usage: {
-        remaining: 'unlimited',
-        limit: undefined,
-        subscription: 'active'
-      }
+      cards: parsed.cards
     });
 
   } catch (error) {

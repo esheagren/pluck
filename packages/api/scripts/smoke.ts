@@ -1,12 +1,10 @@
 // Direct-invocation smoke test against the real DB (no server needed).
 //   npm run smoke      (reads DATABASE_URL etc. from .env.local)
-// Exercises: 401 without token, DB read (check-username), token issue + authed
-// reads (cards, folders, review queue, activity), profile 404, 404/405 routing.
+// Exercises: 401 without token, token issue + authed reads (cards, folders,
+// review queue, activity), create → review → delete, revoke, 404/405 routing.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import v1 from '../api/v1.js';
-import checkUsername from '../api/user/check-username.js';
-import profile from '../api/profile/[username].js';
 import me from '../api/user/me.js';
 import { issueToken, revokeToken } from '../lib/auth.js';
 import { getDb, schema } from '../lib/db.js';
@@ -38,16 +36,12 @@ async function main() {
   let m = mock('GET', '/api/v1/cards'); await v1(m.req, m.res);
   check('GET cards without token → 401', m.result().status === 401, m.result().body);
 
-  m = mock('GET', '/api/user/check-username', { query: { username: 'erik' } }); await checkUsername(m.req, m.res);
-  check('check-username reads DB → 200 JSON', m.result().status === 200 && typeof (m.result().body as { available: boolean }).available === 'boolean', m.result().body);
 
   m = mock('GET', '/api/v1/nope'); await v1(m.req, m.res);
   check('unknown v1 route → 404', m.result().status === 404);
   m = mock('DELETE', '/api/v1/cards'); await v1(m.req, m.res);
   check('wrong method → 405', m.result().status === 405);
 
-  m = mock('GET', '/api/profile/x', { query: { username: 'nobody_here' } }); await profile(m.req, m.res);
-  check('profile unknown → 404', m.result().status === 404);
 
   // Issue a token for the first imported user and exercise authed routes.
   const [user] = await getDb().select().from(schema.users).limit(1);

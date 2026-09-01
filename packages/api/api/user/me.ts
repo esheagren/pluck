@@ -6,16 +6,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { eq } from 'drizzle-orm';
 import { authenticateRequest, isAuthError } from '../../lib/auth.js';
 import { getDb, schema } from '../../lib/db.js';
-import { usernameStatus } from './check-username.js';
 import type { UpdateUserSettingsRequest } from '../../lib/types.js';
-
-// Validate username format (matches database function)
-function isValidUsernameFormat(username: string | null | undefined): boolean {
-  if (!username || typeof username !== 'string') return false;
-  if (username.length < 3 || username.length > 30) return false;
-  // Must start with letter, only lowercase letters/numbers/underscores
-  return /^[a-z][a-z0-9_]*$/.test(username);
-}
 
 // Basic HTML tag sanitization to prevent XSS
 function sanitizeText(text: string | null | undefined): string | null {
@@ -49,15 +40,10 @@ export default async function handler(
       user: {
         id: user.id,
         email: user.email,
-        username: profile.username || null,
         displayName: profile.displayName || null,
-        bio: profile.bio || null,
         avatarUrl: profile.avatarUrl || null,
-        profileIsPublic: profile.profileIsPublic !== false,
         createdAt: profile.createdAt
       },
-      subscription: { status: 'active', isPro: true },
-      usage: { cardsThisMonth: 0, limit: undefined, remaining: 'unlimited' },
       settings: {
         mochiApiKey: profile.mochiApiKey || null,
         mochiDeckId: profile.mochiDeckId || null
@@ -85,7 +71,7 @@ export default async function handler(
   // PATCH - Update user settings and profile
   if (req.method === 'PATCH') {
     const {
-      mochiApiKey, mochiDeckId, username, displayName, bio, profileIsPublic,
+      mochiApiKey, mochiDeckId, displayName,
       onboardingCompleted, primaryCategory, studentLevel, studentField,
       workFields, workFieldOther, workYearsExperience,
       researchField, researchYearsExperience,
@@ -103,42 +89,9 @@ export default async function handler(
       updates.mochi_deck_id = mochiDeckId || null;
     }
 
-    // Profile fields
-    if (username !== undefined) {
-      const normalizedUsername = username ? username.toLowerCase().trim() : null;
-
-      if (normalizedUsername) {
-        // Validate format
-        if (!isValidUsernameFormat(normalizedUsername)) {
-          res.status(400).json({
-            error: 'Invalid username format',
-            details: 'Username must be 3-30 characters, start with a letter, and contain only lowercase letters, numbers, and underscores'
-          });
-          return;
-        }
-
-        const status = await usernameStatus(normalizedUsername, user.id);
-        if (status === 'reserved') { res.status(400).json({ error: 'This username is reserved' }); return; }
-        if (status === 'taken') { res.status(409).json({ error: 'Username already taken' }); return; }
-
-        updates.username = normalizedUsername;
-      } else {
-        updates.username = null;
-      }
-    }
-
     if (displayName !== undefined) {
       const sanitized = sanitizeText(displayName);
       updates.display_name = sanitized ? sanitized.slice(0, 100) : null;
-    }
-
-    if (bio !== undefined) {
-      const sanitized = sanitizeText(bio);
-      updates.bio = sanitized ? sanitized.slice(0, 500) : null;
-    }
-
-    if (profileIsPublic !== undefined) {
-      updates.profile_is_public = Boolean(profileIsPublic);
     }
 
     // Learning profile fields
@@ -247,7 +200,6 @@ export default async function handler(
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error('Error updating user settings:', message, JSON.stringify(updates));
-      if (message.includes('users_username_lower_idx')) { res.status(409).json({ error: 'Username already taken' }); return; }
       res.status(500).json({ error: 'Failed to update settings', details: message });
       return;
     }

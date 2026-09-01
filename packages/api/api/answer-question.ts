@@ -167,16 +167,8 @@ export default async function handler(
       res.status(500).json({ error: 'No valid cards generated' });
       return;
     }
-
-
-    // Return cards with usage info
     res.status(200).json({
-      cards: validCards,
-      usage: {
-        remaining: 'unlimited',
-        limit: undefined,
-        subscription: 'active'
-      }
+      cards: validCards
     });
 
   } catch (error) {

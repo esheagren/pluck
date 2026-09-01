@@ -47,7 +47,6 @@ export interface SidepanelElements {
   noSelectionState: HTMLElement | null;
   screenshotState: HTMLElement | null;
   apiKeyState: HTMLElement | null;
-  usageLimitState: HTMLElement | null;
   cardsState: HTMLElement | null;
 
   // Main UI elements
@@ -132,7 +131,6 @@ export interface OptionsElements {
   usageText: HTMLElement | null;
   billingActions: HTMLElement | null;
   proActions: HTMLElement | null;
-  upgradeBtn: HTMLButtonElement | null;
   manageSubscriptionBtn: HTMLButtonElement | null;
 
   // Prompt settings

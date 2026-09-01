@@ -62,26 +62,13 @@ export interface CardWithReviewState extends Card {
 // ============================================================================
 
 /**
- * Billing information for the user
- */
-export interface BillingInfo {
-  isPro: boolean;
-  cardsUsed: number;
-  limit: number;
-}
-
-/**
  * Return type for useAuth hook
  */
 export interface UseAuthReturn {
   user: User | null;
   loading: boolean;
-  learningProfile: LearningProfile | null;
-  showOnboarding: boolean;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
-  completeOnboarding: (profile: Omit<LearningProfile, 'onboardingCompleted'>) => Promise<void>;
-  skipOnboarding: () => Promise<void>;
 }
 
 // ============================================================================

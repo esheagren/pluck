@@ -107,10 +107,6 @@
       <p>Please sign in with Google to use Pluckk.</p>
       <button class="btn btn-primary" id="open-settings-btn">Sign In</button>
     </div>
-
-    <!-- Usage Limit Reached State -->
-    <div class="state usage-limit-state hidden" id="usage-limit-state">
-      <div class="info-icon warning">!</div>
       <h2>Free Limit Reached</h2>
       <p>You've used all 20 free cards this month. Upgrade to Pro for unlimited cards.</p>
       <button class="btn btn-primary" id="upgrade-btn">Upgrade to Pro</button>
@@ -217,22 +213,10 @@
         </button>
       </div>
 
-      <!-- Subscription section: usage + upgrade OR pro badge -->
       <div class="drawer-section hidden" id="drawer-auth-logged-in">
         <div class="drawer-subscription-header">
-          <span class="usage-text" id="drawer-usage-text">0 cards created</span>
+          <span class="drawer-label">Signed in</span>
           <span class="drawer-version" id="drawer-version"></span>
-        </div>
-        <div class="drawer-usage-row" id="drawer-usage-row">
-          <div class="usage-bar" id="drawer-usage-bar-container">
-            <div class="usage-bar-fill" id="drawer-usage-bar"></div>
-          </div>
-        </div>
-        <div class="drawer-billing-row" id="drawer-billing-row">
-          <button class="btn-upgrade" id="drawer-upgrade-btn">Upgrade to Pro</button>
-        </div>
-        <div class="drawer-billing-row hidden" id="drawer-pro-row">
-          <button class="pro-badge-btn" id="drawer-pro-btn" title="Manage subscription">Pro</button>
         </div>
       </div>
 

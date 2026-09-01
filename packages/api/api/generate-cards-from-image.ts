@@ -239,16 +239,8 @@ export default async function handler(
       res.status(500).json({ error: 'Invalid response format from AI' });
       return;
     }
-
-
-    // Return cards with updated usage info
     res.status(200).json({
-      cards: parsed.cards,
-      usage: {
-        remaining: 'unlimited',
-        limit: undefined,
-        subscription: 'active'
-      }
+      cards: parsed.cards
     });
 
   } catch (error) {

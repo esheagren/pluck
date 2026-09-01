@@ -9,7 +9,6 @@
 //   GET    review/queue           → { cards, states, new_reviewed_today }
 //   POST   review                 { card_id, rating, new_state } → { state }
 //   GET    activity               → { reviews: [...], cards: [...] }
-//   POST   feedback               { feedback_text }
 //   POST   images                 { card_id, image_data, mime_type } → { image_url }
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -80,11 +79,11 @@ router.on('DELETE', 'auth/token', async (req, res) => {
 });
 
 function publicUser(u: schema.User) {
-  return { id: u.id, email: u.email, username: u.username, display_name: u.displayName, avatar_url: u.avatarUrl, created_at: u.createdAt };
+  return { id: u.id, email: u.email, display_name: u.displayName, avatar_url: u.avatarUrl, created_at: u.createdAt };
 }
 
 // ---------------------------------------------------------------- cards
-const CARD_FIELDS = ['question', 'answer', 'sourceUrl', 'imageUrl', 'isPublic', 'folderId', 'style', 'answerType',
+const CARD_FIELDS = ['question', 'answer', 'sourceUrl', 'imageUrl', 'folderId', 'style', 'answerType',
   'numericAnswer', 'numericLower', 'numericUpper', 'numericUnit', 'numericPrecision', 'tags',
   'sourceSelection', 'sourceContext', 'sourceTitle', 'sourceSelector', 'sourceTextOffset'] as const;
 
@@ -336,14 +335,6 @@ export async function activityFor(userId: string, sinceDate: string) {
 router.on('GET', 'activity', authed(async (_req, res, user) => {
   const since = new Date(); since.setDate(since.getDate() - 365);
   res.status(200).json(await activityFor(user.id, since.toISOString().slice(0, 10)));
-}));
-
-// ---------------------------------------------------------------- feedback
-router.on('POST', 'feedback', authed(async (req, res, user) => {
-  const text = String((req.body as { feedback_text?: string })?.feedback_text ?? '').trim();
-  if (!text) { res.status(400).json({ error: 'feedback_text required' }); return; }
-  await getDb().insert(schema.feedback).values({ userId: user.id, feedbackText: text });
-  res.status(201).json({ success: true });
 }));
 
 // ---------------------------------------------------------------- images
