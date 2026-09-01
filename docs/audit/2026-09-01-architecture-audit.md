@@ -102,7 +102,7 @@ Decide **private-first** and act on it:
 | Onboarding wizard, usernames, reserved names, public profiles, feedback form | webapp + api + schema | SaaS-only features; keep the learning-profile *fields* (they feed the persona prompt) |
 | `popup/`, dead pages/components, `shared/src/index.ts`+`types/`, `saveToSupabase`, `@crxjs` dep | extension, webapp, shared | Unreachable |
 | `/roadmap` tree, `docs/roadmap/active/` dupes, `api/migrations/*.sql` (→ `docs/history/`) | docs | Two roadmap systems is one too many |
-| `packages/macos` → `archive/macos-2026-01/` | repo | It cannot run; keeping it in `packages/` implies otherwise |
+| `packages/macos`: delete review mode, card browser, SM-2, Pro/usage UI, hardcoded key | macos | Thin capture client only (see C4); the port itself is a B-horizon item |
 | Root `CLAUDE.md` content → replaced by `.claude/CLAUDE.md`; un-ignore `.claude/CLAUDE.md` | repo | The accurate guidance must be the tracked one |
 | One extension settings surface (kill the drawer *or* the options page) | extension | Same settings implemented twice |
 
@@ -127,7 +127,7 @@ Decide **private-first** and act on it:
 **C3. Let the scheduler earn its keep — server-side, and probably FSRS.**
 Once scheduling is server-owned (B2), swapping SM-2 for `ts-fsrs` is a contained change; the columns already exist. The concrete payoff for *you* is the backlog: FSRS computes retrievability per card, so "All 42 due" can be ordered by *what you're about to forget* rather than by due date, and session size can be framed as a retention target. For one user SM-2 is adequate; FSRS is the upgrade that matters at 5,000-card scale.
 
-**C4. Choose the client story.** The missing surface is your **phone at review time**, not a third desktop client. The webapp as a PWA (installable, offline queue) covers it; the extension stays the capture tool; macOS is archived until a thin-client rewrite is worth it. Two surfaces, one core.
+**C4. Choose the client story: capture at two doors, review at one.** (Revised 2026-09-01 after Erik's note that he captures from Notion desktop and other native apps.) The extension captures *inside Chrome* with rich context (URL, DOM context, CSS selector for re-highlighting and deep links). The macOS app captures *everywhere else* — `⌘⌘` → Accessibility selection → floating panel — the Wispr Flow shape it already has. It should be **ported now, thin**: keep the hotkey, selection reader, panel and generation view (~55%); delete its review mode, card browser, SM-2 and Free/Pro UI (~45%); swap Supabase auth for Google id_token → `/api/v1/auth/google` and PostgREST for `/api/v1/cards`. The webapp is the single review surface — and, as a PWA, the phone surface. Two capture clients, one review client, one core.
 
 **C5. Say what Pluckk is.** Private-first; users = you and people you invite. Auth stays (needed for the extension anyway), everything social goes. That single decision retires ~3k LOC and every awkward "isPro" branch.
 
@@ -136,10 +136,11 @@ Once scheduling is server-owned (B2), swapping SM-2 for `ts-fsrs` is a contained
 ## 4. If I were sequencing it
 
 1. **Horizon A in one sitting** (it is mostly `git rm`), plus the CLAUDE.md swap and the `.claude` gitignore fix. Immediate clarity, zero risk.
-2. **B1 + B2** — core package, server-side expansion and scheduling. This is the structural pivot; everything else gets easier after it.
-3. **C1** — generator module + golden set + traces. Start with the four `cardProblems` as tests; add a case each time a bad card annoys you.
-4. **B3/B4** — side panel and webapp refactors, now against a stable core.
-5. **B6** — tests/lint/CI, ratcheted rather than big-bang.
-6. **C2, C3** — notes model, FSRS — when the generator work has produced enough cards that scheduling quality becomes the bottleneck.
+2. **macOS thin port** — auth + `/api/v1/cards`; ~one session of Swift plus an Xcode build. Restores system-wide capture.
+3. **B1 + B2** — core package, server-side expansion and scheduling. This is the structural pivot; everything else gets easier after it.
+4. **C1** — generator module + golden set + traces. Start with the four `cardProblems` as tests; add a case each time a bad card annoys you.
+5. **B3/B4** — side panel and webapp refactors, now against a stable core.
+6. **B6** — tests/lint/CI, ratcheted rather than big-bang.
+7. **C2, C3** — notes model, FSRS — when the generator work has produced enough cards that scheduling quality becomes the bottleneck.
 
 The one-line summary: **move the domain into a tested core, put the generator at the centre of it, and let every client become thin.**
