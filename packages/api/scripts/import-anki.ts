@@ -98,11 +98,11 @@ if (which === 'gwoa') {
   const idx = (name: string) => { const i = fi.get(name); if (i === undefined) throw new Error(`missing field ${name}`); return i; };
   const [artI, titleI, dateI, moveI, artworkI] = [idx('artist'), idx('title'), idx('date'), idx('period/movement'), idx('artwork')];
 
+  // Erik only wants the artist direction (2026-09-01); Titles/Periods decks were deleted.
   const directions = [
     { folder: 'Art · Artists', question: 'Who is the artist?', answer: (f: string[]) => `${strip(f[artI])}\n“${strip(f[titleI])}” (${strip(f[dateI])})` },
-    { folder: 'Art · Titles', question: 'What is the title of this work?', answer: (f: string[]) => `“${strip(f[titleI])}”\n${strip(f[artI])} (${strip(f[dateI])})` },
-    { folder: 'Art · Periods', question: 'What period or movement is this from?', answer: (f: string[]) => `${strip(f[moveI])}\n${strip(f[artI])}, “${strip(f[titleI])}” (${strip(f[dateI])})` },
   ];
+  void moveI;
 
   // Upload each painting once.
   const imageUrls = new Map<number, string | null>();
