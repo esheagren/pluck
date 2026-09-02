@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, type FocusEvent, type KeyboardEvent, type JSX } from 'react';
 import FolderBadge from './FolderBadge';
+import { sourceHref, sourceLabel } from '../utils/source';
 import type { ReviewCardProps, FolderWithColor } from '../types';
 
 export default function ReviewCard({
@@ -394,17 +395,16 @@ export default function ReviewCard({
               />
             )}
           </div>
-          {card.source_url && (
+          {sourceHref(card) && (
             <a
-              href={card.source_selector
-                ? `${card.source_url}${card.source_url.includes('?') ? '&' : '?'}pluckk_card=${card.id}`
-                : card.source_url}
+              href={sourceHref(card)!}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
+              title={sourceLabel(card) ?? undefined}
               className="mt-4 text-xs text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 hover:underline"
             >
-              Source
+              Source{sourceLabel(card) ? ` · ${sourceLabel(card)}` : ''}
             </a>
           )}
         </div>

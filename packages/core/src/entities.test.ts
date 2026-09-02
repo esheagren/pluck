@@ -65,8 +65,15 @@ describe('provenance', () => {
     expect(canonicalUrl('not a url')).toBe('not a url');
   });
   it('builds provenance from the flat source columns', () => {
-    const p = provenanceFromLegacy({ sourceUrl: 'https://example.com/x?utm_medium=m', sourceTitle: 'Page', sourceSelection: 'quoted text' });
-    expect(p).toMatchObject({ identifier: 'https://example.com/x', title: 'Page', selector: { type: 'TextQuote', exact: 'quoted text' } });
+    const p = provenanceFromLegacy({ sourceUrl: 'https://www.example.com/x?utm_medium=m', sourceTitle: 'Page', sourceSelection: 'quoted text', sourceContext: 'before the quoted text after it' });
+    expect(p).toMatchObject({
+      identifier: 'https://www.example.com/x', title: 'Page', containerTitle: 'example.com',
+      selector: { type: 'TextQuote', exact: 'quoted text', prefix: 'before the', suffix: 'after it' },
+    });
     expect(provenanceFromLegacy({})).toBeNull();
+  });
+  it('a non-URL source (a native app) keeps its identifier and has no url', () => {
+    const p = provenanceFromLegacy({ sourceUrl: 'Notion - My page', sourceTitle: 'My page' });
+    expect(p).toMatchObject({ identifier: 'Notion - My page', url: null, containerTitle: null });
   });
 });

@@ -45,6 +45,7 @@ export interface Card {
   updated_at: string;
   /** core-engine: the authored card; composites have several components */
   spec?: import('@pluckk/core/entities').CardSpec | null;
+  provenance?: import('@pluckk/core/entities').Provenance | null;
   component_count?: number;
   /** Due date from card_review_state (optional, loaded separately) */
   due_at?: string | null;

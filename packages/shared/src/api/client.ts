@@ -139,7 +139,8 @@ export function createApiClient(opts: ApiClientOptions) {
       update: (updates: Record<string, unknown>) => request<{ success: true }>('PATCH', '/api/user/me', updates),
     },
     cards: {
-      list: (params: { source_url_prefix?: string } = {}) => request<CardRow[]>('GET', `/api/v1/cards${q(params)}`),
+      /** `source` = a provenance identifier: every card from one page, app window or imported deck. */
+      list: (params: { source_url_prefix?: string; source?: string } = {}) => request<CardRow[]>('GET', `/api/v1/cards${q(params)}`),
       get: (id: string) => request<CardRow>('GET', `/api/v1/cards/${id}`),
       create: (card: NewCardInput) => request<CardRow>('POST', '/api/v1/cards', card),
       update: (id: string, updates: Partial<NewCardInput>) => request<CardRow>('PATCH', `/api/v1/cards/${id}`, updates),

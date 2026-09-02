@@ -91,10 +91,12 @@ function publicUser(u: schema.User) {
 }
 
 // ---------------------------------------------------------------- cards
-async function listCards(userId: string, sourceUrlPrefix?: string) {
+async function listCards(userId: string, sourceUrlPrefix?: string, sourceIdentifier?: string) {
   const db = getDb();
   const conds = [eq(schema.cards.userId, userId), eq(schema.cards.isDeleted, false)];
   if (sourceUrlPrefix) conds.push(like(schema.cards.sourceUrl, sourceUrlPrefix.replace(/[%_]/g, '\\$&') + '%'));
+  // Every card from one source (page, app window, imported deck): provenance.identifier is the clustering key.
+  if (sourceIdentifier) conds.push(sql`${schema.cards.provenance}->>'identifier' = ${sourceIdentifier}`);
   // A card has one schedule per component; its "due" is the earliest of them.
   const due = db.select({
     cardId: schema.cardReviewState.cardId,
@@ -112,7 +114,8 @@ async function listCards(userId: string, sourceUrlPrefix?: string) {
 
 router.on('GET', 'cards', authed(async (req, res, user) => {
   const prefix = typeof req.query.source_url_prefix === 'string' ? req.query.source_url_prefix : undefined;
-  res.status(200).json(await listCards(user.id, prefix));
+  const source = typeof req.query.source === 'string' ? req.query.source : undefined;
+  res.status(200).json(await listCards(user.id, prefix, source));
 }));
 
 // Creates through the diary (card.ingest). Accepts the new {spec, provenance} form and the

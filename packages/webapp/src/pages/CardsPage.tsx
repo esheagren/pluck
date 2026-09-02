@@ -17,6 +17,7 @@ import CardGrid from '../components/CardGrid';
 import CreateFolderButton from '../components/CreateFolderButton';
 import FolderList from '../components/FolderList';
 import FolderBadge from '../components/FolderBadge';
+import { sourceHref, sourceKey, sourceLabel } from '../utils/source';
 import type { CardsPageProps, Card } from '../types';
 
 const FOLDER_ORDER_KEY = 'pluckk-folder-order';
@@ -175,13 +176,16 @@ export default function CardsPage({
   );
 
   // Filter cards based on selected folder
+  // ?source=<provenance identifier>: every card captured from one page / app window / imported deck.
+  const sourceFilter = searchParams.get('source');
   const filteredCards = useMemo(() => {
+    if (sourceFilter) return cards.filter((c) => sourceKey(c) === sourceFilter);
     if (selectedFolderId === 'all') return cards;
     if (selectedFolderId === 'unfiled') {
       return cards.filter((c) => !c.folder_id);
     }
     return cards.filter((c) => c.folder_id === selectedFolderId);
-  }, [cards, selectedFolderId]);
+  }, [cards, selectedFolderId, sourceFilter]);
 
   // Get the active card being dragged
   const activeCard = useMemo(() => {
@@ -418,6 +422,21 @@ export default function CardsPage({
           </div>
         </div>
 
+        {sourceFilter && (
+          <div className="mb-4 flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
+            <span>
+              {filteredCards.length} card{filteredCards.length === 1 ? '' : 's'} from{' '}
+              <span className="font-medium text-gray-800 dark:text-gray-100">
+                {filteredCards[0] ? sourceLabel(filteredCards[0]) ?? sourceFilter : sourceFilter}
+              </span>
+            </span>
+            <button type="button"
+              onClick={() => setSearchParams((p) => { const n = new URLSearchParams(p); n.delete('source'); return n; })}
+              className="text-xs px-2 py-0.5 rounded-full border border-gray-200 dark:border-dark-border hover:bg-gray-100 dark:hover:bg-gray-800">
+              Show all
+            </button>
+          </div>
+        )}
         <CardGrid
           cards={filteredCards}
           onCardClick={setSelectedCard}
@@ -507,18 +526,26 @@ export default function CardsPage({
                   className="w-full p-3 border border-gray-200 dark:border-dark-border rounded-lg text-gray-800 dark:text-gray-200 bg-white dark:bg-dark-bg resize-none focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 overflow-hidden min-h-[60px]"
                 />
               </div>
-              {selectedCard.source_url && (
-                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-dark-border">
-                  <a
-                    href={selectedCard.source_selector
-                      ? `${selectedCard.source_url}${selectedCard.source_url.includes('?') ? '&' : '?'}pluckk_card=${selectedCard.id}`
-                      : selectedCard.source_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 hover:underline"
-                  >
-                    View source
-                  </a>
+              {(sourceLabel(selectedCard) || sourceKey(selectedCard)) && (
+                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-dark-border text-xs text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {sourceLabel(selectedCard) && <span className="truncate max-w-[60%]" title={sourceLabel(selectedCard) ?? undefined}>{sourceLabel(selectedCard)}</span>}
+                  {sourceHref(selectedCard) && (
+                    <a href={sourceHref(selectedCard)!} target="_blank" rel="noopener noreferrer"
+                      className="text-blue-500 dark:text-blue-400 hover:underline">
+                      Visit source
+                    </a>
+                  )}
+                  {sourceKey(selectedCard) && (
+                    <button type="button"
+                      onClick={() => {
+                        const key = sourceKey(selectedCard)!;
+                        setSelectedCard(null);
+                        setSearchParams((p) => { const n = new URLSearchParams(p); n.set('source', key); return n; });
+                      }}
+                      className="text-blue-500 dark:text-blue-400 hover:underline">
+                      All cards from this source ({cards.filter((c) => sourceKey(c) === sourceKey(selectedCard)).length})
+                    </button>
+                  )}
                 </div>
               )}
               <div className="mt-6 flex gap-3">
