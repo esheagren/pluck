@@ -41,11 +41,11 @@ export function useCards(userId: string | undefined): UseCardsReturn {
     }
   }, []);
 
-  const deleteCard = useCallback(async (cardId: string): Promise<OperationResult> => {
+  const deleteCard = useCallback(async (cardId: string): Promise<OperationResult<{ event_id?: string }>> => {
     try {
-      await api.cards.remove(cardId);
+      const res = await api.cards.remove(cardId);
       setCards((prev) => prev.filter((card) => card.id !== cardId));
-      return { success: true };
+      return { success: true, data: { event_id: res.event_id } };
     } catch (error) {
       console.error('Error deleting card:', error);
       return { error };
@@ -66,5 +66,17 @@ export function useCards(userId: string | undefined): UseCardsReturn {
     []
   );
 
-  return { cards, loading, refetch: fetchCards, getShuffledCards, updateCard, deleteCard, moveCardToFolder };
+  /** Undo a delete (or any latest change) by event id, then reload the list. */
+  const restoreCard = useCallback(async (eventId: string): Promise<OperationResult> => {
+    try {
+      await api.review.undo(eventId);
+      await fetchCards();
+      return { success: true };
+    } catch (error) {
+      console.error('Error restoring card:', error);
+      return { error };
+    }
+  }, [fetchCards]);
+
+  return { cards, loading, refetch: fetchCards, getShuffledCards, updateCard, deleteCard, restoreCard, moveCardToFolder };
 }

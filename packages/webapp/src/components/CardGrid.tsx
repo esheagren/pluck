@@ -49,6 +49,16 @@ export default function CardGrid({
               <span className="absolute top-3 left-3 text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
                 {getRelativeDueDate(card.due_at)}
               </span>
+              {card.spec?.style === 'qa_bidirectional' && (
+                <span className="absolute top-3 right-3 text-[11px] px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300" title="One card, two directions">
+                  ⇄ 2 directions
+                </span>
+              )}
+              {card.spec?.style === 'cloze_list' && (
+                <span className="absolute top-3 right-3 text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300" title="One card, one prompt per item">
+                  ☰ {card.spec.prompts.length} prompts
+                </span>
+              )}
               <div className="text-sm text-gray-800 dark:text-gray-200 line-clamp-3 mb-3 mt-6">
                 {card.question}
               </div>

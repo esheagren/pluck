@@ -554,8 +554,9 @@ function toggleCard(index: number): void {
 }
 
 /**
- * Get all selected cards with edits applied
- * Expands qa_bidirectional into two separate cards for storage
+ * Get all selected cards with edits applied.
+ * One save per generated card: a bidirectional or list card is ONE card whose
+ * components (forward/reverse, one per prompt) are scheduled separately by the server.
  */
 function getSelectedCards(): CardToSave[] {
   const result: CardToSave[] = [];
@@ -565,49 +566,47 @@ function getSelectedCards(): CardToSave[] {
     const edited = editedCards[index] || {};
 
     if (card.style === 'qa_bidirectional') {
-      // Expand bidirectional card into two separate cards
-      result.push({
+      const forward = {
         question: edited.forwardQuestion !== undefined ? edited.forwardQuestion : card.forward?.question || '',
         answer: edited.forwardAnswer !== undefined ? edited.forwardAnswer : card.forward?.answer || '',
-        style: 'qa',
-        tags: card.tags,
-        direction: 'forward'
-      });
-      result.push({
+      };
+      const reverse = {
         question: edited.reverseQuestion !== undefined ? edited.reverseQuestion : card.reverse?.question || '',
         answer: edited.reverseAnswer !== undefined ? edited.reverseAnswer : card.reverse?.answer || '',
-        style: 'qa',
-        tags: card.tags,
-        direction: 'reverse'
+      };
+      if (!forward.question || !forward.answer || !reverse.question || !reverse.answer) return;
+      result.push({
+        question: forward.question, answer: forward.answer, style: 'qa_bidirectional', tags: card.tags,
+        spec: { style: 'qa_bidirectional', forward, reverse },
       });
     } else if (card.style === 'cloze_list') {
-      // Expand cloze_list into individual cloze cards
-      const prompts = card.prompts || [];
-      for (const prompt of prompts) {
-        result.push({
-          question: prompt.question,
-          answer: prompt.answer,
-          style: 'cloze',
-          tags: card.tags,
-          list_name: card.list_name
-        });
-      }
+      const prompts = (card.prompts || []).filter(p => p.question && p.answer);
+      if (prompts.length === 0) return;
+      result.push({
+        question: prompts[0].question, answer: prompts[0].answer, style: 'cloze_list', tags: card.tags,
+        spec: { style: 'cloze_list', listName: card.list_name || 'List', items: card.items || [], prompts },
+      });
     } else if (card.style === 'diagram') {
       // Include diagram info for potential image generation
+      const question = edited.question !== undefined ? edited.question : card.question || '';
+      const answer = edited.answer !== undefined ? edited.answer : card.answer || '';
       result.push({
-        question: edited.question !== undefined ? edited.question : card.question || '',
-        answer: edited.answer !== undefined ? edited.answer : card.answer || '',
+        question, answer,
         style: card.style,
+        spec: { style: 'diagram', question, answer },
         tags: card.tags,
         diagram_prompt: card.diagram_prompt,
         generateDiagram: diagramGenerateFlags[index] || false
       });
     } else {
       // Standard card
+      const question = edited.question !== undefined ? edited.question : card.question || '';
+      const answer = edited.answer !== undefined ? edited.answer : card.answer || '';
+      const style = (['qa', 'cloze', 'explanation', 'application', 'diagram'] as const).find(s => s === card.style) ?? 'qa';
       result.push({
-        question: edited.question !== undefined ? edited.question : card.question || '',
-        answer: edited.answer !== undefined ? edited.answer : card.answer || '',
+        question, answer,
         style: card.style,
+        spec: { style, question, answer },
         tags: card.tags
       });
     }
@@ -637,6 +636,7 @@ async function sendToMochi(): Promise<void> {
         action: string;
         question: string;
         answer: string;
+        spec: CardToSave['spec'];
         sourceUrl: string;
         tags?: string[];
         screenshotData?: string;
@@ -654,6 +654,7 @@ async function sendToMochi(): Promise<void> {
         action: 'sendToMochi',
         question: card.question,
         answer: card.answer,
+        spec: card.spec,
         sourceUrl: sourceUrl,
         tags: card.tags,
         // Include source context for storage

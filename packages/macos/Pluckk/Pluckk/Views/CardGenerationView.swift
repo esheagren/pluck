@@ -404,60 +404,14 @@ struct CardGenerationView: View {
         editingCardIndex = nil
     }
 
-    /// Expand a card into individual saveable cards
-    /// - qa_bidirectional → 2 separate qa cards (forward + reverse)
-    /// - cloze_list → N separate cloze cards (one per prompt)
-    /// - Others → pass through unchanged
-    /// Returns empty array for invalid cards (missing required data)
-    private func expandCard(_ card: GeneratedCard) -> [GeneratedCard] {
-        switch card.style {
-        case .qa_bidirectional:
-            var result: [GeneratedCard] = []
-            if let forward = card.forward {
-                result.append(GeneratedCard(
-                    style: .qa,
-                    question: forward.question,
-                    answer: forward.answer
-                ))
-            }
-            if let reverse = card.reverse {
-                result.append(GeneratedCard(
-                    style: .qa,
-                    question: reverse.question,
-                    answer: reverse.answer
-                ))
-            }
-            // Don't return invalid cards - skip if no forward/reverse pairs
-            if result.isEmpty {
-                print("WARNING: Bidirectional card has no forward/reverse pairs, skipping")
-            }
-            return result
-
-        case .cloze_list:
-            guard let prompts = card.prompts, !prompts.isEmpty else {
-                print("WARNING: List card has no prompts, skipping")
-                return []
-            }
-            return prompts.map { prompt in
-                GeneratedCard(
-                    style: .cloze,
-                    question: prompt.question,
-                    answer: prompt.answer
-                )
-            }
-
-        default:
-            return [card]
-        }
-    }
-
-    /// Expand all selected cards for saving (with bounds checking)
-    private func expandSelectedCards() -> [GeneratedCard] {
-        let selectedCards = appState.selectedCardIndices.compactMap { index -> GeneratedCard? in
+    /// The selected cards, in order, dropping any with no usable content. A bidirectional
+    /// or list card is saved as ONE card; the server schedules its components (core-engine step 4).
+    private func selectedCardsForSaving() -> [GeneratedCard] {
+        appState.selectedCardIndices.sorted().compactMap { index -> GeneratedCard? in
             guard index < appState.generatedCards.count else { return nil }
-            return appState.generatedCards[index]
+            let card = appState.generatedCards[index]
+            return card.expandedCardCount > 0 ? card : nil
         }
-        return selectedCards.flatMap { expandCard($0) }
     }
 
     private func sendCards() {
@@ -466,15 +420,15 @@ struct CardGenerationView: View {
             return
         }
 
-        // Expand cards (bidirectional → 2, list → N)
-        let expandedCards = expandSelectedCards()
+        let expandedCards = selectedCardsForSaving()
         guard !expandedCards.isEmpty else {
-            print("CardGenerationView: sendCards - No cards to send after expansion!")
+            print("CardGenerationView: sendCards - No cards to send!")
             appState.generationError = "Selected cards contain invalid data and cannot be saved"
             return
         }
+        let selection: String? = { if case .text(let t) = appState.capturedContent { return t } ; return nil }()
 
-        print("CardGenerationView: sendCards - Starting to send \(expandedCards.count) expanded card(s)")
+        print("CardGenerationView: sendCards - Starting to send \(expandedCards.count) card(s)")
         print("CardGenerationView: sendCards - Source URL: \(appState.sourceContext?.displayString ?? "none")")
         print("CardGenerationView: sendCards - Deck ID: \(appState.selectedDeckId ?? "none")")
 
@@ -490,6 +444,8 @@ struct CardGenerationView: View {
                         card: card,
                         sourceUrl: appState.sourceContext?.displayString ?? "",
                         sourceTitle: appState.sourceContext?.windowTitle,
+                        appName: appState.sourceContext?.appName,
+                        selection: selection,
                         deckId: appState.selectedDeckId
                     )
                     successCount += 1

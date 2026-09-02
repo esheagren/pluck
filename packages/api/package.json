@@ -12,13 +12,18 @@
     "db:migrate": "dotenv -e .env.local -- drizzle-kit migrate",
     "db:studio": "dotenv -e .env.local -- drizzle-kit studio",
     "db:import": "dotenv -e .env.local -- tsx scripts/import-supabase.ts",
-    "smoke": "dotenv -e .env.local -- tsx scripts/smoke.ts"
+    "smoke": "dotenv -e .env.local -- tsx scripts/smoke.ts",
+    "db:backfill": "dotenv -e .env.local -- tsx scripts/backfill-events.ts",
+    "db:verify": "dotenv -e .env.local -- tsx scripts/verify-snapshots.ts",
+    "smoke:mixer": "dotenv -e .env.local -- tsx scripts/smoke-mixer.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
     "@vercel/blob": "^2.0.0",
     "drizzle-orm": "^0.45.2",
-    "google-auth-library": "^10.0.0"
+    "google-auth-library": "^10.0.0",
+    "@pluckk/core": "*",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@vercel/node": "^5.5.22",

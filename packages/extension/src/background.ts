@@ -644,6 +644,8 @@ interface SendToMochiRequest extends ExtensionMessage {
   action: 'sendToMochi';
   question: string;
   answer: string;
+  /** Full authored card; the server schedules its components. */
+  spec?: import('@pluckk/core/entities').CardSpec;
   sourceUrl: string;
   tags?: string[];
   screenshotData?: string;
@@ -759,6 +761,7 @@ chrome.runtime.onMessage.addListener(
           const card = await api.cards.create({
             question: req.question,
             answer: req.answer,
+            spec: req.spec,
             source_url: req.sourceUrl,
             source_selection: req.sourceSelection,
             source_context: req.sourceContext,

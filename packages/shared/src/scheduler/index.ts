@@ -1,29 +1,20 @@
 /**
- * Spaced Repetition Scheduler
- *
- * This module provides a pluggable spaced repetition algorithm.
- * To replace the algorithm, create a new file with the same interface
- * and update the imports below.
+ * Spaced Repetition Scheduler — now lives in @pluckk/core. This module re-exports
+ * the same names so existing imports keep working while the webapp moves to the
+ * server-computed review path (core-engine plan, step 3).
  */
-
-// Algorithm implementation (swap this import to change algorithms)
 export {
   calculateNextReview,
   getIntervalDisplay,
   previewIntervals,
   getInitialState,
   getRelativeDueDate,
-} from './sm2-simple';
-
-// Constants and configuration
-export {
   DEFAULT_CONFIG,
   RATINGS,
   STATUS,
   ALGORITHM_VERSION,
-} from './constants';
+} from '@pluckk/core/scheduler';
 
-// Type exports
 export type {
   Rating,
   CardStatus,
@@ -37,4 +28,4 @@ export type {
   GraduationIntervals,
   RatingsMap,
   StatusMap,
-} from './types';
+} from '@pluckk/core/scheduler';

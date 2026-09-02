@@ -61,6 +61,8 @@ export interface SendToMochiMessage extends ExtensionMessage {
   action: 'sendToMochi';
   question: string;
   answer: string;
+  /** The full authored card (components scheduled server-side). question/answer above are its first component. */
+  spec?: import('@pluckk/core/entities').CardSpec;
   sourceUrl: string;
   tags?: string[];
   screenshotData?: string;

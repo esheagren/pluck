@@ -5,17 +5,22 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:extension": "npm run dev -w @pluckk/extension",
-    "dev:webapp": "npm run dev -w @pluckk/webapp",
+    "dev:extension": "npm run build:core && npm run dev -w @pluckk/extension",
+    "dev:webapp": "npm run build:core && npm run dev -w @pluckk/webapp",
     "dev:api": "npm run dev -w @pluckk/api",
     "build": "npm run build --workspaces --if-present",
-    "build:extension": "npm run build -w @pluckk/extension",
-    "build:webapp": "npm run build -w @pluckk/webapp",
-    "deploy:api": "npm run deploy -w @pluckk/api"
+    "build:extension": "npm run build:core && npm run build -w @pluckk/extension",
+    "build:webapp": "npm run build:core && npm run build -w @pluckk/webapp",
+    "deploy:api": "npm run deploy -w @pluckk/api",
+    "typecheck": "npm run build:core && npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "build:core": "npm run build -w @pluckk/core"
   },
   "devDependencies": {
     "@types/node": "^25.0.9",
+    "drizzle-orm": "^0.45.2",
     "typescript": "^5.9.3",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "vitest": "^3.2.4"
   }
 }

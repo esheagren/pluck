@@ -4,6 +4,13 @@
     "outDir": "./dist",
     "rootDir": "."
   },
-  "include": ["api/**/*", "lib/**/*"],
-  "exclude": ["node_modules"]
+  "include": [
+    "api/**/*",
+    "lib/**/*",
+    "scripts/**/*",
+    "db/**/*"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

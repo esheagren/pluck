@@ -4,6 +4,7 @@
  */
 
 import type { GeneratedCard, UsageInfo } from './messages';
+import type { CardSpec } from '@pluckk/core/entities';
 
 // UI mode states
 export type UIMode =
@@ -52,12 +53,13 @@ export interface PopupState {
 
 // Card to be saved (with edits applied)
 export interface CardToSave {
+  /** Legacy flat fields (also what Mochi receives). For composites: the first component. */
   question: string;
   answer: string;
   style: string;
+  /** The full authored card — one save per generated card, components scheduled server-side. */
+  spec: CardSpec;
   tags?: string[];
-  direction?: 'forward' | 'reverse';
-  list_name?: string;
   diagram_prompt?: string;
   generateDiagram?: boolean;
 }

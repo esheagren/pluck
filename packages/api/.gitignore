@@ -1,4 +1,6 @@
 .vercel
 .env.local
 .env*.local
-drizzle/
+
+# built core package
+packages/core/dist

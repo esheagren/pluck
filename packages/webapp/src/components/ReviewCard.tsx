@@ -1,6 +1,16 @@
 import { useState, useEffect, useRef, type FocusEvent, type KeyboardEvent, type JSX } from 'react';
 import FolderBadge from './FolderBadge';
+import { sourceHref, sourceLabel } from '../utils/source';
 import type { ReviewCardProps, FolderWithColor } from '../types';
+
+/** Type that fits its content (Orbit-style): short answers are large, long ones step down. */
+function fitText(text: string): string {
+  const n = text.trim().length;
+  if (n <= 60) return 'text-3xl leading-snug';
+  if (n <= 140) return 'text-2xl leading-snug';
+  if (n <= 320) return 'text-xl leading-relaxed';
+  return 'text-base leading-relaxed';
+}
 
 export default function ReviewCard({
   card,
@@ -166,7 +176,7 @@ export default function ReviewCard({
             </div>
           )}
           <div className="flex flex-col items-center gap-4">
-            <div className="text-lg leading-relaxed text-center text-gray-800 dark:text-gray-100">
+            <div className={`${fitText(displayQuestion)} text-center text-gray-800 dark:text-gray-100 [text-wrap:balance]`}>
               {displayQuestion}
             </div>
             {/* Image on the front too — for imported image-question decks (e.g. art)
@@ -378,7 +388,7 @@ export default function ReviewCard({
                 placeholder="Answer"
               />
             ) : (
-              <div className="text-lg leading-relaxed text-center text-gray-800 dark:text-gray-100">
+              <div className={`${fitText(displayAnswer)} text-center text-gray-800 dark:text-gray-100 [text-wrap:balance]`}>
                 {displayAnswer}
               </div>
             )}
@@ -394,17 +404,16 @@ export default function ReviewCard({
               />
             )}
           </div>
-          {card.source_url && (
+          {sourceHref(card) && (
             <a
-              href={card.source_selector
-                ? `${card.source_url}${card.source_url.includes('?') ? '&' : '?'}pluckk_card=${card.id}`
-                : card.source_url}
+              href={sourceHref(card)!}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
+              title={sourceLabel(card) ?? undefined}
               className="mt-4 text-xs text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 hover:underline"
             >
-              Source
+              Source{sourceLabel(card) ? ` · ${sourceLabel(card)}` : ''}
             </a>
           )}
         </div>

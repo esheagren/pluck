@@ -46,6 +46,8 @@ export default function ReviewPage({
     currentIndex,
     getIntervalPreviews,
     submitReview,
+    undoLastReview,
+    canUndo,
     skipCard,
     removeCard,
     startNewCardsSession,
@@ -76,6 +78,14 @@ export default function ReviewPage({
     },
     [isFlipped, submitting, submitReview]
   );
+
+  const handleUndo = useCallback(async (): Promise<void> => {
+    if (!canUndo || submitting) return;
+    setSubmitting(true);
+    const ok = await undoLastReview();
+    setSubmitting(false);
+    if (ok) setIsFlipped(true);  // the answer was already seen; land on the rating buttons
+  }, [canUndo, submitting, undoLastReview]);
 
   const handleStartNewCards = useCallback(
     (ignoreLimit = false): void => {
@@ -120,6 +130,13 @@ export default function ReviewPage({
       if (e.code === 'Tab') {
         e.preventDefault();
         skipCard();
+        return;
+      }
+
+      // Z (or ⌘Z) undoes the last rating
+      if (e.code === 'KeyZ' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        void handleUndo();
         return;
       }
 
@@ -376,6 +393,17 @@ export default function ReviewPage({
                 <span className={`absolute inset-0 flex flex-col items-center justify-center transition-opacity pointer-events-none ${showShortcuts ? 'opacity-100' : 'opacity-0'}`}><span className="text-[10px] opacity-70">Press</span><span className="text-base font-bold -mt-0.5">4</span></span>
               </button>
             </div>
+            {canUndo && (
+              <button
+                type="button"
+                onClick={handleUndo}
+                disabled={submitting}
+                className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
+                title="Undo the last rating (Z)"
+              >
+                ↶ Undo last rating
+              </button>
+            )}
             {/* Info icon - hover reveals shortcuts on buttons */}
             <button
               type="button"
