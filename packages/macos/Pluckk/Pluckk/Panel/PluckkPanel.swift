@@ -9,7 +9,7 @@ class PluckkPanel: NSPanel {
     static var shared: PluckkPanel?
 
     private let collapsedWidth: CGFloat = 120
-    private let collapsedHeight: CGFloat = 10
+    private let collapsedHeight: CGFloat = 12
     private let minExpandedWidth: CGFloat = 280
     private let maxExpandedWidth: CGFloat = 500
     private let expandedHeight: CGFloat = 560
@@ -60,6 +60,9 @@ class PluckkPanel: NSPanel {
         // Set up content view
         let sidebarView = SidebarView(isExpanded: isExpanded, panelWidth: expandedWidth)
         hostingView = NSHostingView(rootView: sidebarView)
+        // The panel's size is decided here, never by SwiftUI: otherwise the hosting view
+        // resizes the window to the content's ideal size, which is 0×0 for the collapsed pill.
+        hostingView?.sizingOptions = []
         hostingView?.frame = contentView?.bounds ?? .zero
         hostingView?.autoresizingMask = [.width, .height]
         contentView = hostingView

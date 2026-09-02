@@ -23,6 +23,7 @@ struct SidebarView: View {
                 AmbientStripView(state: stripState)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Color.white.opacity(0.28), lineWidth: 1))
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
