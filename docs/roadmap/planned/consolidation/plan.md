@@ -35,6 +35,10 @@ Exit: `⌘⌘` in any app saves a card to Neon.
 
 ## Phase 3 — Core + server-owned domain (two to three sessions)
 
+> **Superseded 2026-09-02** by `docs/roadmap/planned/core-engine/plan.md` (the Orbit-informed core: event
+> diary, card components, provenance, capture keys, scheduler mechanics), which also absorbs the review-screen
+> items from Phase 5. The text below is kept for the record.
+
 `packages/core` (types from schema + wire types, scheduler, `expandGeneratedCards`, all prompt builders,
 helpers) with a real build so the API imports it. `POST /cards` expands composites server-side; `POST /review`
 takes a rating and computes SM-2 server-side (returns state + previews). File-based API routes adopt the
