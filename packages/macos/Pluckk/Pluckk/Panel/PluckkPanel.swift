@@ -41,11 +41,12 @@ class PluckkPanel: NSPanel {
         // Set shared instance for access from SwiftUI views
         PluckkPanel.shared = self
 
-        setFrame(frame(width: collapsedWidth, height: collapsedHeight, on: screenUnderMouse()), display: true)
-
-        // Panel configuration
+        // Panel configuration. The style mask must be borderless BEFORE the frame is set:
+        // NSPanel() starts out titled, and a titled window clamps a 12pt-tall frame to a
+        // zero-height content rect, which then becomes the whole frame once borderless.
         level = .floating
         styleMask = [.borderless, .nonactivatingPanel]
+        setFrame(frame(width: collapsedWidth, height: collapsedHeight, on: screenUnderMouse()), display: true)
         isOpaque = false
         backgroundColor = .clear
         hasShadow = true
@@ -69,6 +70,7 @@ class PluckkPanel: NSPanel {
 
         // Show the panel
         orderFrontRegardless()
+        print("PluckkPanel: collapsed at \(frame)")
 
         // Monitor for screen changes
         NotificationCenter.default.addObserver(
