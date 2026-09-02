@@ -268,6 +268,7 @@ export async function reviewCard(
 
   const { card, events } = await commit(db, [{
     type: 'card.review', userId, cardId, componentId, rating, sessionId: opts.sessionId ?? null, responseMs: opts.responseMs ?? null,
+    mechanics: defaultScheduler.mechanics,
   }]);
   if (!card) throw new CardError(500, 'Card vanished during review');
   const [state] = await db.select().from(schema.cardReviewState).where(and(

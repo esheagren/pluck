@@ -4,7 +4,7 @@
 
 import { componentIdsOf, type Card, type ComponentId, type ComponentState } from './entities.js';
 import { sortEvents, type CardEvent } from './events.js';
-import { defaultScheduler, type Scheduler } from './scheduler/index.js';
+import { defaultScheduler, MECHANICS_OFF, type Scheduler } from './scheduler/index.js';
 
 export class ReducerError extends Error {
   constructor(message: string, public readonly event: CardEvent) {
@@ -60,7 +60,8 @@ export function reduce(card: Card | null, event: CardEvent, scheduler: Scheduler
     case 'card.review': {
       const state = card.components[event.componentId];
       if (!state) return card;
-      const next = scheduler.next(state, event.rating, new Date(event.at));
+      // Replay with the mechanics that were in force when the rating happened.
+      const next = scheduler.next(state, event.rating, new Date(event.at), event.mechanics ?? MECHANICS_OFF);
       return { ...card, components: { ...card.components, [event.componentId]: next } };
     }
     case 'card.reschedule':

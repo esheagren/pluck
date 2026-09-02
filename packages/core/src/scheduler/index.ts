@@ -11,7 +11,8 @@ export interface Scheduler {
   id: string;
   mechanics: Mechanics;
   initial(now: Date): ComponentState;
-  next(state: ComponentState, rating: Rating, now: Date): ComponentState;
+  /** `mechanics` overrides the scheduler's own — the reducer passes the ones recorded on the event. */
+  next(state: ComponentState, rating: Rating, now: Date, mechanics?: Mechanics): ComponentState;
   preview(state: ComponentState, now: Date): IntervalPreviews;
   isDue(state: Pick<ComponentState, 'dueAt'>, now: Date): boolean;
 }
@@ -21,7 +22,7 @@ export function sm2Scheduler(config: SM2Config = DEFAULT_CONFIG, mechanics: Mech
     id: SCHEDULER_ID,
     mechanics,
     initial: (now) => initialComponentState(now, config),
-    next: (state, rating, now) => computeNext(state, rating, now, config, mechanics),
+    next: (state, rating, now, m) => computeNext(state, rating, now, config, m ?? mechanics),
     preview: (state, now) => previewComponent(state, now, config, mechanics),
     isDue: (state, now) => isDue(state, now, mechanics),
   };

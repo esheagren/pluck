@@ -16,7 +16,7 @@ import { and, desc, eq, gte, inArray, like, sql } from 'drizzle-orm';
 import { selectSession } from '../lib/mixer.js';
 import { OAuth2Client } from 'google-auth-library';
 import { put } from '@vercel/blob';
-import { MAIN_COMPONENT, SCHEDULER_ID, createCardBodySchema, parseBody, patchCardBodySchema, reviewSubmitBodySchema, reviewUndoBodySchema } from '@pluckk/core';
+import { DEFAULT_MECHANICS, MAIN_COMPONENT, SCHEDULER_ID, createCardBodySchema, parseBody, patchCardBodySchema, reviewSubmitBodySchema, reviewUndoBodySchema } from '@pluckk/core';
 import { getDb, schema } from '../lib/db.js';
 import { authenticateRequest, isAuthError, issueToken, revokeToken } from '../lib/auth.js';
 import { CardError, createCard, deleteCard, patchCard, reviewCard, setCardImage, undoEvent, unfileCardsOfFolder } from '../lib/cards.js';
@@ -241,7 +241,7 @@ router.on('GET', 'review/decks', authed(async (_req, res, user) => {
     select c.folder_id, f.name, coalesce(f.is_paused, false) as is_paused,
            count(distinct c.id)::int as total,
            count(distinct c.id) filter (where s.id is null or s.status = 'new')::int as new,
-           count(distinct c.id) filter (where s.due_at <= now() and s.status <> 'new')::int as due
+           count(distinct c.id) filter (where s.due_at <= now() + make_interval(hours => ${DEFAULT_MECHANICS.dueLookaheadHours}) and s.status <> 'new')::int as due
     from cards c
     left join folders f on f.id = c.folder_id
     left join card_review_state s on s.card_id = c.id and s.user_id = c.user_id

@@ -2,6 +2,7 @@
 // A card's current state is what you get by reducing its events in order.
 
 import type { CardSpec, ComponentId, ComponentState, Provenance, Rating } from './entities.js';
+import type { Mechanics } from './scheduler/types.js';
 
 export interface EventBase {
   id: string;
@@ -23,7 +24,12 @@ export type CardEventBody =
       captureKey: string | null;
       imageUrl?: string | null;
     }
-  | { type: 'card.review'; componentId: ComponentId; rating: Rating; sessionId?: string | null; responseMs?: number | null }
+  /**
+   * A rating. `mechanics` records the scheduler mechanics in force when it happened, so a
+   * replay after the defaults change reproduces the same state; events without it were
+   * written before the mechanics existed and replay with them all off.
+   */
+  | { type: 'card.review'; componentId: ComponentId; rating: Rating; sessionId?: string | null; responseMs?: number | null; mechanics?: Mechanics }
   /** Sets a component's whole state. Used by the backfill, by undo, and by algorithm swaps. */
   | { type: 'card.reschedule'; componentId: ComponentId; state: ComponentState }
   | { type: 'card.setDeleted'; isDeleted: boolean }

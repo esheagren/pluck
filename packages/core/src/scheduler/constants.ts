@@ -28,7 +28,8 @@ export const MECHANICS_ORBIT: Mechanics = {
   dueLookaheadHours: 16,
 };
 
-export const DEFAULT_MECHANICS: Mechanics = MECHANICS_OFF;
+/** Switched on 2026-09-02 (core-engine step 7). Every review event records the mechanics it used. */
+export const DEFAULT_MECHANICS: Mechanics = MECHANICS_ORBIT;
 
 export const RATINGS: RatingsMap = { AGAIN: 'again', HARD: 'hard', GOOD: 'good', EASY: 'easy' } as const;
 export const STATUS: StatusMap = { NEW: 'new', LEARNING: 'learning', REVIEW: 'review', RELEARNING: 'relearning', SUSPENDED: 'suspended' } as const;
