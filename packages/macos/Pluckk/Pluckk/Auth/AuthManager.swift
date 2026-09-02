@@ -6,8 +6,12 @@ import Security
 ///
 /// Flow: ASWebAuthenticationSession opens `pluckk.app/auth/desktop` → the web app
 /// runs its normal Google sign-in → its callback page redirects to
-/// `pluckk://auth/callback#token=pk_…` → we keep the opaque Pluckk bearer token in
-/// the Keychain. No refresh tokens: the token lives until revoked; a 401 signs out.
+/// `pluckk://auth/callback#token=pk_…` → we keep the opaque Pluckk bearer token in a
+/// private file (owner-only permissions) under Application Support. Not the Keychain:
+/// login-keychain items are bound to the app's code signature, so every rebuild made
+/// macOS demand the login password. This is the same trust model as the extension's
+/// chrome.storage and the webapp's localStorage, and the token is revocable server-side.
+/// No refresh tokens: the token lives until revoked; a 401 signs out.
 class AuthManager: NSObject, ObservableObject {
     static let shared = AuthManager()
 
@@ -19,14 +23,22 @@ class AuthManager: NSObject, ObservableObject {
     private let keychainService = Config.bundleIdentifier
     private let tokenKey = "pluckkToken"
 
+    /// ~/Library/Application Support/Pluckk/session — the bearer token, mode 0600.
+    private let tokenFileURL: URL = {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        return base.appendingPathComponent("Pluckk", isDirectory: true).appendingPathComponent("session")
+    }()
+
     private var webAuthSession: ASWebAuthenticationSession?
     private var presentationContextProvider: AuthPresentationContextProvider?
 
     override private init() {
         super.init()
-        // One-time cleanup of Supabase-era Keychain entries.
+        // One-time cleanup of Keychain entries from earlier builds (Supabase era and the
+        // first thin-client build). Deleting never prompts; reading did.
         deleteFromKeychain(key: "accessToken")
         deleteFromKeychain(key: "refreshToken")
+        deleteFromKeychain(key: tokenKey)
         loadStoredToken()
     }
 
@@ -60,8 +72,8 @@ class AuthManager: NSObject, ObservableObject {
         if let token = accessToken {
             Task { await PluckkAPI.shared.revokeToken(token) }
         }
-        deleteFromKeychain(key: tokenKey)
-        accessToken = nil
+        deleteToken()
+accessToken = nil
         isAuthenticated = false
         AppState.shared.isAuthenticated = false
         AppState.shared.user = nil
@@ -71,8 +83,8 @@ class AuthManager: NSObject, ObservableObject {
     @MainActor
     func handleUnauthorized() {
         print("AuthManager: token rejected by API, signing out")
-        deleteFromKeychain(key: tokenKey)
-        accessToken = nil
+        deleteToken()
+accessToken = nil
         isAuthenticated = false
         AppState.shared.isAuthenticated = false
         AppState.shared.user = nil
@@ -100,7 +112,7 @@ class AuthManager: NSObject, ObservableObject {
         }
 
         accessToken = token
-        saveToKeychain(key: tokenKey, value: token)
+        saveToken(token)
         isAuthenticated = true
         AppState.shared.isAuthenticated = true
 
@@ -119,7 +131,7 @@ class AuthManager: NSObject, ObservableObject {
     }
 
     private func loadStoredToken() {
-        if let token = loadFromKeychain(key: tokenKey) {
+        if let token = loadToken() {
             accessToken = token
             isAuthenticated = true
             AppState.shared.isAuthenticated = true
@@ -143,34 +155,33 @@ class AuthManager: NSObject, ObservableObject {
         }
     }
 
-    // MARK: - Keychain
+    // MARK: - Token file
 
-    private func saveToKeychain(key: String, value: String) {
-        let data = value.data(using: .utf8)!
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: key,
-            kSecValueData as String: data
-        ]
-        SecItemDelete(query as CFDictionary)
-        SecItemAdd(query as CFDictionary, nil)
-    }
-
-    private func loadFromKeychain(key: String) -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: key,
-            kSecReturnData as String: true
-        ]
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-        if status == errSecSuccess, let data = result as? Data {
-            return String(data: data, encoding: .utf8)
+    private func saveToken(_ token: String) {
+        let fm = FileManager.default
+        let dir = tokenFileURL.deletingLastPathComponent()
+        do {
+            try fm.createDirectory(at: dir, withIntermediateDirectories: true,
+                                   attributes: [.posixPermissions: 0o700])
+            try token.data(using: .utf8)!.write(to: tokenFileURL, options: [.atomic])
+            try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: tokenFileURL.path)
+        } catch {
+            print("AuthManager: failed to save token: \(error.localizedDescription)")
         }
-        return nil
     }
+
+    private func loadToken() -> String? {
+        guard let data = try? Data(contentsOf: tokenFileURL),
+              let token = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              token.hasPrefix("pk_") else { return nil }
+        return token
+    }
+
+    private func deleteToken() {
+        try? FileManager.default.removeItem(at: tokenFileURL)
+    }
+
+    // MARK: - Legacy Keychain cleanup
 
     private func deleteFromKeychain(key: String) {
         let query: [String: Any] = [
