@@ -11,5 +11,11 @@
     "./utils": "./src/utils/index.js",
     "./scheduler": "./src/scheduler/index.js",
     "./types": "./src/types/index.ts"
+  },
+  "dependencies": {
+    "@pluckk/core": "*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
   }
 }

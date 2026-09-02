@@ -1,0 +1,26 @@
+{
+  "name": "@pluckk/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pluckk's engine: card entities, the event diary, the reducer, the scheduler, the session queue, and the API schemas. Pure TypeScript, no I/O — imported by the API, the webapp and the extension.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./entities": "./src/entities.ts",
+    "./events": "./src/events.ts",
+    "./reducer": "./src/reducer.ts",
+    "./scheduler": "./src/scheduler/index.ts",
+    "./queue": "./src/queue.ts",
+    "./api": "./src/api.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
+  }
+}
