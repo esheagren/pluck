@@ -146,15 +146,45 @@ class PluckkAPI {
 
     private struct CardRow: Decodable { let id: String }
 
+    /// The card as the core engine stores it: one spec, components scheduled server-side.
+    private func spec(for card: GeneratedCard) throws -> [String: Any] {
+        switch card.style {
+        case .qa_bidirectional:
+            guard let f = card.forward, let r = card.reverse else { throw APIError.serverError("Bidirectional card is missing a direction") }
+            return ["style": "qa_bidirectional",
+                    "forward": ["question": f.question, "answer": f.answer],
+                    "reverse": ["question": r.question, "answer": r.answer]]
+        case .cloze_list:
+            let prompts = (card.prompts ?? []).map { ["question": $0.question, "answer": $0.answer] }
+            guard !prompts.isEmpty else { throw APIError.serverError("List card has no prompts") }
+            return ["style": "cloze_list", "listName": card.listName ?? card.question, "items": card.items ?? [], "prompts": prompts]
+        default:
+            return ["style": card.style.rawValue, "question": card.question, "answer": card.answer]
+        }
+    }
+
     /// Save a card via POST /api/v1/cards; optionally mirror it to Mochi via the API.
-    func sendCard(token: String, card: GeneratedCard, sourceUrl: String, sourceTitle: String?, deckId: String?) async throws -> SendCardResponse {
+    /// Provenance for a native app: identifier "app:<app>/<window title>", containerTitle = app, title = window.
+    func sendCard(token: String, card: GeneratedCard, sourceUrl: String, sourceTitle: String?, appName: String? = nil, selection: String? = nil, deckId: String?) async throws -> SendCardResponse {
+        var provenance: [String: Any] = [
+            "identifier": "app:\(appName ?? "unknown")/\(sourceTitle ?? "")",
+            "title": sourceTitle ?? NSNull(),
+            "containerTitle": appName ?? NSNull(),
+        ]
+        if let selection, !selection.isEmpty {
+            provenance["selection"] = selection
+            provenance["selector"] = ["type": "TextQuote", "exact": selection]
+        }
         var body: [String: Any] = [
+            "spec": try spec(for: card),
+            "provenance": provenance,
             "question": card.question,
             "answer": card.answer,
             "style": card.style.rawValue,
             "source_url": sourceUrl,
         ]
         if let sourceTitle, !sourceTitle.isEmpty { body["source_title"] = sourceTitle }
+        if let selection, !selection.isEmpty { body["source_selection"] = selection }
         if let deckId { body["folder_id"] = deckId }
 
         let data = try await send(token: token, method: "POST", path: "/api/v1/cards", json: body)

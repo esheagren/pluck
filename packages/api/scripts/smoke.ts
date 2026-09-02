@@ -81,6 +81,22 @@ async function main() {
     check('deleted card is gone from reads → 404', m.result().status === 404);
     // the smoke card and its diary are hard-deleted so the DB stays clean
     await getDb().delete(schema.cards).where(eq(schema.cards.id, created.id));
+
+    // core-engine step 4: a bidirectional card is ONE card with two schedules
+    m = mock('POST', '/api/v1/cards', { token, body: { spec: { style: 'qa_bidirectional', forward: { question: 'smoke F?', answer: 'FA' }, reverse: { question: 'smoke R?', answer: 'RA' } } } }); await v1(m.req, m.res);
+    const bi = m.result().body as { id: string; spec: { style: string }; question: string };
+    check('POST cards (bidirectional spec) → one card', m.result().status === 201 && bi.spec.style === 'qa_bidirectional' && bi.question === 'smoke F?', bi.id);
+    const comps = await getDb().select({ c: schema.cardReviewState.componentId }).from(schema.cardReviewState).where(eq(schema.cardReviewState.cardId, bi.id));
+    check('two component schedules exist', comps.map((r) => r.c).sort().join(',') === 'forward,reverse', comps.map((r) => r.c));
+    m = mock('POST', '/api/v1/review/items', { token, body: { items: [{ card_id: bi.id, component_id: 'reverse' }, { card_id: bi.id, component_id: 'forward' }] } }); await v1(m.req, m.res);
+    const items = (m.result().body as { items: Array<{ component_id: string; question: string; component_count: number; previews: { good: string } }> }).items;
+    check('review/items renders each component', items.length === 2 && items[0].component_id === 'reverse' && items[0].question === 'smoke R?' && items[0].component_count === 2 && !!items[0].previews.good, items.map((i) => i.question));
+    m = mock('POST', '/api/v1/review', { token, body: { card_id: bi.id, component_id: 'reverse', rating: 'easy' } }); await v1(m.req, m.res);
+    const rv = m.result().body as { state: { component_id: string; interval_days: number }; previews: { good: string } };
+    check('review targets one component', m.result().status === 200 && rv.state.component_id === 'reverse' && rv.state.interval_days === 7, rv.state);
+    const fwd = comps.length ? (await getDb().select().from(schema.cardReviewState).where(eq(schema.cardReviewState.cardId, bi.id))).find((r) => r.componentId === 'forward') : null;
+    check('the other component is untouched', fwd?.status === 'new' && fwd.reviewCount === 0);
+    await getDb().delete(schema.cards).where(eq(schema.cards.id, bi.id));
   } finally {
     await revokeToken(token);
   }

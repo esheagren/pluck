@@ -232,10 +232,16 @@ export default function CardsPage({
     if (!selectedCard || !onUpdateCard) return;
 
     setSaving(true);
-    const result = await onUpdateCard(selectedCard.id, {
-      question: editQuestion,
-      answer: editAnswer,
-    });
+    // A composite card is edited through its spec: the modal shows its first component
+    // (forward direction / first prompt), so that is what the edit applies to.
+    const spec = selectedCard.spec;
+    const updates =
+      spec?.style === 'qa_bidirectional'
+        ? { spec: { ...spec, forward: { question: editQuestion, answer: editAnswer } } }
+        : spec?.style === 'cloze_list'
+          ? { spec: { ...spec, prompts: spec.prompts.map((p, i) => (i === 0 ? { question: editQuestion, answer: editAnswer } : p)) } }
+          : { question: editQuestion, answer: editAnswer };
+    const result = await onUpdateCard(selectedCard.id, updates);
     setSaving(false);
 
     if (!result.error) {

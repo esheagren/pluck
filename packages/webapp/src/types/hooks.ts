@@ -43,6 +43,9 @@ export interface Card {
   source_text_offset: number | null;
   created_at: string;
   updated_at: string;
+  /** core-engine: the authored card; composites have several components */
+  spec?: import('@pluckk/core/entities').CardSpec | null;
+  component_count?: number;
   /** Due date from card_review_state (optional, loaded separately) */
   due_at?: string | null;
 }
@@ -53,6 +56,10 @@ export interface Card {
 export interface CardWithReviewState extends Card {
   review_state: CardReviewState | null;
   is_new: boolean;
+  /** core-engine: which component of the card this queue entry is ('main', 'forward', 'p2'…) */
+  component_id: string;
+  /** Interval each rating would give, computed by the server for this component. */
+  previews?: IntervalPreviews | null;
   is_due?: boolean;
   _againCard?: boolean;
 }
@@ -455,7 +462,8 @@ export interface UseActivityStatsReturn {
  * Saved session data for persistence
  */
 export interface SavedSession {
-  cardIds: string[];
+  /** "cardId|componentId" keys in deal order. */
+  items: string[];
   currentIndex: number;
   timestamp: number;
   /** Which session config dealt these cards; a saved Mix session must not resume inside a Focus session. */
@@ -476,7 +484,10 @@ export interface RestoredSession {
 export interface ReviewSubmitResult {
   success?: boolean;
   error?: string | Error | unknown;
+  /** @deprecated the server schedules now; see `state` */
   newState?: NextReviewResult;
+  /** The component's state after the rating, as the server stored it. */
+  state?: CardReviewState;
 }
 
 /**

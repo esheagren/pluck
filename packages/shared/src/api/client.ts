@@ -3,6 +3,7 @@
 // token (localStorage in the webapp, chrome.storage in the extension).
 
 import { BACKEND_URL } from '../constants/api';
+import type { CardSpec, Provenance } from '@pluckk/core/entities';
 
 export interface AuthUser {
   id: string;
@@ -29,18 +30,37 @@ export interface CardRow {
   numeric_unit: string | null; numeric_precision: number | null;
   folder?: FolderRow | null;
   due_at?: string | null;
+  // core-engine: the authored card and where it came from. question/answer above mirror the first component.
+  spec?: CardSpec | null;
+  provenance?: Provenance | null;
+  capture_key?: string | null;
+  is_deleted?: boolean;
 }
 
 export interface ReviewStateRow {
-  id: string; card_id: string; user_id: string; status: string; due_at: string;
+  id: string; card_id: string; user_id: string; component_id: string; status: string; due_at: string;
   interval_days: number; ease_factor: number; review_count: number; lapse_count: number; streak: number;
   last_reviewed_at: string | null; created_at: string; updated_at: string;
+}
+
+export interface IntervalPreviews { again: string; hard: string; good: string; easy: string }
+
+/** One component of one card, rendered for review: what the session deals and what a rating targets. */
+export interface ReviewItem extends CardRow {
+  card_id: string;
+  component_id: string;
+  component_count: number;
+  is_new: boolean;
+  review_state: ReviewStateRow | null;
+  previews: IntervalPreviews;
 }
 
 export interface ReviewQueue { cards: CardRow[]; states: ReviewStateRow[]; new_reviewed_today: string[] }
 export interface ReviewSession {
   cards: CardRow[];
   states: ReviewStateRow[];
+  dealt: Array<{ card_id: string; component_id: string }>;
+  items: ReviewItem[];
   meta: {
     mode: string;
     per_folder: Record<string, { due: number; new: number; dealt: number }>;
@@ -63,6 +83,8 @@ export interface NewCardInput {
   folder_id?: string | null; image_url?: string | null;
   source_selection?: string; source_context?: string; source_title?: string;
   source_selector?: string; source_text_offset?: number;
+  /** core-engine: send the full card (composites stay one card) and structured provenance. */
+  spec?: CardSpec; provenance?: Provenance | null; capture_key?: string | null;
 }
 
 export class ApiError extends Error {
@@ -140,8 +162,12 @@ export function createApiClient(opts: ApiClientOptions) {
       decks: () => request<{ decks: DeckSummary[] }>('GET', '/api/v1/review/decks'),
       settings: () => request<ReviewSettings>('GET', '/api/v1/review/settings'),
       updateSettings: (s: Partial<ReviewSettings>) => request<{ success: true }>('PATCH', '/api/v1/review/settings', s),
-      submit: (payload: { card_id: string; rating: string; new_state: { status: string; due_at: string; interval_days: number; ease_factor: number }; algorithm_version?: string; response_time_ms?: number }) =>
-        request<{ state: ReviewStateRow }>('POST', '/api/v1/review', payload),
+      /** The server schedules; send the rating and which component it was. */
+      submit: (payload: { card_id: string; component_id?: string; rating: string; session_id?: string | null; response_time_ms?: number }) =>
+        request<{ state: ReviewStateRow; component_id: string; previews: IntervalPreviews; event_id: string }>('POST', '/api/v1/review', payload),
+      /** Fresh items for saved (card, component) pairs — used to resume a session. */
+      items: (items: Array<{ card_id: string; component_id: string }>) =>
+        request<{ items: ReviewItem[] }>('POST', '/api/v1/review/items', { items }),
     },
     activity: { get: () => request<ActivityData>('GET', '/api/v1/activity') },
     images: {

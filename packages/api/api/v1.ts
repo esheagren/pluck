@@ -20,6 +20,7 @@ import { MAIN_COMPONENT, SCHEDULER_ID, createCardBodySchema, parseBody, patchCar
 import { getDb, schema } from '../lib/db.js';
 import { authenticateRequest, isAuthError, issueToken, revokeToken } from '../lib/auth.js';
 import { CardError, createCard, deleteCard, patchCard, reviewCard, setCardImage, unfileCardsOfFolder } from '../lib/cards.js';
+import { buildItems } from '../lib/review.js';
 import { Router, pathSegments, type RouteHandler } from '../lib/router.js';
 import { snake, pick, isoTimestamp } from '../lib/serialize.js';
 
@@ -224,9 +225,9 @@ async function getStudySettings(userId: string) {
 router.on('GET', 'review/decks', authed(async (_req, res, user) => {
   const r = await getDb().execute(sql`
     select c.folder_id, f.name, coalesce(f.is_paused, false) as is_paused,
-           count(*)::int as total,
-           count(*) filter (where s.id is null)::int as new,
-           count(*) filter (where s.due_at <= now())::int as due
+           count(distinct c.id)::int as total,
+           count(distinct c.id) filter (where s.id is null or s.status = 'new')::int as new,
+           count(distinct c.id) filter (where s.due_at <= now() and s.status <> 'new')::int as due
     from cards c
     left join folders f on f.id = c.folder_id
     left join card_review_state s on s.card_id = c.id and s.user_id = c.user_id
@@ -315,7 +316,17 @@ router.on('POST', 'review/session', authed(async (req, res, user) => {
     states = snake(await db.select().from(schema.cardReviewState)
       .where(and(eq(schema.cardReviewState.userId, user.id), inArray(schema.cardReviewState.cardId, result.dealtIds)))) as unknown[];
   }
-  res.status(200).json({ cards, states, dealt: snake(result.dealt), meta: result.meta });
+  // items: one entry per dealt component, rendered for that component, with its state and previews.
+  const items = await buildItems(db, user.id, result.dealt);
+  res.status(200).json({ cards, states, dealt: snake(result.dealt), items, meta: result.meta });
+}));
+
+// Fresh items for a saved session (the webapp restores by card+component ids).
+router.on('POST', 'review/items', authed(async (req, res, user) => {
+  const body = (req.body ?? {}) as { items?: Array<{ card_id?: string; component_id?: string }> };
+  const wanted = (body.items ?? []).filter((i) => typeof i.card_id === 'string')
+    .map((i) => ({ cardId: i.card_id!, componentId: i.component_id ?? MAIN_COMPONENT }));
+  res.status(200).json({ items: await buildItems(getDb(), user.id, wanted) });
 }));
 
 // ---------------------------------------------------------------- activity

@@ -203,8 +203,11 @@ export async function reviewCard(
 ): Promise<ReviewResult> {
   const row = await getCardRow(db, userId, cardId);
   await ensureDiary(db, row);
-  const componentId = opts.componentId ?? MAIN_COMPONENT;
-  if (!componentIdsOf(specOf(row)).includes(componentId)) throw new CardError(400, `Unknown component ${componentId}`);
+  const ids = componentIdsOf(specOf(row));
+  const requested = opts.componentId ?? MAIN_COMPONENT;
+  // 'main' on a composite card (older clients) means its first component
+  const componentId = ids.includes(requested) ? requested : requested === MAIN_COMPONENT ? ids[0] : null;
+  if (!componentId) throw new CardError(400, `Unknown component ${requested}`);
 
   const [prevRow] = await db.select().from(schema.cardReviewState).where(and(
     eq(schema.cardReviewState.cardId, cardId), eq(schema.cardReviewState.userId, userId), eq(schema.cardReviewState.componentId, componentId),
