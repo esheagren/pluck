@@ -4,9 +4,11 @@
 // (private-first, 2026-09), the four rollup views (activity is computed in /api/v1/activity),
 // and every RLS policy — authorization lives in the API layer (`where user_id = …`).
 
+import { sql } from 'drizzle-orm';
 import {
-  pgTable, uuid, text, boolean, integer, numeric, timestamp, jsonb, index, uniqueIndex,
+  pgTable, uuid, text, boolean, integer, bigint, bigserial, numeric, timestamp, jsonb, index, uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import type { CardSpec, Provenance } from '@pluckk/core/entities';
 
 const num = (name: string) => numeric(name, { mode: 'number' });
 const ts = (name: string) => timestamp(name, { withTimezone: true, mode: 'string' });
@@ -86,10 +88,36 @@ export const cards = pgTable('cards', {
   sourceTitle: text('source_title'),
   sourceSelector: text('source_selector'),
   sourceTextOffset: integer('source_text_offset'),
+  // core-engine (step 2): the authored spec, structured provenance, capture identity,
+  // soft delete, and snapshot bookkeeping. question/answer/style/source_* above are a
+  // read-only mirror of spec/provenance until step 8 drops them.
+  spec: jsonb('spec').$type<CardSpec>(),
+  provenance: jsonb('provenance').$type<Provenance>(),
+  captureKey: text('capture_key'),
+  isDeleted: boolean('is_deleted').default(false).notNull(),
+  snapshotSeq: bigint('snapshot_seq', { mode: 'number' }),
+  snapshotAlgorithm: text('snapshot_algorithm'),
 }, (t) => [
   index('cards_user_idx').on(t.userId),
   index('cards_folder_idx').on(t.folderId),
   index('cards_source_url_idx').on(t.sourceUrl),
+  index('cards_user_deleted_idx').on(t.userId, t.isDeleted),
+  uniqueIndex('cards_user_capture_key_idx').on(t.userId, t.captureKey).where(sql`capture_key is not null`),
+]);
+
+// The diary (core-engine step 2). Append-only; a card's state is the reduction of its events.
+// `seq` is the global order and the sync cursor; `at` is when it happened (server-stamped).
+export const cardEvents = pgTable('card_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  seq: bigserial('seq', { mode: 'number' }).notNull().unique(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  cardId: uuid('card_id').notNull().references(() => cards.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(),
+  payload: jsonb('payload').notNull(),
+  at: ts('at').defaultNow().notNull(),
+}, (t) => [
+  index('card_events_user_seq_idx').on(t.userId, t.seq),
+  index('card_events_card_seq_idx').on(t.cardId, t.seq),
 ]);
 
 export const algorithmConfigs = pgTable('algorithm_configs', {
@@ -150,6 +178,9 @@ export const cardReviewState = pgTable('card_review_state', {
   id: uuid('id').primaryKey().defaultRandom(),
   cardId: uuid('card_id').notNull().references(() => cards.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  // core-engine (step 2): one row per component ('main', 'forward'/'reverse', 'p0'…). This
+  // table is the materialised snapshot of card_events; the API rebuilds it from the reducer.
+  componentId: text('component_id').default('main').notNull(),
   status: text('status').default('new').notNull(),
   dueAt: ts('due_at').defaultNow().notNull(),
   intervalDays: num('interval_days').default(0).notNull(),
@@ -171,7 +202,7 @@ export const cardReviewState = pgTable('card_review_state', {
   createdAt: ts('created_at').defaultNow().notNull(),
   updatedAt: ts('updated_at').defaultNow().notNull().$onUpdate(() => new Date().toISOString()),
 }, (t) => [
-  uniqueIndex('crs_card_user_idx').on(t.cardId, t.userId),
+  uniqueIndex('crs_card_user_component_idx').on(t.cardId, t.userId, t.componentId),
   index('crs_user_due_idx').on(t.userId, t.dueAt),
 ]);
 
