@@ -1,8 +1,9 @@
+import AppKit
 import SwiftUI
 
 struct SidebarView: View {
     let isExpanded: Bool
-    var panelWidth: CGFloat = 340
+    var panelWidth: CGFloat = 600
     @ObservedObject private var appState = AppState.shared
     @Environment(\.colorScheme) var colorScheme
 
@@ -11,20 +12,21 @@ struct SidebarView: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
+        Group {
             if isExpanded {
-                // Full expanded panel (strip transforms into this)
                 expandedContent
-                    .frame(width: panelWidth)
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color.white.opacity(0.12), lineWidth: 1))
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             } else {
-                // Thin strip only when collapsed
+                // Pill-shaped handle when collapsed
                 AmbientStripView(state: stripState)
-                    .frame(width: 10)
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Color.white.opacity(0.28), lineWidth: 1))
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .frame(maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(.easeInOut(duration: PluckkTheme.Animation.slow), value: isExpanded)
     }
 
@@ -39,69 +41,101 @@ struct SidebarView: View {
 
     @ViewBuilder
     private var expandedContent: some View {
-        ZStack(alignment: .leading) {
-            // Main content HStack
-            HStack(spacing: 0) {
-                // Thin border on far left edge
-                Rectangle()
-                    .fill(Color.white.opacity(0.15))
-                    .frame(width: 1)
+        ZStack {
+            // Background color
+            backgroundColor.ignoresSafeArea()
 
-                // Main content area
-                ZStack {
-                    // Background color
-                    backgroundColor.ignoresSafeArea()
+            // Sand animation background (full panel)
+            // allowsHitTesting(false) ensures clicks pass through to buttons
+            SandAnimationView()
+                .allowsHitTesting(false)
 
-                    // Sand animation background (full panel)
-                    // allowsHitTesting(false) ensures clicks pass through to buttons
-                    SandAnimationView()
-                        .allowsHitTesting(false)
+            VStack(spacing: 0) {
+                GripBar()
 
-                    // Content
-                    VStack(spacing: 0) {
-                        // Main content based on current view
-                        Group {
-                            switch appState.currentView {
-                            case .generate:
-                                if appState.isAuthenticated {
-                                    CardGenerationView()
-                                } else {
-                                    LoginView()
-                                }
-                            case .browse:
-                                if appState.isAuthenticated {
-                                    CardBrowserView()
-                                } else {
-                                    LoginView()
-                                }
-                            case .review:
-                                if appState.isAuthenticated {
-                                    ReviewSessionView()
-                                } else {
-                                    LoginView()
-                                }
-                            case .settings:
-                                SettingsView()
-                            }
+                // Main content based on current view
+                Group {
+                    switch appState.currentView {
+                    case .generate:
+                        if appState.isAuthenticated {
+                            CardGenerationView()
+                        } else {
+                            LoginView()
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    case .settings:
+                        SettingsView()
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
-            // Resize handle overlaid on left edge
-            ResizeHandle()
+            // Resize handles: left edge → width, bottom edge → height
+            HStack { ResizeHandle(); Spacer() }
+            VStack { Spacer(); BottomResizeHandle() }
         }
     }
 }
 
-// MARK: - Resize Handle
+// MARK: - Grip bar (move handle + close button)
+
+/// The strip across the top of the card. Dragging anywhere on it moves the window;
+/// the red dot on the left closes (collapses) the panel.
+struct GripBar: View {
+    @State private var closeHovering = false
+
+    var body: some View {
+        ZStack {
+            WindowDragArea()
+
+            Capsule()
+                .fill(Color.white.opacity(0.25))
+                .frame(width: 40, height: 4)
+                .allowsHitTesting(false)
+
+            HStack {
+                Button(action: { PluckkPanel.shared?.collapse() }) {
+                    ZStack {
+                        Circle().fill(Color(red: 1.0, green: 0.37, blue: 0.34))
+                        Image(systemName: "xmark")
+                            .font(.system(size: 7, weight: .bold))
+                            .foregroundColor(.black.opacity(0.6))
+                            .opacity(closeHovering ? 1 : 0)
+                    }
+                    .frame(width: 12, height: 12)
+                }
+                .buttonStyle(.plain)
+                .onHover { closeHovering = $0 }
+                .help("Close")
+                Spacer()
+            }
+            .padding(.leading, 12)
+        }
+        .frame(height: 26)
+    }
+}
+
+/// An AppKit view that hands a mouse-down to the window's drag loop, so the borderless
+/// panel can be moved by its grip bar.
+struct WindowDragArea: NSViewRepresentable {
+    func makeNSView(context: Context) -> DragView { DragView() }
+    func updateNSView(_ nsView: DragView, context: Context) {}
+
+    final class DragView: NSView {
+        override func mouseDown(with event: NSEvent) {
+            window?.performDrag(with: event)
+        }
+        override func resetCursorRects() {
+            addCursorRect(bounds, cursor: .openHand)
+        }
+    }
+}
+
+// MARK: - Resize Handles
 
 struct ResizeHandle: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var isHovering = false
     @State private var isDragging = false
-    @GestureState private var dragOffset: CGFloat = 0
 
     private var handleColor: Color {
         if isDragging {
@@ -138,13 +172,60 @@ struct ResizeHandle: View {
                 DragGesture()
                     .onChanged { value in
                         isDragging = true
-                        // Calculate new width based on drag
                         // Dragging left (negative x) = wider panel
-                        // Dragging right (positive x) = narrower panel
                         if let panel = PluckkPanel.shared {
-                            let currentWidth = panel.expandedWidth
-                            let newWidth = currentWidth - value.translation.width
-                            panel.resize(to: newWidth)
+                            panel.resize(to: panel.expandedWidth - value.translation.width)
+                        }
+                    }
+                    .onEnded { _ in
+                        isDragging = false
+                    }
+            )
+    }
+}
+
+struct BottomResizeHandle: View {
+    @Environment(\.colorScheme) var colorScheme
+    @State private var isHovering = false
+    @State private var isDragging = false
+
+    private var handleColor: Color {
+        if isDragging {
+            return colorScheme == .dark ? Color.white.opacity(0.5) : Color.black.opacity(0.4)
+        } else if isHovering {
+            return colorScheme == .dark ? Color.white.opacity(0.35) : Color.black.opacity(0.25)
+        } else {
+            return colorScheme == .dark ? Color.white.opacity(0.2) : Color.black.opacity(0.15)
+        }
+    }
+
+    var body: some View {
+        Color.clear
+            .frame(height: 10)
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .overlay(
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(handleColor)
+                    .frame(width: 40, height: 4)
+                    .opacity(isHovering || isDragging ? 1 : 0)
+                    .animation(.easeInOut(duration: 0.15), value: isHovering)
+            )
+            .onHover { hovering in
+                isHovering = hovering
+                if hovering {
+                    NSCursor.resizeUpDown.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        isDragging = true
+                        // Dragging down (positive y) = taller panel, top edge stays put
+                        if let panel = PluckkPanel.shared {
+                            panel.resizeHeight(to: panel.expandedHeight + value.translation.height)
                         }
                     }
                     .onEnded { _ in
@@ -155,7 +236,7 @@ struct ResizeHandle: View {
 }
 
 #Preview {
-    SidebarView(isExpanded: true, panelWidth: 340)
-        .frame(width: 340, height: 600)
+    SidebarView(isExpanded: true, panelWidth: 600)
+        .frame(width: 600, height: 400)
         .preferredColorScheme(.dark)
 }

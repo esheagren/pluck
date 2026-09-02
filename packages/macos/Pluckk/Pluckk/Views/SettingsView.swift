@@ -6,6 +6,7 @@ struct SettingsView: View {
     @ObservedObject private var authManager = AuthManager.shared
 
     @State private var launchAtLogin = false
+    @AppStorage(PluckkPanel.pushWindowAsideKey) private var pushWindowAside = false
     @State private var mochiApiKeyInput = ""
     @State private var isSavingMochi = false
     @State private var mochiDecks: [MochiDeck] = []
@@ -60,29 +61,6 @@ struct SettingsView: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
-                    }
-
-                    // Subscription status
-                    HStack {
-                        Text("Plan:")
-                            .foregroundColor(.secondary)
-                        Text(appState.subscriptionStatus.isPro ? "Pro" : "Free")
-                            .fontWeight(.medium)
-                            .foregroundColor(appState.subscriptionStatus.isPro ? .green : .primary)
-
-                        if !appState.subscriptionStatus.isPro {
-                            Button("Upgrade") {
-                                openUpgradeURL()
-                            }
-                            .font(.caption)
-                        }
-                    }
-                    .font(.caption)
-
-                    if let remaining = appState.usageRemaining, !appState.subscriptionStatus.isPro {
-                        Text("\(remaining) cards remaining this month")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
                     }
                 }
 
@@ -170,6 +148,11 @@ struct SettingsView: View {
                     setLaunchAtLogin(newValue)
                 }
 
+            Toggle("Push the active window aside when the panel opens", isOn: $pushWindowAside)
+            Text("Off: the panel floats over the app. On: the app's window is resized to make room.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
             VStack(alignment: .leading, spacing: 4) {
                 Text("Trigger")
                     .font(.caption)
@@ -249,9 +232,9 @@ struct SettingsView: View {
 
         Task {
             do {
-                _ = try await PluckkAPI.shared.updateUser(
+                try await PluckkAPI.shared.updateUser(
                     token: token,
-                    updates: ["mochi_api_key": mochiApiKeyInput]
+                    updates: ["mochiApiKey": mochiApiKeyInput]
                 )
 
                 await MainActor.run {
@@ -273,9 +256,9 @@ struct SettingsView: View {
 
         Task {
             do {
-                _ = try await PluckkAPI.shared.updateUser(
+                try await PluckkAPI.shared.updateUser(
                     token: token,
-                    updates: ["mochi_deck_id": deckId ?? NSNull()]
+                    updates: ["mochiDeckId": deckId ?? NSNull()]
                 )
 
                 await MainActor.run {
@@ -288,47 +271,18 @@ struct SettingsView: View {
     }
 
     private func fetchMochiDecks(apiKey: String) {
+        guard let token = AuthManager.shared.accessToken else { return }
         Task {
             do {
-                let decks = try await fetchMochiDecksFromAPI(apiKey: apiKey)
-                await MainActor.run {
-                    mochiDecks = decks
-                }
+                let decks = try await PluckkAPI.shared.fetchMochiDecks(token: token)
+                await MainActor.run { mochiDecks = decks }
             } catch {
                 print("Failed to fetch Mochi decks: \(error)")
             }
         }
     }
-
-    private func fetchMochiDecksFromAPI(apiKey: String) async throws -> [MochiDeck] {
-        let url = URL(string: "https://app.mochi.cards/api/decks")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-
-        let credentials = "\(apiKey):".data(using: .utf8)!.base64EncodedString()
-        request.setValue("Basic \(credentials)", forHTTPHeaderField: "Authorization")
-
-        let (data, _) = try await URLSession.shared.data(for: request)
-
-        struct MochiResponse: Decodable {
-            let docs: [MochiDeck]
-        }
-
-        let response = try JSONDecoder().decode(MochiResponse.self, from: data)
-        return response.docs
-    }
-
-    private func openUpgradeURL() {
-        if let url = URL(string: "https://pluckk.com/pricing") {
-            NSWorkspace.shared.open(url)
-        }
-    }
 }
 
-struct MochiDeck: Decodable {
-    let id: String
-    let name: String
-}
 
 #Preview {
     SettingsView()

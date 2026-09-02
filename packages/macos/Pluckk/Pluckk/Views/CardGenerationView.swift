@@ -235,12 +235,6 @@ struct CardGenerationView: View {
 
     private var bottomActions: some View {
         VStack(spacing: 12) {
-            // Usage info (for free users)
-            if let remaining = appState.usageRemaining, !appState.subscriptionStatus.isPro {
-                Text("\(remaining) cards remaining this month")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
 
             // Action buttons
             HStack {
@@ -315,7 +309,7 @@ struct CardGenerationView: View {
 
         Task {
             do {
-                let result: (cards: [GeneratedCard], usage: Int?)
+                let result: [GeneratedCard]
 
                 switch appState.capturedContent {
                 case .text(let text):
@@ -345,11 +339,8 @@ struct CardGenerationView: View {
                 }
 
                 await MainActor.run {
-                    appState.generatedCards = result.cards
+                    appState.generatedCards = result
                     appState.selectedCardIndices = []  // User must select which cards to keep
-                    if let remaining = result.usage {
-                        appState.usageRemaining = remaining
-                    }
                     appState.isGenerating = false
                 }
 
@@ -498,6 +489,7 @@ struct CardGenerationView: View {
                         token: token,
                         card: card,
                         sourceUrl: appState.sourceContext?.displayString ?? "",
+                        sourceTitle: appState.sourceContext?.windowTitle,
                         deckId: appState.selectedDeckId
                     )
                     successCount += 1

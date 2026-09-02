@@ -14,7 +14,6 @@ export const GOOGLE_CLIENT_ID: string = '1004228422906-0kq0nd19qgkpqqgpr8kahg0oe
 
 // Direct API URLs (deprecated - use BACKEND_URL for Claude/Gemini)
 export const CLAUDE_API_URL: string = 'https://api.anthropic.com/v1/messages';
-export const CLAUDE_MODEL: string = 'claude-sonnet-4-20250514';
 export const GEMINI_IMAGE_API_URL: string = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
 // Mochi API (still called directly with user's own key)

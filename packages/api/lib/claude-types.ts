@@ -54,8 +54,8 @@ export interface ClaudeRequest {
  * Claude API response content block
  */
 export interface ClaudeResponseContent {
-  type: 'text';
-  text: string;
+  type: 'text' | 'thinking' | 'redacted_thinking';
+  text?: string;
 }
 
 /**
@@ -75,7 +75,7 @@ export interface ClaudeResponse {
   role: 'assistant';
   content: ClaudeResponseContent[];
   model: string;
-  stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | null;
+  stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | 'refusal' | null;
   stop_sequence: string | null;
   usage: ClaudeUsage;
 }

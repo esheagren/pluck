@@ -5,9 +5,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { authenticateRequest, isAuthError } from '../lib/auth.js';
 import type { AnswerQuestionRequest, GeneratedCard } from '../lib/types.js';
 import type { ClaudeResponse } from '../lib/claude-types.js';
+import { CLAUDE_MODEL, extractJson, responseText } from '../lib/models.js';
 
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 
 const SYSTEM_PROMPT = `You are a knowledge assistant that generates spaced repetition flashcards from user questions.
 
@@ -99,7 +99,7 @@ export default async function handler(
       },
       body: JSON.stringify({
         model: CLAUDE_MODEL,
-        max_tokens: 2500,
+        max_tokens: 4000,
         system: SYSTEM_PROMPT,
         messages: [
           {
@@ -129,20 +129,13 @@ export default async function handler(
 
     const data = await claudeResponse.json() as ClaudeResponse;
 
-    // Extract text content from Claude's response
-    const content = data.content?.[0]?.text;
+    const content = responseText(data);
     if (!content) {
       res.status(500).json({ error: 'Empty response from AI' });
       return;
     }
 
-    // Parse JSON from response (handle markdown code blocks)
-    let jsonStr = content.trim();
-    if (jsonStr.startsWith('```')) {
-      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-    }
-
-    const parsed = JSON.parse(jsonStr) as { cards: GeneratedCard[] };
+    const parsed = JSON.parse(extractJson(content)) as { cards: GeneratedCard[] };
 
     if (!parsed.cards || !Array.isArray(parsed.cards) || parsed.cards.length === 0) {
       res.status(500).json({ error: 'Invalid response format from AI' });

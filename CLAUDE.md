@@ -21,7 +21,7 @@ functions, Vercel Blob for card images, Google Sign-In → opaque bearer tokens.
 | `packages/shared` | `api/` (fetch client, session store, Google OIDC helpers), `scheduler/` (SM-2), `constants/`, `utils/` | imported by the others |
 | `packages/webapp` | Vite + React 18, pluckk.app. Hooks in `src/hooks/` call `@pluckk/shared/api`. | `npm run dev:webapp`, `npm run build:webapp` |
 | `packages/extension` | Manifest V3. `src/auth.ts` owns sign-in + the API client; background/content built by esbuild as IIFE. | `npm run build:extension`, load unpacked from `packages/extension/dist` |
-| `packages/macos` | Swift app. **Still on the old Supabase flow — dark until the thin-client port (plan Phase 2).** | Xcode |
+| `packages/macos` | Swift thin capture client: `⌘⌘` → Accessibility selection → panel → generate → `/api/v1/cards`. Signs in via `pluckk.app/auth/desktop` → `pluckk://` callback. No review/browse (webapp does that). | `xcodebuild -project packages/macos/Pluckk/Pluckk.xcodeproj -scheme Pluckk build` |
 
 ## Rules
 
@@ -29,7 +29,8 @@ functions, Vercel Blob for card images, Google Sign-In → opaque bearer tokens.
   API is scoped `where user_id = <authenticated user>` — there is no RLS any more, so never omit it.
 - **Auth:** `POST /api/v1/auth/google { credential }` verifies a Google ID token and issues a `pk_…` token
   (sha256-hashed in `api_tokens`). `lib/auth.ts#authenticateRequest` is the single verifier. Webapp stores
-  the token in localStorage, extension in `chrome.storage.local['pluckk_session']`.
+  the token in localStorage, extension in `chrome.storage.local['pluckk_session']`, macOS in the Keychain
+  (obtained through the webapp's `/auth/desktop` page, which redirects to `pluckk://auth/callback#token=`).
 - **API JSON is snake_case** (the old Supabase row shape) — `lib/serialize.ts#snake` at the boundary.
   Drizzle properties are camelCase. Don't mix them.
 - **Schema changes:** edit `packages/api/db/schema.ts`, then `npm run db:push` (prototype) or

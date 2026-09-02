@@ -13,10 +13,14 @@ import type { AuthUser } from '@pluckk/shared/api';
 import type { UseAuthReturn } from '../types';
 
 export const AUTH_CALLBACK_PATH = '/auth/callback';
+/** Entry point for the macOS app: runs the same Google flow, then hands the token back on pluckk://. */
+export const AUTH_DESKTOP_PATH = '/auth/desktop';
+const DESKTOP_FLAG = 'pluckk_desktop_auth';
 
 /** Kick off Google sign-in: full-page redirect to Google, back to /auth/callback. */
-export function startGoogleSignIn(): void {
-  const returnTo = window.location.pathname === AUTH_CALLBACK_PATH ? '/' : window.location.pathname;
+export function startGoogleSignIn(desktop = false): void {
+  try { desktop ? sessionStorage.setItem(DESKTOP_FLAG, '1') : sessionStorage.removeItem(DESKTOP_FLAG); } catch { /* ignore */ }
+  const returnTo = window.location.pathname === AUTH_CALLBACK_PATH || window.location.pathname === AUTH_DESKTOP_PATH ? '/' : window.location.pathname;
   try { sessionStorage.setItem('pluckk_return_to', returnTo); } catch { /* ignore */ }
   window.location.href = buildGoogleAuthUrl({ redirectUri: `${window.location.origin}${AUTH_CALLBACK_PATH}` });
 }
@@ -28,7 +32,16 @@ export function startGoogleSignIn(): void {
 export async function completeGoogleSignIn(): Promise<AuthUser | null> {
   const idToken = parseIdToken(window.location.href);
   if (!idToken) return null;
-  const user = await signInWithGoogleCredential(idToken);
+  let desktop = false;
+  try { desktop = sessionStorage.getItem(DESKTOP_FLAG) === '1'; sessionStorage.removeItem(DESKTOP_FLAG); } catch { /* ignore */ }
+  const { token, user } = await signInWithGoogleCredential(idToken, desktop ? 'macos' : 'webapp');
+  if (desktop) {
+    // Hand the bearer token to the macOS app (ASWebAuthenticationSession catches the pluckk:// scheme)
+    // and don't keep it in this browser.
+    clearSession();
+    window.location.replace(`pluckk://auth/callback#token=${encodeURIComponent(token)}`);
+    return user;
+  }
   // Strip the id_token fragment; App.tsx performs the actual route change with
   // <Navigate>, since history.replaceState is invisible to React Router.
   window.history.replaceState(null, '', window.location.pathname);
@@ -50,6 +63,10 @@ export function useAuth(): UseAuthReturn {
 
   useEffect(() => {
     const init = async (): Promise<void> => {
+      if (window.location.pathname === AUTH_DESKTOP_PATH) {
+        startGoogleSignIn(true);
+        return; // navigating away
+      }
       if (window.location.pathname === AUTH_CALLBACK_PATH) {
         try {
           const u = await completeGoogleSignIn();
