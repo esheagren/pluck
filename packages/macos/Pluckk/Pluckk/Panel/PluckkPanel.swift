@@ -9,8 +9,8 @@ class PluckkPanel: NSPanel {
     // Shared instance for easy access from SwiftUI views
     static var shared: PluckkPanel?
 
-    private let collapsedWidth: CGFloat = 120
-    private let collapsedHeight: CGFloat = 12
+    private let collapsedWidth: CGFloat = 64
+    private let collapsedHeight: CGFloat = 6
     private let minExpandedWidth: CGFloat = 440
     private let maxExpandedWidth: CGFloat = 900
     private let minExpandedHeight: CGFloat = 280

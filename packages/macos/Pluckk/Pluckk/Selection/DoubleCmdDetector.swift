@@ -8,25 +8,38 @@ class DoubleCmdDetector {
 
     private let threshold: TimeInterval = 0.3 // 300ms between taps
     private var cmdWasPressed = false
+    private var watchdog: Timer?
 
     var onDoubleTap: (() -> Void)?
 
     func start() {
-        // Create event tap to monitor modifier key changes
+        // Create event tap to monitor modifier key changes.
+        // Listen-only: we never modify or swallow events, and passive taps are not
+        // switched off by the system when the main thread is briefly busy (an active
+        // tap is disabled after ~1s of unresponsiveness — which is what made the
+        // shortcut die after the first use).
         let eventMask = (1 << CGEventType.flagsChanged.rawValue)
 
         guard let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
             place: .headInsertEventTap,
-            options: .defaultTap,
+            options: .listenOnly,
             eventsOfInterest: CGEventMask(eventMask),
             callback: { (proxy, type, event, refcon) -> Unmanaged<CGEvent>? in
                 guard let refcon = refcon else {
-                    return Unmanaged.passRetained(event)
+                    return Unmanaged.passUnretained(event)
                 }
                 let detector = Unmanaged<DoubleCmdDetector>.fromOpaque(refcon).takeUnretainedValue()
-                detector.handleFlagsChanged(event)
-                return Unmanaged.passRetained(event)
+                switch type {
+                case .tapDisabledByTimeout, .tapDisabledByUserInput:
+                    // The system turned us off; turn back on or ⌘⌘ is dead until relaunch.
+                    detector.reenable(reason: "\(type)")
+                case .flagsChanged:
+                    detector.handleFlagsChanged(event)
+                default:
+                    break
+                }
+                return Unmanaged.passUnretained(event)
             },
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
@@ -39,9 +52,25 @@ class DoubleCmdDetector {
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
         CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
+
+        // Belt and braces: if the tap is ever found disabled, re-arm it.
+        watchdog = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            guard let self, let tap = self.eventTap, !CGEvent.tapIsEnabled(tap: tap) else { return }
+            self.reenable(reason: "watchdog")
+        }
+    }
+
+    private func reenable(reason: String) {
+        guard let tap = eventTap else { return }
+        CGEvent.tapEnable(tap: tap, enable: true)
+        cmdWasPressed = false
+        lastCmdReleaseTime = nil
+        print("DoubleCmdDetector: event tap re-enabled (\(reason))")
     }
 
     func stop() {
+        watchdog?.invalidate()
+        watchdog = nil
         if let tap = eventTap {
             CGEvent.tapEnable(tap: tap, enable: false)
         }

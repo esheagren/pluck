@@ -22,7 +22,8 @@ struct SidebarView: View {
                 // Pill-shaped handle when collapsed
                 AmbientStripView(state: stripState)
                     .clipShape(Capsule())
-                    .overlay(Capsule().stroke(Color.white.opacity(0.28), lineWidth: 1))
+                    .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 1))
+                    .opacity(0.75)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
