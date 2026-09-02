@@ -115,16 +115,14 @@ struct GripBar: View {
 }
 
 /// An AppKit view that hands a mouse-down to the window's drag loop, so the borderless
-/// panel can be moved by its grip bar. Reports the final position back to the panel.
+/// panel can be moved by its grip bar.
 struct WindowDragArea: NSViewRepresentable {
     func makeNSView(context: Context) -> DragView { DragView() }
     func updateNSView(_ nsView: DragView, context: Context) {}
 
     final class DragView: NSView {
         override func mouseDown(with event: NSEvent) {
-            guard let window else { return }
-            window.performDrag(with: event)
-            (window as? PluckkPanel)?.userMovedPanel()
+            window?.performDrag(with: event)
         }
         override func resetCursorRects() {
             addCursorRect(bounds, cursor: .openHand)
