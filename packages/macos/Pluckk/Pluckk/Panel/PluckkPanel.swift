@@ -1,22 +1,27 @@
 import AppKit
 import SwiftUI
 
-/// A compact card that hugs the right edge of the screen, vertically centred — the
-/// same neighbourhood as Wispr Flow's pill. Collapsed it is a short pill-sized handle;
-/// expanded it is a ~340×560 card. It never spans the full screen height.
+/// A compact card floating just above the Dock, horizontally centred — the same spot
+/// as Wispr Flow's pill — on whichever screen the mouse is on. Collapsed it is a short
+/// pill-shaped handle; expanded it is a ~340×560 card. It never spans the screen.
 class PluckkPanel: NSPanel {
     // Shared instance for easy access from SwiftUI views
     static var shared: PluckkPanel?
 
-    private let collapsedWidth: CGFloat = 10
-    private let collapsedHeight: CGFloat = 120
+    private let collapsedWidth: CGFloat = 120
+    private let collapsedHeight: CGFloat = 10
     private let minExpandedWidth: CGFloat = 280
     private let maxExpandedWidth: CGFloat = 500
     private let expandedHeight: CGFloat = 560
+    private let bottomMargin: CGFloat = 8
     private(set) var expandedWidth: CGFloat = 340
 
     private(set) var isExpanded = false
     private var hostingView: NSHostingView<SidebarView>?
+
+    /// Screen the panel currently sits on; compared by frame because NSScreen objects are recreated.
+    private var currentScreenFrame: NSRect = .zero
+    private var mouseMonitor: Any?
 
     /// Off by default: the panel floats over the active app. Turning it on shoves the
     /// frontmost window aside (and pulls it out of full screen), which is intrusive on
@@ -36,7 +41,7 @@ class PluckkPanel: NSPanel {
         // Set shared instance for access from SwiftUI views
         PluckkPanel.shared = self
 
-        setFrame(frame(width: collapsedWidth, height: collapsedHeight), display: true)
+        setFrame(frame(width: collapsedWidth, height: collapsedHeight, on: screenUnderMouse()), display: true)
 
         // Panel configuration
         level = .floating
@@ -69,27 +74,49 @@ class PluckkPanel: NSPanel {
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
+
+        // Follow the mouse across displays (like Wispr Flow). Only acts when the cursor
+        // crosses to a different screen, so the cost is one rect check per move event.
+        mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: .mouseMoved) { [weak self] _ in
+            self?.followMouseIfScreenChanged()
+        }
     }
 
-    /// Frame for a panel of the given size: flush with the right edge of the main screen,
-    /// vertically centred in the visible area (below the menu bar, above the Dock).
-    private func frame(width: CGFloat, height: CGFloat) -> NSRect {
-        guard let screen = NSScreen.main else { return NSRect(x: 0, y: 0, width: width, height: height) }
+    // MARK: - Placement
+
+    /// The screen the mouse cursor is on, falling back to the main screen.
+    private func screenUnderMouse() -> NSScreen? {
+        let mouse = NSEvent.mouseLocation
+        return NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
+    }
+
+    /// Frame for a panel of the given size: horizontally centred on `screen`, resting just
+    /// above the Dock (the visible area excludes the menu bar and Dock).
+    private func frame(width: CGFloat, height: CGFloat, on screen: NSScreen?) -> NSRect {
+        guard let screen else { return NSRect(x: 0, y: 0, width: width, height: height) }
+        currentScreenFrame = screen.frame
         let area = screen.visibleFrame
-        let h = min(height, area.height)
-        return NSRect(x: area.maxX - width, y: area.midY - h / 2, width: width, height: h)
+        let w = min(width, area.width)
+        let h = min(height, area.height - bottomMargin)
+        return NSRect(x: area.midX - w / 2, y: area.minY + bottomMargin, width: w, height: h)
+    }
+
+    private func currentFrame(on screen: NSScreen?) -> NSRect {
+        isExpanded
+            ? frame(width: expandedWidth, height: expandedHeight, on: screen)
+            : frame(width: collapsedWidth, height: collapsedHeight, on: screen)
+    }
+
+    private func followMouseIfScreenChanged() {
+        guard let screen = screenUnderMouse(), screen.frame != currentScreenFrame else { return }
+        setFrame(currentFrame(on: screen), display: true)
     }
 
     @objc private func screenParametersChanged() {
-        repositionToActiveScreen()
+        setFrame(currentFrame(on: screenUnderMouse()), display: true)
     }
 
-    private func repositionToActiveScreen() {
-        let target = isExpanded
-            ? frame(width: expandedWidth, height: expandedHeight)
-            : frame(width: collapsedWidth, height: collapsedHeight)
-        setFrame(target, display: true)
-    }
+    // MARK: - Expand / collapse
 
     func expand() {
         guard !isExpanded else { return }
@@ -97,10 +124,15 @@ class PluckkPanel: NSPanel {
 
         if pushesWindowAside {
             // Account for the collapsed strip width that's already there
-            WindowResizer.shared.makeRoomForPanel(panelWidth: expandedWidth - collapsedWidth)
+            WindowResizer.shared.makeRoomForPanel(panelWidth: expandedWidth)
         }
 
-        let newFrame = frame(width: expandedWidth, height: expandedHeight)
+        // Always open on the screen the cursor is on, even if the handle was elsewhere.
+        let screen = screenUnderMouse()
+        if screen?.frame != currentScreenFrame {
+            setFrame(frame(width: collapsedWidth, height: collapsedHeight, on: screen), display: false)
+        }
+        let newFrame = frame(width: expandedWidth, height: expandedHeight, on: screen)
 
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.25
@@ -121,7 +153,7 @@ class PluckkPanel: NSPanel {
         // No-op unless expand() resized a window
         WindowResizer.shared.restoreWindow()
 
-        let newFrame = frame(width: collapsedWidth, height: collapsedHeight)
+        let newFrame = frame(width: collapsedWidth, height: collapsedHeight, on: screenUnderMouse())
 
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.2
@@ -150,7 +182,7 @@ class PluckkPanel: NSPanel {
         guard isExpanded else { return }
 
         expandedWidth = min(max(width, minExpandedWidth), maxExpandedWidth)
-        setFrame(frame(width: expandedWidth, height: expandedHeight), display: true)
+        setFrame(frame(width: expandedWidth, height: expandedHeight, on: screenUnderMouse()), display: true)
         updateHostingView()
     }
 }
