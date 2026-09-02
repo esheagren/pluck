@@ -1,7 +1,7 @@
 {
   "version": 2,
   "framework": null,
-  "buildCommand": "",
+  "buildCommand": "cd ../core && npm run build",
   "installCommand": "cd ../.. && npm install",
   "rewrites": [
     {
