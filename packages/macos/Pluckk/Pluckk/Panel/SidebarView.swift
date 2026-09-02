@@ -16,11 +16,13 @@ struct SidebarView: View {
                 // Full expanded panel (strip transforms into this)
                 expandedContent
                     .frame(width: panelWidth)
+                    .clipShape(UnevenRoundedRectangle(topLeadingRadius: 16, bottomLeadingRadius: 16))
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             } else {
                 // Thin strip only when collapsed
                 AmbientStripView(state: stripState)
                     .frame(width: 10)
+                    .clipShape(UnevenRoundedRectangle(topLeadingRadius: 5, bottomLeadingRadius: 5))
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             }
         }

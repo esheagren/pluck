@@ -1,13 +1,18 @@
 import AppKit
 import SwiftUI
 
+/// A compact card that hugs the right edge of the screen, vertically centred — the
+/// same neighbourhood as Wispr Flow's pill. Collapsed it is a short pill-sized handle;
+/// expanded it is a ~340×560 card. It never spans the full screen height.
 class PluckkPanel: NSPanel {
     // Shared instance for easy access from SwiftUI views
     static var shared: PluckkPanel?
 
     private let collapsedWidth: CGFloat = 10
+    private let collapsedHeight: CGFloat = 120
     private let minExpandedWidth: CGFloat = 280
     private let maxExpandedWidth: CGFloat = 500
+    private let expandedHeight: CGFloat = 560
     private(set) var expandedWidth: CGFloat = 340
 
     private(set) var isExpanded = false
@@ -31,18 +36,7 @@ class PluckkPanel: NSPanel {
         // Set shared instance for access from SwiftUI views
         PluckkPanel.shared = self
 
-        guard let screen = NSScreen.main else { return }
-        let screenFrame = screen.frame
-
-        // Initial frame - collapsed on right edge
-        let frame = NSRect(
-            x: screenFrame.maxX - collapsedWidth,
-            y: screenFrame.minY,
-            width: collapsedWidth,
-            height: screenFrame.height
-        )
-
-        setFrame(frame, display: true)
+        setFrame(frame(width: collapsedWidth, height: collapsedHeight), display: true)
 
         // Panel configuration
         level = .floating
@@ -77,23 +71,24 @@ class PluckkPanel: NSPanel {
         )
     }
 
+    /// Frame for a panel of the given size: flush with the right edge of the main screen,
+    /// vertically centred in the visible area (below the menu bar, above the Dock).
+    private func frame(width: CGFloat, height: CGFloat) -> NSRect {
+        guard let screen = NSScreen.main else { return NSRect(x: 0, y: 0, width: width, height: height) }
+        let area = screen.visibleFrame
+        let h = min(height, area.height)
+        return NSRect(x: area.maxX - width, y: area.midY - h / 2, width: width, height: h)
+    }
+
     @objc private func screenParametersChanged() {
         repositionToActiveScreen()
     }
 
     private func repositionToActiveScreen() {
-        guard let screen = NSScreen.main else { return }
-        let screenFrame = screen.frame
-        let currentWidth = isExpanded ? expandedWidth : collapsedWidth
-
-        let newFrame = NSRect(
-            x: screenFrame.maxX - currentWidth,
-            y: screenFrame.minY,
-            width: currentWidth,
-            height: screenFrame.height
-        )
-
-        setFrame(newFrame, display: true)
+        let target = isExpanded
+            ? frame(width: expandedWidth, height: expandedHeight)
+            : frame(width: collapsedWidth, height: collapsedHeight)
+        setFrame(target, display: true)
     }
 
     func expand() {
@@ -105,15 +100,7 @@ class PluckkPanel: NSPanel {
             WindowResizer.shared.makeRoomForPanel(panelWidth: expandedWidth - collapsedWidth)
         }
 
-        guard let screen = NSScreen.main else { return }
-        let screenFrame = screen.frame
-
-        let newFrame = NSRect(
-            x: screenFrame.maxX - expandedWidth,
-            y: screenFrame.minY,
-            width: expandedWidth,
-            height: screenFrame.height
-        )
+        let newFrame = frame(width: expandedWidth, height: expandedHeight)
 
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.25
@@ -134,15 +121,7 @@ class PluckkPanel: NSPanel {
         // No-op unless expand() resized a window
         WindowResizer.shared.restoreWindow()
 
-        guard let screen = NSScreen.main else { return }
-        let screenFrame = screen.frame
-
-        let newFrame = NSRect(
-            x: screenFrame.maxX - collapsedWidth,
-            y: screenFrame.minY,
-            width: collapsedWidth,
-            height: screenFrame.height
-        )
+        let newFrame = frame(width: collapsedWidth, height: collapsedHeight)
 
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.2
@@ -170,20 +149,8 @@ class PluckkPanel: NSPanel {
     func resize(to width: CGFloat) {
         guard isExpanded else { return }
 
-        let newWidth = min(max(width, minExpandedWidth), maxExpandedWidth)
-        expandedWidth = newWidth
-
-        guard let screen = NSScreen.main else { return }
-        let screenFrame = screen.frame
-
-        let newFrame = NSRect(
-            x: screenFrame.maxX - newWidth,
-            y: screenFrame.minY,
-            width: newWidth,
-            height: screenFrame.height
-        )
-
-        setFrame(newFrame, display: true)
+        expandedWidth = min(max(width, minExpandedWidth), maxExpandedWidth)
+        setFrame(frame(width: expandedWidth, height: expandedHeight), display: true)
         updateHostingView()
     }
 }
