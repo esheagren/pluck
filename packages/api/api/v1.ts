@@ -16,8 +16,10 @@ import { and, desc, eq, gte, inArray, like, sql } from 'drizzle-orm';
 import { selectSession } from '../lib/mixer.js';
 import { OAuth2Client } from 'google-auth-library';
 import { put } from '@vercel/blob';
+import { MAIN_COMPONENT, SCHEDULER_ID, createCardBodySchema, parseBody, patchCardBodySchema, reviewSubmitBodySchema } from '@pluckk/core';
 import { getDb, schema } from '../lib/db.js';
 import { authenticateRequest, isAuthError, issueToken, revokeToken } from '../lib/auth.js';
+import { CardError, createCard, deleteCard, patchCard, reviewCard, setCardImage, unfileCardsOfFolder } from '../lib/cards.js';
 import { Router, pathSegments, type RouteHandler } from '../lib/router.js';
 import { snake, pick, isoTimestamp } from '../lib/serialize.js';
 
@@ -28,7 +30,12 @@ function authed(fn: (req: VercelRequest, res: VercelResponse, user: schema.User,
   return async (req, res, params) => {
     const auth = await authenticateRequest(req);
     if (isAuthError(auth)) { res.status(auth.status).json({ error: auth.error }); return; }
-    await fn(req, res, auth.user, params);
+    try {
+      await fn(req, res, auth.user, params);
+    } catch (err) {
+      if (err instanceof CardError) { res.status(err.status).json({ error: err.message }); return; }
+      throw err;
+    }
   };
 }
 
@@ -83,21 +90,21 @@ function publicUser(u: schema.User) {
 }
 
 // ---------------------------------------------------------------- cards
-const CARD_FIELDS = ['question', 'answer', 'sourceUrl', 'imageUrl', 'folderId', 'style', 'answerType',
-  'numericAnswer', 'numericLower', 'numericUpper', 'numericUnit', 'numericPrecision', 'tags',
-  'sourceSelection', 'sourceContext', 'sourceTitle', 'sourceSelector', 'sourceTextOffset'] as const;
-
 async function listCards(userId: string, sourceUrlPrefix?: string) {
   const db = getDb();
-  const where = sourceUrlPrefix
-    ? and(eq(schema.cards.userId, userId), like(schema.cards.sourceUrl, sourceUrlPrefix.replace(/[%_]/g, '\\$&') + '%'))
-    : eq(schema.cards.userId, userId);
+  const conds = [eq(schema.cards.userId, userId), eq(schema.cards.isDeleted, false)];
+  if (sourceUrlPrefix) conds.push(like(schema.cards.sourceUrl, sourceUrlPrefix.replace(/[%_]/g, '\\$&') + '%'));
+  // A card has one schedule per component; its "due" is the earliest of them.
+  const due = db.select({
+    cardId: schema.cardReviewState.cardId,
+    dueAt: sql<string>`min(${schema.cardReviewState.dueAt})`.as('due_at'),
+  }).from(schema.cardReviewState).where(eq(schema.cardReviewState.userId, userId)).groupBy(schema.cardReviewState.cardId).as('due');
   const rows = await db
-    .select({ card: schema.cards, folder: schema.folders, dueAt: schema.cardReviewState.dueAt })
+    .select({ card: schema.cards, folder: schema.folders, dueAt: due.dueAt })
     .from(schema.cards)
     .leftJoin(schema.folders, eq(schema.cards.folderId, schema.folders.id))
-    .leftJoin(schema.cardReviewState, and(eq(schema.cardReviewState.cardId, schema.cards.id), eq(schema.cardReviewState.userId, userId)))
-    .where(where)
+    .leftJoin(due, eq(due.cardId, schema.cards.id))
+    .where(and(...conds))
     .orderBy(desc(schema.cards.createdAt));
   return rows.map((r) => ({ ...snake<Record<string, unknown>>(r.card), folder: r.folder ? snake(r.folder) : null, due_at: r.dueAt ? isoTimestamp(r.dueAt) : null }));
 }
@@ -107,32 +114,33 @@ router.on('GET', 'cards', authed(async (req, res, user) => {
   res.status(200).json(await listCards(user.id, prefix));
 }));
 
+// Creates through the diary (card.ingest). Accepts the new {spec, provenance} form and the
+// legacy flat form. A capture_key that matches an existing card returns that card (200, existing: true).
 router.on('POST', 'cards', authed(async (req, res, user) => {
-  const values = pick<typeof schema.cards.$inferInsert>(req.body, CARD_FIELDS);
-  if (!values.question || !values.answer) { res.status(400).json({ error: 'question and answer required' }); return; }
-  const [row] = await getDb().insert(schema.cards).values({ ...values, question: values.question, answer: values.answer, userId: user.id }).returning();
-  res.status(201).json(snake(row));
+  const parsed = parseBody(createCardBodySchema, req.body);
+  if (!parsed.ok) { res.status(400).json({ error: parsed.error }); return; }
+  const r = await createCard(getDb(), user.id, parsed.data);
+  res.status(r.existing ? 200 : 201).json({ ...snake<Record<string, unknown>>(r.row), existing: r.existing });
 }));
 
 router.on('GET', 'cards/:id', authed(async (_req, res, user, { id }) => {
-  const [row] = await getDb().select().from(schema.cards).where(and(eq(schema.cards.id, id), eq(schema.cards.userId, user.id)));
+  const [row] = await getDb().select().from(schema.cards)
+    .where(and(eq(schema.cards.id, id), eq(schema.cards.userId, user.id), eq(schema.cards.isDeleted, false)));
   if (!row) { res.status(404).json({ error: 'Card not found' }); return; }
   res.status(200).json(snake(row));
 }));
 
 router.on('PATCH', 'cards/:id', authed(async (req, res, user, { id }) => {
-  const values = pick<typeof schema.cards.$inferInsert>(req.body, CARD_FIELDS);
-  if (Object.keys(values).length === 0) { res.status(400).json({ error: 'No fields to update' }); return; }
-  const [row] = await getDb().update(schema.cards).set(values)
-    .where(and(eq(schema.cards.id, id), eq(schema.cards.userId, user.id))).returning();
-  if (!row) { res.status(404).json({ error: 'Card not found' }); return; }
+  const parsed = parseBody(patchCardBodySchema, req.body);
+  if (!parsed.ok) { res.status(400).json({ error: parsed.error }); return; }
+  const row = await patchCard(getDb(), user.id, id, parsed.data);
   const folder = row.folderId ? (await getDb().select().from(schema.folders).where(eq(schema.folders.id, row.folderId)))[0] ?? null : null;
   res.status(200).json({ ...snake<Record<string, unknown>>(row), folder: folder ? snake(folder) : null });
 }));
 
+// Soft delete (card.setDeleted). The row and its diary stay; every read filters is_deleted.
 router.on('DELETE', 'cards/:id', authed(async (_req, res, user, { id }) => {
-  const rows = await getDb().delete(schema.cards).where(and(eq(schema.cards.id, id), eq(schema.cards.userId, user.id))).returning({ id: schema.cards.id });
-  if (rows.length === 0) { res.status(404).json({ error: 'Card not found' }); return; }
+  await deleteCard(getDb(), user.id, id);
   res.status(200).json({ success: true });
 }));
 
@@ -161,6 +169,7 @@ router.on('PATCH', 'folders/:id', authed(async (req, res, user, { id }) => {
 }));
 
 router.on('DELETE', 'folders/:id', authed(async (_req, res, user, { id }) => {
+  await unfileCardsOfFolder(getDb(), user.id, id);  // the diary records the un-filing; the FK set-null would not
   const rows = await getDb().delete(schema.folders).where(and(eq(schema.folders.id, id), eq(schema.folders.userId, user.id))).returning({ id: schema.folders.id });
   if (rows.length === 0) { res.status(404).json({ error: 'Folder not found' }); return; }
   res.status(200).json({ success: true });
@@ -177,37 +186,26 @@ router.on('GET', 'review/queue', authed(async (_req, res, user) => {
   res.status(200).json({ cards, states: snake(states), new_reviewed_today: logs.map((l) => l.cardId) });
 }));
 
+// The server schedules (card.review → reducer → scheduler). `new_state` from older clients is
+// accepted and ignored. review_logs stays as an analytics mirror until step 8.
 router.on('POST', 'review', authed(async (req, res, user) => {
-  const body = (req.body ?? {}) as { card_id?: string; rating?: string; new_state?: { status: string; due_at: string; interval_days: number; ease_factor: number }; algorithm_version?: string; response_time_ms?: number };
-  const { card_id, rating, new_state } = body;
-  if (!card_id || !rating || !new_state) { res.status(400).json({ error: 'card_id, rating, new_state required' }); return; }
+  const parsed = parseBody(reviewSubmitBodySchema, req.body);
+  if (!parsed.ok) { res.status(400).json({ error: parsed.error }); return; }
+  const body = parsed.data;
   const db = getDb();
-  const [card] = await db.select({ id: schema.cards.id }).from(schema.cards).where(and(eq(schema.cards.id, card_id), eq(schema.cards.userId, user.id)));
-  if (!card) { res.status(404).json({ error: 'Card not found' }); return; }
-
-  const [prev] = await db.select().from(schema.cardReviewState)
-    .where(and(eq(schema.cardReviewState.cardId, card_id), eq(schema.cardReviewState.userId, user.id)));
-  const now = new Date().toISOString();
-  const isAgain = rating === 'again';
-  const next = {
-    status: new_state.status, dueAt: new_state.due_at, intervalDays: new_state.interval_days, easeFactor: new_state.ease_factor,
-    reviewCount: (prev?.reviewCount ?? 0) + 1,
-    lapseCount: (prev?.lapseCount ?? 0) + (isAgain ? 1 : 0),
-    streak: isAgain ? 0 : (prev?.streak ?? 0) + 1,
-    lastReviewedAt: now,
-  };
-  const [state] = prev
-    ? await db.update(schema.cardReviewState).set(next).where(eq(schema.cardReviewState.id, prev.id)).returning()
-    : await db.insert(schema.cardReviewState).values({ ...next, cardId: card_id, userId: user.id }).returning();
-
-  await db.insert(schema.reviewLogs).values({
-    cardReviewStateId: state.id, userId: user.id, cardId: card_id, reviewMode: 'standard', rating,
-    responseTimeMs: body.response_time_ms ?? null,
-    previousStatus: prev?.status ?? 'new', previousInterval: prev?.intervalDays ?? 0, previousEase: prev?.easeFactor ?? 2.5, previousDue: prev?.dueAt ?? null,
-    newStatus: state.status, newInterval: state.intervalDays, newEase: state.easeFactor, newDue: state.dueAt,
-    algorithmVersion: body.algorithm_version ?? null, reviewedAt: now,
+  const r = await reviewCard(db, user.id, body.card_id, body.rating, {
+    componentId: body.component_id ?? MAIN_COMPONENT, sessionId: body.session_id ?? null, responseMs: body.response_time_ms ?? null,
   });
-  res.status(200).json({ state: snake(state) });
+  await db.insert(schema.reviewLogs).values({
+    cardReviewStateId: r.state.id, userId: user.id, cardId: body.card_id, reviewMode: 'standard', rating: body.rating,
+    responseTimeMs: body.response_time_ms ?? null,
+    previousStatus: r.previous?.status ?? 'new', previousInterval: r.previous?.intervalDays ?? 0, previousEase: r.previous?.easeFactor ?? 2.5,
+    previousDue: r.previous?.dueAt ?? null,
+    newStatus: r.state.status, newInterval: r.state.intervalDays, newEase: r.state.easeFactor, newDue: r.state.dueAt,
+    algorithmVersion: `core:${SCHEDULER_ID}`,
+    reviewedAt: r.state.lastReviewedAt ?? new Date().toISOString(),
+  });
+  res.status(200).json({ state: snake(r.state), component_id: r.componentId, previews: r.previews, event_id: r.eventId });
 }));
 
 // ---------------------------------------------------------------- review mixer
@@ -232,7 +230,7 @@ router.on('GET', 'review/decks', authed(async (_req, res, user) => {
     from cards c
     left join folders f on f.id = c.folder_id
     left join card_review_state s on s.card_id = c.id and s.user_id = c.user_id
-    where c.user_id = ${user.id}
+    where c.user_id = ${user.id} and c.is_deleted = false
     group by c.folder_id, f.name, f.is_paused
     order by f.name nulls last`);
   res.status(200).json({ decks: r.rows });
@@ -277,13 +275,15 @@ router.on('POST', 'review/session', authed(async (req, res, user) => {
     id: schema.folders.id, weight: schema.folders.weight, isPaused: schema.folders.isPaused, newPerDay: schema.folders.newPerDay,
   }).from(schema.folders).where(eq(schema.folders.userId, user.id));
 
-  // Slim candidate rows: id, folder, created, state status/due.
-  const candidateRows = await db.select({
-    cardId: schema.cards.id, folderId: schema.cards.folderId, createdAt: schema.cards.createdAt,
+  // Slim candidate rows, one per component: id, component, folder, created, state status/due.
+  // A card with no state rows yet is its single 'main' component, new.
+  const candidateRows = (await db.select({
+    cardId: schema.cards.id, componentId: schema.cardReviewState.componentId, folderId: schema.cards.folderId, createdAt: schema.cards.createdAt,
     status: schema.cardReviewState.status, dueAt: schema.cardReviewState.dueAt,
   }).from(schema.cards)
     .leftJoin(schema.cardReviewState, and(eq(schema.cardReviewState.cardId, schema.cards.id), eq(schema.cardReviewState.userId, user.id)))
-    .where(eq(schema.cards.userId, user.id));
+    .where(and(eq(schema.cards.userId, user.id), eq(schema.cards.isDeleted, false))))
+    .map((r) => ({ ...r, componentId: r.componentId ?? MAIN_COMPONENT }));
 
   // New cards already introduced today, per folder.
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
@@ -315,7 +315,7 @@ router.on('POST', 'review/session', authed(async (req, res, user) => {
     states = snake(await db.select().from(schema.cardReviewState)
       .where(and(eq(schema.cardReviewState.userId, user.id), inArray(schema.cardReviewState.cardId, result.dealtIds)))) as unknown[];
   }
-  res.status(200).json({ cards, states, meta: result.meta });
+  res.status(200).json({ cards, states, dealt: snake(result.dealt), meta: result.meta });
 }));
 
 // ---------------------------------------------------------------- activity
@@ -349,7 +349,7 @@ router.on('POST', 'images', authed(async (req, res, user) => {
     access: 'public', contentType: mime_type, addRandomSuffix: false, allowOverwrite: true,
     token: process.env.BLOB_READ_WRITE_TOKEN,
   });
-  await db.update(schema.cards).set({ imageUrl: blob.url }).where(eq(schema.cards.id, card_id));
+  await setCardImage(db, user.id, card_id, blob.url);  // card.setImage in the diary
   res.status(200).json({ image_url: blob.url });
 }));
 

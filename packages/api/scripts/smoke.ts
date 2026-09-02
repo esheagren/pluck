@@ -6,6 +6,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import v1 from '../api/v1.js';
 import me from '../api/user/me.js';
+import { eq } from 'drizzle-orm';
 import { issueToken, revokeToken } from '../lib/auth.js';
 import { getDb, schema } from '../lib/db.js';
 
@@ -75,7 +76,11 @@ async function main() {
     check('POST review → state upserted', m.result().status === 200 && st.state.review_count === 1 && st.state.streak === 1, st.state);
 
     m = mock('DELETE', `/api/v1/cards/${created.id}`, { token }); await v1(m.req, m.res);
-    check('DELETE card (cascades state+log) → 200', m.result().status === 200);
+    check('DELETE card (soft) → 200', m.result().status === 200);
+    m = mock('GET', `/api/v1/cards/${created.id}`, { token }); await v1(m.req, m.res);
+    check('deleted card is gone from reads → 404', m.result().status === 404);
+    // the smoke card and its diary are hard-deleted so the DB stays clean
+    await getDb().delete(schema.cards).where(eq(schema.cards.id, created.id));
   } finally {
     await revokeToken(token);
   }
