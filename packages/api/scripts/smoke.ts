@@ -96,6 +96,22 @@ async function main() {
     check('review targets one component', m.result().status === 200 && rv.state.component_id === 'reverse' && rv.state.interval_days === 7, rv.state);
     const fwd = comps.length ? (await getDb().select().from(schema.cardReviewState).where(eq(schema.cardReviewState.cardId, bi.id))).find((r) => r.componentId === 'forward') : null;
     check('the other component is untouched', fwd?.status === 'new' && fwd.reviewCount === 0);
+
+    // core-engine step 6: undo the rating, then delete + undo the delete, then read the diary
+    const rvEvent = (m.result().body as { event_id: string }).event_id;
+    m = mock('POST', '/api/v1/review/undo', { token, body: { event_id: rvEvent } }); await v1(m.req, m.res);
+    const un = m.result().body as { undone: string; item: { review_state: { status: string; review_count: number } | null } };
+    check('undo rating → component back to new', m.result().status === 200 && un.undone === 'card.review' && (un.item.review_state?.status ?? 'new') === 'new' && (un.item.review_state?.review_count ?? 0) === 0, un.item.review_state);
+    m = mock('DELETE', `/api/v1/cards/${bi.id}`, { token }); await v1(m.req, m.res);
+    const delEvent = (m.result().body as { event_id: string }).event_id;
+    check('DELETE returns its event id', m.result().status === 200 && !!delEvent);
+    m = mock('POST', '/api/v1/review/undo', { token, body: { event_id: delEvent } }); await v1(m.req, m.res);
+    m = mock('GET', `/api/v1/cards/${bi.id}`, { token }); await v1(m.req, m.res);
+    check('undo delete → card is back', m.result().status === 200);
+    m = mock('GET', `/api/v1/cards/${bi.id}/events`, { token }); await v1(m.req, m.res);
+    const diary = (m.result().body as { events: Array<{ type: string }> }).events.map((e) => e.type);
+    // ingest · review · reschedule (undo) · setDeleted true · setDeleted false (undo)
+    check('diary lists every change, newest first', diary[0] === 'card.setDeleted' && diary[diary.length - 1] === 'card.ingest' && diary.length === 5, diary);
     await getDb().delete(schema.cards).where(eq(schema.cards.id, bi.id));
   } finally {
     await revokeToken(token);

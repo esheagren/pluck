@@ -18,6 +18,9 @@ import CreateFolderButton from '../components/CreateFolderButton';
 import FolderList from '../components/FolderList';
 import FolderBadge from '../components/FolderBadge';
 import { sourceHref, sourceKey, sourceLabel } from '../utils/source';
+import { formatWhen, summariseEvent } from '../utils/diary';
+import { api } from '@pluckk/shared/api';
+import type { CardEventRow } from '@pluckk/shared/api';
 import type { CardsPageProps, Card } from '../types';
 
 const FOLDER_ORDER_KEY = 'pluckk-folder-order';
@@ -59,6 +62,7 @@ export default function CardsPage({
   loading,
   onUpdateCard,
   onDeleteCard,
+  onRestoreCard,
   onMoveCardToFolder,
   folders,
   foldersLoading,
@@ -66,6 +70,15 @@ export default function CardsPage({
   onUpdateFolder,
   onDeleteFolder,
 }: CardsPageProps): JSX.Element {
+  // Undo toast after a delete (the API returns the delete's event id), and the card's diary.
+  const [undoDelete, setUndoDelete] = useState<{ eventId: string; question: string } | null>(null);
+  const [history, setHistory] = useState<CardEventRow[] | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  useEffect(() => {
+    if (!undoDelete) return;
+    const t = setTimeout(() => setUndoDelete(null), 8000);
+    return () => clearTimeout(t);
+  }, [undoDelete]);
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [editQuestion, setEditQuestion] = useState('');
@@ -207,17 +220,44 @@ export default function CardsPage({
       setEditQuestion(selectedCard.question);
       setEditAnswer(selectedCard.answer);
       setIsConfirmingDelete(false);
+      setHistory(null);
+      setHistoryOpen(false);
     }
   }, [selectedCard]);
+
+  const toggleHistory = async (): Promise<void> => {
+    if (!selectedCard) return;
+    if (historyOpen) { setHistoryOpen(false); return; }
+    setHistoryOpen(true);
+    if (!history) {
+      try {
+        const { events } = await api.cards.events(selectedCard.id);
+        setHistory(events);
+      } catch (e) {
+        console.error('Error loading card history:', e);
+        setHistory([]);
+      }
+    }
+  };
 
   const handleDelete = async (): Promise<void> => {
     if (!selectedCard || !onDeleteCard) return;
     setDeleting(true);
-    await onDeleteCard(selectedCard.id);
+    const result = await onDeleteCard(selectedCard.id);
     setDeleting(false);
+    if (!result.error && result.data?.event_id) {
+      setUndoDelete({ eventId: result.data.event_id, question: selectedCard.question });
+    }
     setSelectedCard(null);
     setIsConfirmingDelete(false);
     lastMoveActionRef.current = null; // Clear undo history
+  };
+
+  const handleUndoDelete = async (): Promise<void> => {
+    if (!undoDelete || !onRestoreCard) return;
+    const { eventId } = undoDelete;
+    setUndoDelete(null);
+    await onRestoreCard(eventId);
   };
 
   // Auto-resize textareas when content is set
@@ -422,6 +462,14 @@ export default function CardsPage({
           </div>
         </div>
 
+        {undoDelete && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 px-4 py-2.5 rounded-lg bg-gray-900 text-white text-sm shadow-lg dark:bg-gray-100 dark:text-gray-900">
+            <span className="truncate max-w-xs">Deleted “{undoDelete.question}”</span>
+            {onRestoreCard && (
+              <button type="button" onClick={handleUndoDelete} className="font-medium underline underline-offset-2">Undo</button>
+            )}
+          </div>
+        )}
         {sourceFilter && (
           <div className="mb-4 flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
             <span>
@@ -548,6 +596,23 @@ export default function CardsPage({
                   )}
                 </div>
               )}
+              <div className="mt-3 text-xs">
+                <button type="button" onClick={toggleHistory} className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+                  {historyOpen ? '▾' : '▸'} History
+                </button>
+                {historyOpen && (
+                  <ul className="mt-2 space-y-1 max-h-40 overflow-y-auto text-gray-600 dark:text-gray-300">
+                    {history === null && <li className="text-gray-400">Loading…</li>}
+                    {history?.length === 0 && <li className="text-gray-400">No history yet.</li>}
+                    {history?.map((e) => (
+                      <li key={e.id} className="flex gap-3">
+                        <span className="text-gray-400 dark:text-gray-500 whitespace-nowrap tabular-nums">{formatWhen(e.at)}</span>
+                        <span>{summariseEvent(e, (id) => folders.find((f) => f.id === id)?.name ?? null)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               <div className="mt-6 flex gap-3">
                 {!isConfirmingDelete ? (
                   <>

@@ -34,7 +34,7 @@ export default function App(): JSX.Element {
     signIn,
     signOut,
   } = useAuth();
-  const { cards, loading: cardsLoading, updateCard, deleteCard, moveCardToFolder } = useCards(
+  const { cards, loading: cardsLoading, updateCard, deleteCard, restoreCard, moveCardToFolder } = useCards(
     user?.id
   );
   const { folders, loading: foldersLoading, createFolder, updateFolder, deleteFolder } =
@@ -90,6 +90,7 @@ export default function App(): JSX.Element {
               loading={cardsLoading}
               onUpdateCard={updateCard}
               onDeleteCard={deleteCard}
+              onRestoreCard={restoreCard}
               onMoveCardToFolder={moveCardToFolder}
               folders={folders}
               foldersLoading={foldersLoading}

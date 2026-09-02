@@ -338,7 +338,8 @@ export interface UseCardsReturn {
   refetch: () => Promise<void>;
   getShuffledCards: () => Card[];
   updateCard: (cardId: string, updates: CardUpdates) => Promise<OperationResult<Card>>;
-  deleteCard: (cardId: string) => Promise<OperationResult>;
+  deleteCard: (cardId: string) => Promise<OperationResult<{ event_id?: string }>>;
+  restoreCard: (eventId: string) => Promise<OperationResult>;
   moveCardToFolder: (cardId: string, folderId: string | null, folder?: Folder | null) => Promise<OperationResult<Card>>;
 }
 
@@ -523,6 +524,9 @@ export interface UseReviewStateReturn {
   newCardsPerDay: number;
   getIntervalPreviews: () => IntervalPreviews | null;
   submitReview: (rating: Rating) => Promise<ReviewSubmitResult>;
+  /** Undo the last rating (server-side compensating event). Resolves true when the queue was restored. */
+  undoLastReview: () => Promise<boolean>;
+  canUndo: boolean;
   skipCard: () => void;
   removeCard: (cardId: string) => void;
   restart: () => void;
@@ -558,7 +562,9 @@ export interface CardsPageProps {
   cards: Card[];
   loading: boolean;
   onUpdateCard?: (cardId: string, updates: CardUpdates) => Promise<OperationResult<Card>>;
-  onDeleteCard?: (cardId: string) => Promise<OperationResult>;
+  onDeleteCard?: (cardId: string) => Promise<OperationResult<{ event_id?: string }>>;
+  /** Undo a delete by the event id the delete returned; the card list is refetched. */
+  onRestoreCard?: (eventId: string) => Promise<OperationResult>;
   onMoveCardToFolder?: (cardId: string, folderId: string | null) => Promise<OperationResult<Card>>;
   folders: Folder[];
   foldersLoading: boolean;

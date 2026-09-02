@@ -45,6 +45,16 @@ export interface ReviewStateRow {
 
 export interface IntervalPreviews { again: string; hard: string; good: string; easy: string }
 
+/** One entry of a card's diary, snake_case on the wire; the rest of the fields depend on `type`. */
+export interface CardEventRow {
+  id: string; seq: number; card_id: string; user_id: string; at: string;
+  type: 'card.ingest' | 'card.review' | 'card.reschedule' | 'card.setDeleted' | 'card.setSpec' | 'card.setProvenance' | 'card.setFolder' | 'card.setTags' | 'card.setImage';
+  component_id?: string; rating?: string; session_id?: string | null; response_ms?: number | null;
+  is_deleted?: boolean; folder_id?: string | null; tags?: string[]; image_url?: string | null;
+  spec?: CardSpec; provenance?: Provenance | null; capture_key?: string | null;
+  state?: { status: string; due_at: string; interval_days: number; ease_factor: number; review_count: number };
+}
+
 /** One component of one card, rendered for review: what the session deals and what a rating targets. */
 export interface ReviewItem extends CardRow {
   card_id: string;
@@ -144,7 +154,9 @@ export function createApiClient(opts: ApiClientOptions) {
       get: (id: string) => request<CardRow>('GET', `/api/v1/cards/${id}`),
       create: (card: NewCardInput) => request<CardRow>('POST', '/api/v1/cards', card),
       update: (id: string, updates: Partial<NewCardInput>) => request<CardRow>('PATCH', `/api/v1/cards/${id}`, updates),
-      remove: (id: string) => request<{ success: true }>('DELETE', `/api/v1/cards/${id}`),
+      remove: (id: string) => request<{ success: true; event_id?: string }>('DELETE', `/api/v1/cards/${id}`),
+      /** The card's diary, newest first. */
+      events: (id: string) => request<{ events: CardEventRow[] }>('GET', `/api/v1/cards/${id}/events`),
     },
     folders: {
       list: () => request<FolderRow[]>('GET', '/api/v1/folders'),
@@ -169,6 +181,9 @@ export function createApiClient(opts: ApiClientOptions) {
       /** Fresh items for saved (card, component) pairs — used to resume a session. */
       items: (items: Array<{ card_id: string; component_id: string }>) =>
         request<{ items: ReviewItem[] }>('POST', '/api/v1/review/items', { items }),
+      /** Undo the latest change to a card (a rating, a delete, an edit) by the event id the write returned. */
+      undo: (event_id: string) =>
+        request<{ card_id: string; component_id: string | null; undone: string; is_deleted: boolean; item: ReviewItem | null }>('POST', '/api/v1/review/undo', { event_id }),
     },
     activity: { get: () => request<ActivityData>('GET', '/api/v1/activity') },
     images: {

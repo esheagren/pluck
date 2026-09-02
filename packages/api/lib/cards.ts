@@ -5,7 +5,7 @@
 import { and, eq } from 'drizzle-orm';
 import {
   captureKey as makeCaptureKey, componentIdsOf, defaultScheduler, legacyFromSpec, MAIN_COMPONENT,
-  provenanceFromLegacy, specFromLegacy,
+  provenanceFromLegacy, rebuild, specFromLegacy,
   type Card, type CardSpec, type ComponentState, type CreateCardBody, type PatchCardBody, type Provenance, type Rating,
 } from '@pluckk/core';
 import { getDb, schema } from './db.js';
@@ -165,10 +165,58 @@ export async function patchCard(db: Db, userId: string, id: string, body: PatchC
   return getCardRow(db, userId, id);
 }
 
-export async function deleteCard(db: Db, userId: string, id: string): Promise<void> {
+export async function deleteCard(db: Db, userId: string, id: string): Promise<{ eventId: string }> {
   const row = await getCardRow(db, userId, id);
   await ensureDiary(db, row);
-  await commit(db, [{ type: 'card.setDeleted', userId, cardId: id, isDeleted: true }]);
+  const { events } = await commit(db, [{ type: 'card.setDeleted', userId, cardId: id, isDeleted: true }]);
+  return { eventId: events[0].id };
+}
+
+export interface UndoResult { cardId: string; componentId: string | null; undone: string; card: Card }
+
+/**
+ * Undo a change by appending its compensating event: the card is rebuilt as it was
+ * just before the event, and whatever that event touched is set back to that.
+ * Only a card's latest change can be undone, so later changes are never clobbered.
+ */
+export async function undoEvent(db: Db, userId: string, eventId: string): Promise<UndoResult> {
+  const [row] = await db.select().from(schema.cardEvents).where(and(eq(schema.cardEvents.id, eventId), eq(schema.cardEvents.userId, userId)));
+  if (!row) throw new CardError(404, 'Event not found');
+  const events = await loadEvents(db, row.cardId);
+  const target = events.find((e) => e.id === eventId)!;
+  const latest = events[events.length - 1];
+  if (latest.id !== eventId) throw new CardError(409, 'Only the latest change to a card can be undone');
+  if (target.type === 'card.ingest') throw new CardError(400, 'Creating a card cannot be undone; delete it instead');
+
+  const before = rebuild(events.filter((e) => e.id !== eventId));
+  if (!before) throw new CardError(500, 'Card has no state before this event');
+  const base = { userId, cardId: row.cardId };
+  let compensating: NewEvent;
+  let componentId: string | null = null;
+  switch (target.type) {
+    case 'card.review':
+    case 'card.reschedule': {
+      componentId = target.componentId;
+      const state = before.components[componentId];
+      if (!state) throw new CardError(409, 'That component no longer exists');
+      compensating = { ...base, type: 'card.reschedule', componentId, state };
+      if (target.type === 'card.review') {
+        // the analytics mirror should forget it too
+        await db.delete(schema.reviewLogs).where(and(eq(schema.reviewLogs.cardId, row.cardId), eq(schema.reviewLogs.reviewedAt, target.at)));
+      }
+      break;
+    }
+    case 'card.setDeleted': compensating = { ...base, type: 'card.setDeleted', isDeleted: before.isDeleted }; break;
+    case 'card.setSpec': compensating = { ...base, type: 'card.setSpec', spec: before.spec }; break;
+    case 'card.setFolder': compensating = { ...base, type: 'card.setFolder', folderId: before.folderId }; break;
+    case 'card.setTags': compensating = { ...base, type: 'card.setTags', tags: before.tags }; break;
+    case 'card.setImage': compensating = { ...base, type: 'card.setImage', imageUrl: before.imageUrl }; break;
+    case 'card.setProvenance': compensating = { ...base, type: 'card.setProvenance', provenance: before.provenance }; break;
+    default: throw new CardError(400, `Cannot undo ${(target as { type: string }).type}`);
+  }
+  const { card } = await commit(db, [compensating]);
+  if (!card) throw new CardError(500, 'Card vanished during undo');
+  return { cardId: row.cardId, componentId, undone: target.type, card };
 }
 
 export async function setCardImage(db: Db, userId: string, id: string, imageUrl: string | null): Promise<void> {

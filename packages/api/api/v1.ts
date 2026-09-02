@@ -16,11 +16,12 @@ import { and, desc, eq, gte, inArray, like, sql } from 'drizzle-orm';
 import { selectSession } from '../lib/mixer.js';
 import { OAuth2Client } from 'google-auth-library';
 import { put } from '@vercel/blob';
-import { MAIN_COMPONENT, SCHEDULER_ID, createCardBodySchema, parseBody, patchCardBodySchema, reviewSubmitBodySchema } from '@pluckk/core';
+import { MAIN_COMPONENT, SCHEDULER_ID, createCardBodySchema, parseBody, patchCardBodySchema, reviewSubmitBodySchema, reviewUndoBodySchema } from '@pluckk/core';
 import { getDb, schema } from '../lib/db.js';
 import { authenticateRequest, isAuthError, issueToken, revokeToken } from '../lib/auth.js';
-import { CardError, createCard, deleteCard, patchCard, reviewCard, setCardImage, unfileCardsOfFolder } from '../lib/cards.js';
+import { CardError, createCard, deleteCard, patchCard, reviewCard, setCardImage, undoEvent, unfileCardsOfFolder } from '../lib/cards.js';
 import { buildItems } from '../lib/review.js';
+import { loadEvents } from '../lib/store.js';
 import { Router, pathSegments, type RouteHandler } from '../lib/router.js';
 import { snake, pick, isoTimestamp } from '../lib/serialize.js';
 
@@ -143,9 +144,19 @@ router.on('PATCH', 'cards/:id', authed(async (req, res, user, { id }) => {
 }));
 
 // Soft delete (card.setDeleted). The row and its diary stay; every read filters is_deleted.
+// The event id lets the client offer Undo.
 router.on('DELETE', 'cards/:id', authed(async (_req, res, user, { id }) => {
-  await deleteCard(getDb(), user.id, id);
-  res.status(200).json({ success: true });
+  const { eventId } = await deleteCard(getDb(), user.id, id);
+  res.status(200).json({ success: true, event_id: eventId });
+}));
+
+// The diary of one card, newest first (includes deleted cards — that is the point).
+router.on('GET', 'cards/:id/events', authed(async (_req, res, user, { id }) => {
+  const db = getDb();
+  const [row] = await db.select({ id: schema.cards.id }).from(schema.cards).where(and(eq(schema.cards.id, id), eq(schema.cards.userId, user.id)));
+  if (!row) { res.status(404).json({ error: 'Card not found' }); return; }
+  const events = (await loadEvents(db, id)).reverse();
+  res.status(200).json({ events: events.map((e) => ({ ...snake<Record<string, unknown>>(e), at: e.at })) });
 }));
 
 // ---------------------------------------------------------------- folders
@@ -322,6 +333,16 @@ router.on('POST', 'review/session', authed(async (req, res, user) => {
   // items: one entry per dealt component, rendered for that component, with its state and previews.
   const items = await buildItems(db, user.id, result.dealt);
   res.status(200).json({ cards, states, dealt: snake(result.dealt), items, meta: result.meta });
+}));
+
+// Undo the latest change to a card (a rating, a delete, an edit…) by its event id.
+router.on('POST', 'review/undo', authed(async (req, res, user) => {
+  const parsed = parseBody(reviewUndoBodySchema, req.body);
+  if (!parsed.ok) { res.status(400).json({ error: parsed.error }); return; }
+  const db = getDb();
+  const r = await undoEvent(db, user.id, parsed.data.event_id);
+  const items = r.componentId && !r.card.isDeleted ? await buildItems(db, user.id, [{ cardId: r.cardId, componentId: r.componentId }]) : [];
+  res.status(200).json({ card_id: r.cardId, component_id: r.componentId, undone: r.undone, is_deleted: r.card.isDeleted, item: items[0] ?? null });
 }));
 
 // Fresh items for a saved session (the webapp restores by card+component ids).

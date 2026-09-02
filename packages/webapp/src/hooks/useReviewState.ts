@@ -94,6 +94,8 @@ export function useReviewState(userId: string | undefined, config: SessionConfig
   const [totalNewCards, setTotalNewCards] = useState(0);
   const [newCardsAvailableToday, setNewCardsAvailableToday] = useState(0);
   const [sessionMeta, setSessionMeta] = useState<SessionMeta | null>(null);
+  /** The last rating, so it can be undone: the event to undo, the entry as it was, and where it sat. */
+  const [lastReview, setLastReview] = useState<{ eventId: string; entry: CardWithReviewState; index: number; wasAgain: boolean } | null>(null);
 
   /** Re-fetch the saved (card, component) pairs; drops items that no longer exist. */
   const tryRestoreSession = useCallback(
@@ -227,6 +229,7 @@ export function useReviewState(userId: string | undefined, config: SessionConfig
       try {
         const res = await api.review.submit({ card_id: current.id, component_id: current.component_id, rating });
         const savedState = res.state as unknown as CardReviewState;
+        setLastReview({ eventId: res.event_id, entry: current, index: currentIndex, wasAgain: rating === RATINGS.AGAIN });
 
         if (current.is_new) setNewCardsAvailableToday((prev) => Math.max(0, prev - 1));
 
@@ -250,6 +253,33 @@ export function useReviewState(userId: string | undefined, config: SessionConfig
     },
     [dueCards, currentIndex]
   );
+
+  /**
+   * Undo the last rating: the server appends the compensating event; the item goes
+   * back to where it was in the queue with the state it had.
+   */
+  const undoLastReview = useCallback(async (): Promise<boolean> => {
+    if (!lastReview) return false;
+    try {
+      const res = await api.review.undo(lastReview.eventId);
+      const restored: CardWithReviewState = res.item ? toQueueEntry(res.item) : lastReview.entry;
+      // Drop the re-queued copy (an "again" moved it to the end), then put it back at its index.
+      const key = itemKey(lastReview.entry);
+      const without = lastReview.wasAgain ? dueCards.filter((c, i) => !(itemKey(c) === key && i >= currentIndex)) : dueCards;
+      const at = Math.min(lastReview.index, without.length);
+      const next = [...without.slice(0, at), { ...restored, _againCard: lastReview.entry._againCard }, ...without.slice(at)];
+      setDueCards(next);
+      setCurrentIndex(at);
+      if (lastReview.entry.is_new) setNewCardsAvailableToday((prev) => prev + 1);
+      saveSession(next.map(itemKey), at);
+      setLastReview(null);
+      return true;
+    } catch (error) {
+      console.error('Error undoing review:', error);
+      setLastReview(null);
+      return false;
+    }
+  }, [lastReview, dueCards, currentIndex]);
 
   /** Skip the current item, moving it to the end of the queue. */
   const skipCard = useCallback((): void => {
@@ -296,6 +326,8 @@ export function useReviewState(userId: string | undefined, config: SessionConfig
     newCardsPerDay: getNewCardsPerDay(),
     getIntervalPreviews,
     submitReview,
+    undoLastReview,
+    canUndo: lastReview !== null,
     skipCard,
     removeCard,
     restart,
