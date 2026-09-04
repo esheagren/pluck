@@ -296,6 +296,13 @@ struct CardGenerationView: View {
             }
         }
         .padding(16)
+        // Solid bar so the sand animation stays behind the controls
+        .background(colorScheme == .dark ? PluckkTheme.Dark.surface : PluckkTheme.Light.surface)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(colorScheme == .dark ? PluckkTheme.Dark.border : PluckkTheme.Light.border)
+                .frame(height: 1)
+        }
     }
 
     // MARK: - Actions
@@ -520,6 +527,19 @@ struct CardRowView: View {
 
     @State private var editQuestion: String = ""
     @State private var editAnswer: String = ""
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// Solid surfaces so the sand animation never shows through the text.
+    private var rowSurface: Color {
+        if isSelected {
+            return colorScheme == .dark ? PluckkTheme.Dark.surfaceSecondary : PluckkTheme.Light.surfaceSecondary
+        }
+        return colorScheme == .dark ? PluckkTheme.Dark.surface : PluckkTheme.Light.surface
+    }
+    private var rowBorder: Color {
+        if isSelected { return Color.accentColor.opacity(0.45) }
+        return colorScheme == .dark ? PluckkTheme.Dark.borderLight : PluckkTheme.Light.border
+    }
 
     /// Left border accent color based on card type
     private var accentColor: Color {
@@ -566,12 +586,13 @@ struct CardRowView: View {
             }
             .padding(12)
         }
-        .background(isSelected ? Color.accentColor.opacity(0.05) : Color.primary.opacity(0.03))
+        .background(rowSurface)
         .cornerRadius(8)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(isSelected ? Color.accentColor.opacity(0.3) : Color.clear, lineWidth: 1)
+                .stroke(rowBorder, lineWidth: 1)
         )
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.08), radius: 6, y: 2)
     }
 
     private var cardHeader: some View {
